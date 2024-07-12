@@ -1,0 +1,215 @@
+<!-- a comment -->
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PPR4DST6Q3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  
+    gtag('config', 'G-PPR4DST6Q3');
+  </script>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="">
+  <meta name="keywords" content="microchat, chatbot, vision language model, biology">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+        .video-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50h;
+            flex-direction: column;
+        }
+        iframe {
+            margin-bottom: 20px;
+        }
+        .video-container ul {
+            text-align: left;
+            display: inline-block;
+            margin: 0 auto 20px;
+            padding: 0;
+            list-style-type: disc;
+        }
+        .left-justified {
+            text-align: left;
+        }
+         ul.custom-bullets {
+            list-style-type: square; /* Changes bullet points to squares */
+            padding-left: 20px; /* Adds padding to the left of the list */
+        }
+    </style>
+  <title>MicroChat</title>
+
+  
+  
+
+
+  <!-- Math -->
+  <script type="text/javascript"
+  src="static/js/LaTeXMathML.js">
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.png">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <img src="./static/images/microchat-banner.png"
+                 class=""
+                 alt="banner"/>
+    </div>
+  </div>
+</section>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Contribute to MicroChat</h1>
+          <div class="is-size-5 publication-authors">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">What is the MicroChat benchmark?</h2>
+    <div class="content">
+    <p>Check out the <a href="index.html">main page here</a>.
+    </p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">What are the specific goals that we have now? </h2>
+    <div class="content">
+    <p>We are collecting between 1000 and 2000 questions for v1 of our benchmark. We intend to publish this as a benchmark & evaluation paper. We will most likely submit this to a machine learning conference at the end of September and put a preprint online soon after (note that in machine learning, it’s most common to publish in conferences instead of journals; conference papers are indexed). Significant contributors will be added as authors to the paper (see next section). We are NOT creating AI systems to solve this benchmark in this paper. That is for future work.
+    </p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">How you can get authorship or an acknowledgement</h2>
+    <div class="content">
+    <p>We’re looking for benchmark contributions from experts in interpreting microscopy images for biology. Since we want a very diverse range of questions, we welcome experts from all imaging modalities, model systems, research areas etc. You will submit questions using a google form that we will send to you.</p>
+    <p>Your contribution will be considered substantial enough for authorship when, after our quality control and review process, your contributed data and questions satisfy some criteria, which we specify below.</p>
+    </div>
+    <p><b>How we count contributions</b></p>
+    <p>A single “question” is an image (or image set), some text giving the context, some question text, and an answer text, like this:</p>
+    <img src="./static/images/sample_question.png" class="" alt="banner"/> 
+    <p>For a single image (or image set), you can also submit multiple questions like this:</p>
+    <img src="./static/images/sample_multiple_question.png" class="" alt="banner"/> 
+    <p> One image / image set is called an “image set example”, and so you can have multiple questions per “image set example”.</p>
+    <br>
+    <p><b>Requirement for acknowledgement</b></p>
+    <p>If you submit 2 image set examples, and 10 questions (after quality control), you’ll receive acknowledgement in the paper, and project website. </p>
+    <br>
+    <p><b>Requirement for authorship</b></p>
+    <p>For authorship, you must satisfy ALL of the following criteria:</p>
+     <ul class="custom-bullets spaced">
+        <li>20 distinct "image set examples". Remember, 1 image set example (an image or image set) has multiple questions. (And remember, submit this form separately for each experiment).</li>
+        <li>100 total questions, (so 5 questions per image set example on average).</li>
+        <li>At least 30 out of the 100 questions from use case 2' (this is discussed <a href="use_cases.pdf">here in use the use cases doc</a>)</li>
+        <li>At least 20 out of the 100 questions from 'use case 3' (this is discussed <a href="use_cases.pdf">here in use the use cases doc</a></li>
+        <p> 
+
+    </ul>
+    <br>
+    <p>You also need to complete these in the timelines listed in the next section.</p>
+    <br>
+    <p>How to keep track of the number of submissions? Unfortunately we won’t have a live page showing  your current count (sorry about that).  But you will receive an email after each form submission. Beyond that, we recommend keeping track of your submission count. If you're not sure, then you can email us.</p>
+    <p>We may ask you to do a few more things in the future as part of quality control and getting better metadata. Those things might include:</p>
+    <br>
+    <ul class="custom-bullets spaced">
+      <li>Answer our questions to clarify any confusion we have about the question and answer. </li>
+      <li>Review the quality of questions submitted by others. This will probably be fewer than 100 questions per person and should take less than a minute each. </li>
+      <li>Mark spatial regions in the image that are significant. If we decide to ask you to do this, then we'll provide clear instructions and tools to do it, and we'd ask for only rough annotations. So this should take, again, only about 1 minute per question.</li>
+    </ul>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">The timeline</h2>
+    <div class="content">
+      <p><b>July 16 - July 24: collection practice round</b></p>
+      <p>Submit about 2 “image set examples” and 10 questions. The idea is that you will get used to the submission process by adding a small number of examples. Since our instructions may not be perfect, we expect that some submitted questions will be different to what we intended, so our review will let us write to you and clarify what we meant. </p>
+
+      <br>
+      <p><b>July 25 - Aug 2: review the practice round</b></p>
+      <p>We (James & Jeff) will do the review and email you clarifying how we’d like your questions changed for the next round. </p>
+
+      <br>
+      <p><b>August 2 - Aug 14: main round 1</b></p>
+      <p>Meet HALF of the authorship requirements. That is: 10 “image set examples”, 50 questions, 15 questions from use case 2, and 10 questions from use case 3.</p>
+
+      <br>
+      <p><b>August 14 - Sep 2: main round 2</b></p>
+      <p>Meet ALL of the authorship requirements listed above. 100 questions etc.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">Contact us to contribute</h2>
+    <div class="content">
+    <p>
+      Email James, jmhb@stanford.edu, and Jeff, jnirschl@stanford.edu.
+    </p>
+    </div>
+  </div>
+</section>
+
+
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+          The template for this page is borrowed from <a href="https://nerfies.github.io/">Nerfies</a>.  If you reuse their <a href="https://github.com/nerfies/nerfies.github.io">code</a>, please link to their site.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
