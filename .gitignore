@@ -1,4 +1,3 @@
-
 # stuff I added 
 *bak
 *.pt
@@ -9,6 +8,7 @@ data/*
 !data/*.py
 results
 tmp*
+.DS_Store
 *.mdb
 notes.py
 wandb

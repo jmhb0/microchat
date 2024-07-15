@@ -110,9 +110,9 @@
 
 <section class="section">
   <div class="container is-max-desktop">
-    <h2 class="title is-3">What are the specific goals that we have now? </h2>
+    <h2 class="title is-3">What are the goals? </h2>
     <div class="content">
-    <p>We are collecting between 1000 and 2000 questions for v1 of our benchmark. We intend to publish this as a benchmark & evaluation paper. We will most likely submit this to a machine learning conference at the end of September and put a preprint online soon after (note that in machine learning, it’s most common to publish in conferences instead of journals; conference papers are indexed). Significant contributors will be added as authors to the paper (see next section). We are NOT creating AI systems to solve this benchmark in this paper. That is for future work.
+    <p>We're collecting between 1000 and 5000 questions for v1 of our benchmark, which we intend to publish this as a benchmark & evaluation paper. We will most likely submit this to a machine learning conference at the end of September and put a preprint online soon after (note that in machine learning, it’s most common to publish in conferences instead of journals; conference papers are indexed). Significant contributors will be added as authors to the paper (see next section). We are NOT creating AI systems to solve this benchmark in this paper. That is for future work.
     </p>
     </div>
   </div>
@@ -158,6 +158,21 @@
       <li>Review the quality of questions submitted by others. This will probably be fewer than 100 questions per person and should take less than a minute each. </li>
       <li>Mark spatial regions in the image that are significant. If we decide to ask you to do this, then we'll provide clear instructions and tools to do it, and we'd ask for only rough annotations. So this should take, again, only about 1 minute per question.</li>
     </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3">What kinds of images and questions? </h2>
+    <div class="content">
+    <p>
+    Images can come from your own experiments, or from screenshots of (open license) publications released since 2024. We're interested in all kinds of biological images in microscopy. E.g. many modalities (brightfield, fluorescence, EM, ET), scales (whole organism, tissue, cellular, subcellular), organisms, cell lines, and so on. For each "image-question-answer" sample, there can be up to 6 2d images. If your data is in videos or 3D, then you can submit up to 6 frames or slices, similar to how video and 3D stacks are sometimes shown in publications. Images can have up to 8 channels.
+    </p>
+    <p>
+      The questions should be challenging enough that they'd be too difficult for an undergraduate biology student to answer without access to the source publication. The questions are often about "suggesting hypotheses". For example, in the images above, the 'answers' suggest possible mechanisms that might cause an image, but to verify whether the answer is definitely right, you'd need to do more experiments. 
+    </p>
+    <p>To learn more about the exact types of questions we want, check out the <a href="use_cases.pdf">use cases doc here</a>.</p>
     </div>
   </div>
 </section>
