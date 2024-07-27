@@ -1,3 +1,4 @@
+
 # stuff I added 
 *bak
 *.pt
@@ -8,13 +9,19 @@ data/*
 !data/*.py
 results
 tmp*
-.DS_Store
+*.DS_Store*
+*DS_Store*
 *.mdb
 notes.py
 wandb
 *.swp
 profiling_results.txt
 *.mp4
+*.pdf
+*.png
+*.jpg
+*.tiff
+*formdata*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
