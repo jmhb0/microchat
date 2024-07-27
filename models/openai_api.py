@@ -8,7 +8,6 @@ import base64
 import asyncio
 from openai import OpenAI, AsyncOpenAI, ChatCompletion
 from pathlib import Path
-import decord
 from PIL import Image
 import numpy as np
 import os
@@ -43,7 +42,7 @@ def call_gpt(
     json_mode: bool = True,
     # kwargs for client.chat.completions.create
     detail: str = "high",
-    model: str = "gpt-o",
+    model: str = "gpt-4o",
     temperature: float = 1,
     max_tokens: int = 2048,
     top_p: float = 1,
