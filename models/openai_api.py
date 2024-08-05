@@ -64,7 +64,7 @@ def call_gpt(
     calling args/kwargs. The caching only saves the first return message, and not
     the whole response object. 
 
-    imgs: optionally add images. Must be a sequence of numpy arrays. 
+    imgs: optionally add images. Must be a sequence of numpy arrays, shape (H,W,3)
     overwrite_cache (bool): do NOT get response from cache but DO save it to cache.
     seed (int): doesnt actually work with openai API atm, but it is in the 
         cache key, so changing it will force the API to be called again

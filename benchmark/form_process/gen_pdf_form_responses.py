@@ -13,7 +13,8 @@ def get_styles():
     styles = getSampleStyleSheet()
     normal_style = styles['Normal']
     bold_style = ParagraphStyle('Bold', parent=styles['Normal'], fontName='Helvetica-Bold')
-    return normal_style, bold_style
+    header_style = ParagraphStyle('Header', parent=styles['Heading1'], fontSize=14, spaceAfter=12)
+    return normal_style, bold_style, header_style
 
 def truncate_text(text, max_length=200):
     return (text[:max_length] + '...') if len(text) > max_length else text
@@ -36,7 +37,7 @@ def resize_image(img_path, max_width, max_height):
         
         return new_width, new_height
 
-def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, qas=None):
+def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, header_style, qas=None, run_eval=0):
     pdf_filename = os.path.join(output_dir, f'response_{idx}.pdf')
     doc = SimpleDocTemplate(pdf_filename, pagesize=letter, leftMargin=inch, rightMargin=inch)
     story = []
@@ -93,9 +94,9 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, qas
             story.append(Paragraph(str(value), normal_style))
             story.append(Spacer(1, 12))
 
-    # Add generated questions and choices if available
+    # Add generated questions and choices if available. Write all the questions first, then write all the answers
     if qas and str(idx) in qas:
-        story.append(Paragraph("Generated Questions:", bold_style))
+        story.append(Paragraph("Generated multi-choice questions:", header_style))
         story.append(Spacer(1, 12))
         for i, qa in enumerate(qas[str(idx)], 1):
             story.append(Paragraph(f"Question {i}: {qa['question']}", normal_style))
@@ -106,9 +107,41 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, qas
             story.append(Paragraph(f"Answer: {qa['answer']}", normal_style))
             story.append(Spacer(1, 12))
 
+        if run_eval == 1:
+            # open responses
+            story.append(Paragraph("GPT's responses (NOT multichoice)", header_style))
+            for i, qa in enumerate(qas[str(idx)], 1):
+                story.append(Paragraph(f"Question {i}", bold_style))
+                story.append(Paragraph(f"{qa['question']}", normal_style))
+                story.append(Paragraph(f"ChatGPT's response (NOT multichoice):", bold_style))
+                # Replace newline characters with HTML line breaks in 'response_no_choices'
+                formatted_response_no_choices = qa['response_no_choices'].replace('\n', '<br/>')
+                story.append(Paragraph(f"{formatted_response_no_choices}", normal_style))
+                story.append(Spacer(1, 12))
+
+            # multi-choice responses
+            story.append(Spacer(2, 12))
+            story.append(Paragraph("GPT's responses (to multi-choice question)", header_style))
+            for i, qa in enumerate(qas[str(idx)], 1):
+                story.append(Paragraph(f"Question {i}", bold_style))
+                story.append(Paragraph(f"{qa['question']}", normal_style))
+                for j, choice in enumerate(qa['choices'], 0):
+                    story.append(Paragraph(f"{j}: {choice}", normal_style))
+                story.append(Spacer(1, 12))
+                story.append(Paragraph(f"Answer", bold_style))
+                story.append(Paragraph(f"{qa['answer']}", normal_style))
+                story.append(Paragraph(f"GPT's multichoice choice:", bold_style))
+                story.append(Paragraph(f"{qa['pred']}", normal_style))                
+                story.append(Paragraph(f"GPT's responses (to multi-choice question):", bold_style))
+                # Replace newline characters with HTML line breaks in 'response'
+                formatted_response = qa['response'].replace('\n', '<br/>')
+                story.append(Paragraph(f"{formatted_response}", normal_style))                
+                story.append(Spacer(1, 12))
+
+
     doc.build(story)
 
-def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0):
+def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, run_eval=0, key_prompt_eval=0):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     formdata_dir = os.path.join(script_dir, f'formdata_{idx_form}')
     csv_path = os.path.join(formdata_dir, 'responses.csv')
@@ -121,30 +154,40 @@ def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0):
     os.makedirs(output_dir, exist_ok=True)
     
     df = pd.read_csv(csv_path)
-    normal_style, bold_style = get_styles()
+    normal_style, bold_style, header_style = get_styles()
 
     qas = None
 
     if show_gen_questions:
-        qa_file = os.path.join(formdata_dir, 'generated_questions_text', f'qa_keyprompt_{prompt_key}_seed_{seed}.json')
+        if run_eval:
+            qa_filename = f'qa_results_keyprompt_{prompt_key}_seed_{seed}_keyprompteval_{key_prompt_eval}.json'
+        else:
+            qa_filename = f'qa_keyprompt_{prompt_key}_seed_{seed}.json'
+        
+        qa_file = os.path.join(formdata_dir, 'generated_questions_text', qa_filename)
         if os.path.exists(qa_file):
             with open(qa_file, 'r') as f:
                 qas = json.load(f)
 
     for idx, row in df.iterrows():
         try:
-            create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, qas)
+            create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, header_style, qas, run_eval)
         except Exception as e:
             print(f"Error creating PDF for row {idx}: {str(e)}")
 
     print(f"PDFs have been created in the '{output_dir}' directory.")
 
 def main():
-    idx_form = 0  # Change this value as needed
-    show_gen_questions = True  # Set to False to use the original behavior
-    prompt_key = 0  # Default value
-    seed = 0  # Default value
-    process_responses(idx_form, show_gen_questions, prompt_key, seed)
+    idx_form = 0  
+    show_gen_questions = True   
+    prompt_key = 1
+    seed = 0  
+    
+    # if run_eval was run, then show it
+    run_eval = 1  
+    key_prompt_eval = 0  
+    
+    process_responses(idx_form, show_gen_questions, prompt_key, seed, run_eval, key_prompt_eval)
 
 if __name__ == "__main__":
     main()
