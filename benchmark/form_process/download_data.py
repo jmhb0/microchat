@@ -23,9 +23,18 @@ def download_form_responses(idx, url):
 	dir_data.mkdir(exist_ok=True, parents=True)
 	f_csv = dir_data / "responses.csv"
 	download_csv(url, f_csv)
-	df = pd.read_csv(f_csv)    
-	df = df.dropna(subset=["Your email"])
-	print("Unique emails: ", len(df["Your email"].unique()))
+	df = pd.read_csv(f_csv)
+
+	# "Your email" is the auto-filled email. It was added late, so use "Email Address" if its missing
+	df['Email Address'] = df['Email Address'].fillna(df['Your email'])
+	df = df.dropna(subset=["Email Address"])
+
+	print("\nUnique emails: ", len(df["Your email"].unique()))
+	print("\nCounts ", df.groupby('Email Address')['Email Address'].count())
+	
+	print("Unique names: ", len(df["Your name"].unique()))
+	print("\nNames", df.groupby('Your name')['Your name'].count())
+
 	download_images_from_csv(dir_data, df)
 
 def download_csv(url, output_path):
@@ -115,6 +124,7 @@ def extract_file_id(url):
 	file_id_match = re.search(r"(?:\/d\/|id=|open\?id=)([a-zA-Z0-9_-]+)", url)
 	return file_id_match.group(1) if file_id_match else None
 
+
 def download_images_from_csv(dir_data, df):
 	dir_data_images = dir_data / "images"
 	dir_data_images.mkdir(exist_ok=True, parents=True)
@@ -178,3 +188,4 @@ def download_images_from_csv(dir_data, df):
 if __name__ == "__main__":
 	for idx, url in urls_form_responses.items():
 		download_form_responses(idx, url)
+

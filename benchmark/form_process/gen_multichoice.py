@@ -109,8 +109,23 @@ def get_form_questions(key_form, dir_path):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} does not exist.")
 
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, dtype=str)
+    df = df.map(lambda x: '' if pd.isna(x) else str(x))
+
     responses = {}
+
+    def get_use_case_int(use_case_string):
+        if use_case_string == "": 
+            return -1
+        use_case_lower = use_case_string.lower()
+        if "what is unusual or interesting" in use_case_lower:
+            return 1
+        elif "why am i seeing this" in use_case_lower:
+            return 2
+        elif "what should we do next" in use_case_lower:
+            return 3
+        else:
+            raise ValueError(f"Invalid use case string: {use_case_string}")
 
     for index, row in df.iterrows():
         row_dict = {}
@@ -125,7 +140,9 @@ def get_form_questions(key_form, dir_path):
         row_dict['answers'] = []
         row_dict['answers_incorrect'] = []
         row_dict['use_cases'] = []
+        row_dict['comments'] = []
 
+        
         for i in range(1, 14):
             question_col = find_column(df, rf'^Question\s*{i}\b')
             answer_col = find_column(df, rf'^Answer\s*{i}\b')
@@ -133,18 +150,19 @@ def get_form_questions(key_form, dir_path):
                 df, rf'^Incorrect\s*Answer\s*{i}\b')
             use_case_col = find_column(
                 df, rf'^Question\s*{i}\s*use\s*case(?:s)?\b')
+            comments_col = find_column(df, rf'^Comments\s*about\s*question\s*{i}\b')
 
-            if question_col and pd.notna(
-                    row[question_col]) and row[question_col].strip():
+            if question_col and len(row[question_col].strip()) > 0:
                 row_dict['questions'].append(row[question_col])
                 row_dict['answers'].append(
                     row[answer_col] if answer_col else '')
                 row_dict['answers_incorrect'].append(
                     row[incorrect_answer_col] if incorrect_answer_col else '')
                 row_dict['use_cases'].append(
-                    row[use_case_col] if use_case_col else '')
-            else:
-                break
+                    get_use_case_int(row[use_case_col]) if use_case_col else '')
+                row_dict['comments'].append(
+                    row[comments_col] if comments_col else '')
+                
 
         responses[index] = row_dict
 
@@ -162,22 +180,27 @@ def create_multichoice_question_prompt(responses, key_prompt):
         answers = data.get('answers', [])
         answers_incorrect = data.get('answers_incorrect', [])
         use_cases = data.get('use_cases', [])
+        comments = data.get('comments', [])
 
         L = len(questions)
 
         for i in range(L):
             question = questions[i]
             correct_answer = answers[i] if i < len(answers) else ""
-            incorrect_answer = answers_incorrect[i] if i < len(
-                answers_incorrect) else ""
+            incorrect_answer = answers_incorrect[i] if i < len(answers_incorrect) else ""
             use_case = use_cases[i] if i < len(use_cases) else ""
+            comment = comments[i] if i < len(comments) else ""
 
             prompt = prompt_templates[key_prompt]['template'].format(
                 CONTEXT=context, QUESTION=question, ANSWER=correct_answer,
                 INCORRECT_ANSWER=incorrect_answer
-                )
+            )
 
-            prompts_multichoice[idx].append(prompt)
+            prompts_multichoice[idx].append({
+                'prompt': prompt,
+                'use_case': use_case,
+                'comments' : comment,
+            })
 
     return prompts_multichoice
 
@@ -189,10 +212,14 @@ def generate_multichoice_questions(prompts_multichoice, model='gpt-4o', seed=0):
 
     batch_prompts = []
     idxs = []
+    use_cases = []
+    comments = []
     for idx in prompts_multichoice.keys():
-        for prompt in prompts_multichoice[idx]:
+        for prompt_data in prompts_multichoice[idx]:
             idxs.append(idx)
-            batch_prompts.append(prompt)
+            batch_prompts.append(prompt_data['prompt'])
+            use_cases.append(prompt_data['use_case'])
+            comments.append(prompt_data['comments'])
 
     seeds = [seed] * len(batch_prompts)
     responses = call_gpt_batch(texts=batch_prompts, model=model, seeds=seeds)
@@ -202,7 +229,7 @@ def generate_multichoice_questions(prompts_multichoice, model='gpt-4o', seed=0):
     msgs = [c[0] for c in responses]
 
     questions = {}
-    for idx, qa in zip(idxs, msgs):
+    for idx, qa, use_case, comment in zip(idxs, msgs, use_cases, comments):
         if idx not in questions.keys():
             questions[idx] = []
 
@@ -232,6 +259,8 @@ def generate_multichoice_questions(prompts_multichoice, model='gpt-4o', seed=0):
         # Update the qa_dict with the shuffled choices and new answer index
         qa_dict['choices'] = shuffled_choices
         qa_dict['answer'] = new_correct_answer_index
+        qa_dict['use_case'] = use_case
+        qa_dict['comments'] = comment
 
         questions[idx].append(qa_dict)
 

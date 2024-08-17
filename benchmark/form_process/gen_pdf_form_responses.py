@@ -38,7 +38,12 @@ def resize_image(img_path, max_width, max_height):
         return new_width, new_height
 
 def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, header_style, qas=None, run_eval=0):
-    pdf_filename = os.path.join(output_dir, f'response_{idx}.pdf')
+    # put in the filenmae the row number and the submitters name 
+    
+    submitter_name = row.get("Your name", "Unknown")
+    safe_submitter_name = ''.join(c if c.isalnum() else '_' for c in submitter_name)
+    pdf_filename = os.path.join(output_dir, f'response_{idx}_{safe_submitter_name}.pdf')
+
     doc = SimpleDocTemplate(pdf_filename, pagesize=letter, leftMargin=inch, rightMargin=inch)
     story = []
 
@@ -47,6 +52,7 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
     available_width = page_width - 2*inch
 
     for i, (col, value) in enumerate(row.items()):
+        # deal with the image 
         if i == 3:  # Fourth column
             img_dir = os.path.join(formdata_dir, "images", f'idx_{idx}')
             if os.path.exists(img_dir):
@@ -103,9 +109,12 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
             story.append(Spacer(1, 6))
             for j, choice in enumerate(qa['choices'], 0):
                 story.append(Paragraph(f"{j}: {choice}", normal_style))
-            story.append(Spacer(1, 12))
+            story.append(Spacer(1, 6))
             story.append(Paragraph(f"Answer: {qa['answer']}", normal_style))
+            story.append(Spacer(1, 6))
+            story.append(Paragraph(f"Comments: {qa['comments']}", normal_style))
             story.append(Spacer(1, 12))
+            
 
         if run_eval == 1:
             # open responses
@@ -113,6 +122,11 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
             for i, qa in enumerate(qas[str(idx)], 1):
                 story.append(Paragraph(f"Question {i}", bold_style))
                 story.append(Paragraph(f"{qa['question']}", normal_style))
+                story.append(Spacer(1, 6))
+                story.append(Paragraph(f"Comments:", bold_style))
+                story.append(Paragraph(f"{qa['comments']}", normal_style))
+                story.append(Spacer(1, 6))
+                story.append(Paragraph(f"Answer: {qa['answer']}", normal_style))
                 story.append(Paragraph(f"ChatGPT's response (NOT multichoice):", bold_style))
                 # Replace newline characters with HTML line breaks in 'response_no_choices'
                 formatted_response_no_choices = qa['response_no_choices'].replace('\n', '<br/>')
@@ -128,6 +142,9 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
                 for j, choice in enumerate(qa['choices'], 0):
                     story.append(Paragraph(f"{j}: {choice}", normal_style))
                 story.append(Spacer(1, 12))
+                story.append(Paragraph(f"Comments:", bold_style))
+                story.append(Paragraph(f"{qa['comments']}", normal_style))
+                story.append(Spacer(1, 6))
                 story.append(Paragraph(f"Answer", bold_style))
                 story.append(Paragraph(f"{qa['answer']}", normal_style))
                 story.append(Paragraph(f"GPT's multichoice choice:", bold_style))
@@ -141,6 +158,42 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
 
     doc.build(story)
 
+def reorder_rows(df):
+    """
+    The col called 'Comments about question {i}' should appear immediately after 
+    the col "Question {i}" for each i. Reorder the cols so it does that.
+    """
+    columns = df.columns.tolist()
+    
+    # Initialize new column order and keep track of processed columns
+    new_order = []
+    processed_columns = set()
+    
+    # Iterate through all columns
+    for col in columns:
+        if col in processed_columns:
+            continue
+        
+        new_order.append(col)
+        processed_columns.add(col)
+        
+        # Check if this is a question column
+        if col.startswith("Question "):
+            question_number = col.split()[1]
+            comment_col_prefix = f"Comments about question {question_number}\n"
+            
+            # Find the corresponding comment column
+            matching_comment_cols = [c for c in columns if c.startswith(comment_col_prefix)]
+            
+            # If there's a matching comment column, add it immediately after the question column
+            for comment_col in matching_comment_cols:
+                if comment_col not in processed_columns:
+                    new_order.append(comment_col)
+                    processed_columns.add(comment_col)
+    
+    # Reorder the DataFrame
+    return df[new_order]
+
 def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, run_eval=0, key_prompt_eval=0):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     formdata_dir = os.path.join(script_dir, f'formdata_{idx_form}')
@@ -153,7 +206,9 @@ def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, 
     
     os.makedirs(output_dir, exist_ok=True)
     
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, dtype=str)
+    df = df.map(lambda x: '' if pd.isna(x) else str(x))
+    df = reorder_rows(df)
     normal_style, bold_style, header_style = get_styles()
 
     qas = None

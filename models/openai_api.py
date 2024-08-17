@@ -219,7 +219,7 @@ def call_gpt_batch(texts,
             if tokens is not None:
                 price = compute_api_call_cost(
                     tokens['prompt_tokens'], tokens['completion_tokens'],
-                    kwargs.get("model", "gpt-4-turbo-2024-04-09"))
+                    kwargs.get("model", "gpt-4o"))
             else:
                 price = 0
 
@@ -236,12 +236,14 @@ def compute_api_call_cost(prompt_tokens: int,
     https://openai.com/api/pricing/
     """
     prices_per_million_input = {
+        "gpt-4o-mini": 0.15,
         "gpt-4o": 5,
         "gpt-4-turbo": 10,
         "gpt-4": 30,
         "gpt-3.5-turbo": 0.5
     }
     prices_per_million_output = {
+        "gpt-4o-mini": 0.6,
         "gpt-4o": 15,
         "gpt-4-turbo": 30,
         "gpt-4": 60,
@@ -249,6 +251,8 @@ def compute_api_call_cost(prompt_tokens: int,
     }
     if "gpt-4o" in model:
         key = "gpt-4o"
+    elif "gpt-4o" in model:
+        key = "gpt-4o-mini"
     elif "gpt-4-turbo" in model:
         key = "gpt-4-turbo"
     elif 'gpt-4' in model:
