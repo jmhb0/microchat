@@ -1,5 +1,5 @@
-analysis_scripts/20240815_taxonomy_summarization.py """
-	python -m ipdb analysis_scripts/20240815_taxonomy_summarization.py
+"""
+    python -m ipdb analysis_scripts/20240815_taxonomy_summarization.py
 """
 
 import ipdb
@@ -13,10 +13,15 @@ sys.path.insert(0, ".")
 
 from models.openai_api import call_gpt
 
+dir_results = Path(__file__).parent / "results" / Path(__file__).stem
+dir_results.mkdir(exist_ok=True, parents=True)
+
 path_resopnses = Path(
     "benchmark/form_process/formdata_0/generated_questions_text/qa_results_keyprompt_1_seed_0_keyprompteval_0.json"
 )
 
+promptkey = 3
+seed = 0 
 prompts = {
     # prompts that try to classify all together - didn't work
     0:
@@ -35,10 +40,42 @@ A few have type '1' or '2' or '3' written before the question. Some also have '-
 Under each type ('1', '2', and '3''), please suggest a taxonomy of question types. 
 Specifically, define 3-5 categories that the questions broadly fall under.
 {QUESTIONS}
-"""
-# prompts to classify the types separately 
+""",
+    ### prompts to classify the types separately
+   
+    2:
+    """\
+I am creating a benchmark of VQA quesitons for analysing microscopy images. 
+Below is pasted a number of questions that will be paired with an image or set of images from a microscopy experiment. 
+All of these questions fall within a particular use case with the following discription: 
+"{USE_CASE_DESCRIPTION}"
+
+Please suggest a taxonomy of question types. 
+Specifically, define 3-5 categories that the questions broadly fall under, and give either examples for each category, or templates that are representative of the types of questions.
+Here are the questions:
+{QUESTIONS}""",
+    3:
+    """\
+I am creating a benchmark of VQA quesitons for analysing microscopy images. 
+Below is pasted a number of questions that will be paired with an image or set of images from a microscopy experiment. 
+All of these questions fall within a particular use case with the following discription: 
+"{USE_CASE_DESCRIPTION}"
+
+Please suggest a taxonomy of question types. 
+Focus on what aspects of intelligence are required to solve the task, for example "perception", "knowledge", "reasoning".
+Specifically, define 3-5 categories that the questions broadly fall under, and give either examples for each category, or templates that are representative of the types of questions.
+Here are the questions:
+{QUESTIONS}""",
 }
-promptkey = 1
+
+
+type_descriptions = {
+    1:
+    "What is unusual or interesting in these images? And why is it unusual or interesting?",
+    2:
+    "Why am I seeing this? What are the possible mechanisms that could cause it?",
+    3: "What should we do next and why?",
+}
 
 # get the questions
 with open(path_resopnses) as f:
@@ -50,7 +87,7 @@ for k, v in y.items():
         qs.append(item['question'])
         types.append(item['use_case'])
 assert len(qs) == len(types)
-print(np.unique(types, return_counts=True))
+# print(np.unique(types, return_counts=True))
 # when is the use case -1?
 idxs_nousecase = np.where(np.array(types) == -1)
 np.array(qs)[idxs_nousecase]
@@ -65,9 +102,8 @@ if promptkey == 0:
 
     res = call_gpt(prompt, model='gpt-4o-mini', json_mode=False)
     msg = res[0]
-    f_save = dir_results / "promptkey1.txt"
-    ipdb.set_trace()
-   	open(f_save, 'w').write(msg)
+    f_save = dir_results / f"promptkey{promptkey}.txt"
+    open(f_save, 'w').write(msg)
 
 elif promptkey == 1:
     prompt = prompts[promptkey]
@@ -77,6 +113,29 @@ elif promptkey == 1:
     prompt = prompt.format(QUESTIONS=questions_str)
 
     res = call_gpt(prompt, model='gpt-4o-mini', json_mode=False)
+    msg = res[0]
+    f_save = dir_results / f"promptkey{promptkey}.txt"
+    open(f_save, 'w').write(msg)
+
+elif promptkey in (2,3):
+
+    for type_ in (1, 2, 3):
+        prompt = prompts[promptkey]
+        questions_str = ""
+        for q, _type_ in zip(qs, types):
+            if _type_ == type_:
+                questions_str += "'" + q + "'" + ",\n"
+
+        prompt = prompt.format(QUESTIONS=questions_str,
+                               USE_CASE_DESCRIPTION=type_descriptions[type_])
+
+        res = call_gpt(prompt, model='gpt-4o-mini', json_mode=False, seed=seed)
+        msg = res[0]
+        f_save = dir_results / f"promptkey{promptkey}_type{type_}_seed{seed}.txt"
+        open(f_save, 'w').write(msg)
+
+else:
+    raise ValueError()
 
 
 ipdb.set_trace()

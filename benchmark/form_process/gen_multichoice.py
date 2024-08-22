@@ -280,7 +280,7 @@ def add_imgs_to_qa(qas, dir_path, verbose=0):
     vqas = copy.deepcopy(qas)
 
     for idx in vqas.keys():
-        dir_images = dir_path / "images" / f"idx_{idx}"
+        dir_images = dir_path / "images" / f"idx_{idx:04d}"
         assert dir_images.exists(), dir_images
         filenames = list(dir_images.iterdir())
         filenames = [f for f in filenames if f.stem[0] != '.']

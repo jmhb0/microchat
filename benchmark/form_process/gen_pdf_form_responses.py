@@ -226,6 +226,8 @@ def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, 
 
     for idx, row in df.iterrows():
         try:
+            if idx != 57:
+                continue
             create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, header_style, qas, run_eval)
         except Exception as e:
             print(f"Error creating PDF for row {idx}: {str(e)}")
