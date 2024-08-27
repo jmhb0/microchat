@@ -53,8 +53,8 @@ def create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, hea
 
     for i, (col, value) in enumerate(row.items()):
         # deal with the image 
-        if i == 3:  # Fourth column
-            img_dir = os.path.join(formdata_dir, "images", f'idx_{idx}')
+        if col == 'Image / image set':  
+            img_dir = os.path.join(formdata_dir, "images", f'idx_{idx:04d}')
             if os.path.exists(img_dir):
                 for fname in os.listdir(img_dir):
                     file_path = os.path.join(img_dir, fname)
@@ -197,7 +197,7 @@ def reorder_rows(df):
 def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, run_eval=0, key_prompt_eval=0):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     formdata_dir = os.path.join(script_dir, f'formdata_{idx_form}')
-    csv_path = os.path.join(formdata_dir, 'responses.csv')
+    csv_path = os.path.join(formdata_dir, 'responses_after_updates.csv')
     
     if show_gen_questions:
         output_dir = os.path.join(formdata_dir, 'form_responses_w_choices', f'keyprompt_{prompt_key}_seed_{seed}')
@@ -226,7 +226,8 @@ def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, 
 
     for idx, row in df.iterrows():
         try:
-            if idx != 57:
+            # ipdb.set_trace()
+            if idx < 80:
                 continue
             create_pdf(idx, row, output_dir, formdata_dir, normal_style, bold_style, header_style, qas, run_eval)
         except Exception as e:

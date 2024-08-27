@@ -40,11 +40,11 @@ def download_form_responses(idx, url, url_updates, verbose=0):
     download_csv(url_updates, f_csv_updates)
     df_updates = pd.read_csv(f_csv_updates, dtype=str, keep_default_na=False)
 
-    # apply the manual data updates
-    df = update_responses(df, df_updates)
-
     # change the column names to more human readable stuff (for the longer names)
     df = change_colnames(df)
+
+    # apply the manual data updates
+    df = update_responses(df, df_updates)
 
     # "Your email" is the auto-filled email. It was added late, so use "Email Address" if its missing
     df = df.dropna(subset=["Email Address"])  # remove test samples
@@ -52,11 +52,6 @@ def download_form_responses(idx, url, url_updates, verbose=0):
     # save the changes
     f_save = dir_data / "responses_after_updates.csv"
     df.to_csv(f_save)
-
-    # create the dataset tables
-    df_people = create_people_dframe(df, df_qs)
-    df_images = create_images_dframe(df)
-    df_qs = create_questions_dframe(df)
 
     print("\nUnique emails: ", len(df["Your email"].unique()))
     print("\nCounts ", df.groupby('Email Address')['Email Address'].count())
@@ -71,25 +66,32 @@ def download_form_responses(idx, url, url_updates, verbose=0):
 def update_responses(df, df_updates):
     """
     Manual adjustments we've made to certain data points.
+    Sourced from the sheet in `urls_form_responses_updates`
     """
     df = df.join(df_updates, how='left')
     assert np.array_equal(df['iloc'], df.index.astype(str))
-
-    # these are the string prefixes of columns or the full col name
+    
+    # key is colname of original data, value is th
     col_mappings = {
         "Email Address": "Your email",
         "Image / image set": "update_image",
-        "Your name": "update_yourname"
+        "Your name": "update_yourname",
+        "caption" :  "update_caption",
+        "Answer 1" : "update_answer_1", 
+        "Question 3" : "update_question_3",
+        "Answer 3" : "update_answer_3", 
+        "Question 4" : "update_question_4",
+
     }
     for col_base, col_replace in col_mappings.items():
         col_base_idx = [
-            ix for ix, col in enumerate(df.columns) if col.startswith(col_base)
+            ix for ix, col in enumerate(df.columns) if col == col_base 
         ]
         assert len(col_base_idx) == 1, "col name error"
 
         col_replace_idx = [
             ix for ix, col in enumerate(df.columns)
-            if col.startswith(col_replace)
+            if col == col_replace
         ]
         assert len(col_replace_idx) == 1, "col name error"
 
@@ -137,91 +139,6 @@ def change_colnames(df):
 
     return df
 
-
-def create_questions_dframe(df):
-    questions = []
-    answers = []
-    use_cases = []
-    comments = []
-    key_forms = []
-    question_numbers = []
-
-    # Iterate through the questions
-    for i in range(1, 14):
-        q_col = f'Question {i}'
-        a_col = f'Answer {i}'
-        uc_col = f'Question {i} use case'
-        c_col = f'Comments about question {i}'
-
-        # Check if the question column exists and is not empty
-        if q_col in df.columns and not df[q_col].isna().all():
-            # Get non-null indices for this question
-            indices = df[q_col].dropna().index
-
-            for idx in indices:
-                question_text = df.at[idx, q_col]
-                # Only add the question if it's not blank
-                if pd.notna(question_text) and question_text.strip() != "":
-                    questions.append(question_text)
-                    answers.append(df.at[idx, a_col] if a_col in
-                                   df.columns else np.nan)
-                    use_cases.append(df.at[idx, uc_col] if uc_col in
-                                     df.columns else np.nan)
-                    comments.append(df.at[idx, c_col] if c_col in
-                                    df.columns else np.nan)
-                    key_forms.append(idx)
-                    question_numbers.append(i)
-
-    # Create the new DataFrame
-    df_questions = pd.DataFrame({
-        'question': questions,
-        'answer': answers,
-        'use_case': use_cases,
-        'comments': comments,
-        'key_form': key_forms,
-        'question_number': question_numbers
-    })
-
-    # Sort the DataFrame by key_form and then by question_number
-    df_questions_sorted = df_questions.sort_values(
-        ['key_form', 'question_number'])
-    df_questions_sorted = df_questions_sorted.drop('question_number', axis=1)
-
-    return df_questions
-
-
-def create_images_dframe(df):
-    include_prefixes = [
-        "Image / image set", 'Images - source 1', 'Images source 2',
-        'Context - image generation', 'Context - motivation', 'caption',
-        'Email Address'
-    ]
-
-    def should_include(col):
-        return any(col.startswith(prefix) for prefix in include_prefixes)
-
-    columns_to_keep = [col for col in df.columns if should_include(col)]
-    df_images = df[columns_to_keep].copy()
-    df_images['key_form'] = df_images.index  # just to be explicit about it
-
-    return df_images
-
-def create_people_dframe(df):
-    ipdb.set_trace()
-    include_prefixes = [
-        "Image / image set", 'Images - source 1', 'Images source 2',
-        'Context - image generation', 'Context - motivation', 'caption',
-        'Email Address'
-    ]
-
-    def should_include(col):
-        return any(col.startswith(prefix) for prefix in include_prefixes)
-
-    columns_to_keep = [col for col in df.columns if should_include(col)]
-    df_images = df[columns_to_keep].copy()
-    df_images['key_form'] = df_images.index  # just to be explicit about it
-
-    return df_images
 
 
 
@@ -326,7 +243,7 @@ def process_archive_file(archive_path, allowed_extensions, verbose=0):
     # Check for unsupported file types
     for file in parent_dir.iterdir():
         if file.is_file() and file.suffix.lower() not in allowed_extensions:
-            raise f"Warning: Unsupported file type found after extraction: {file}"
+            print(f"Warning: Unsupported file type found after extraction: {file}")
 
 
 def extract_file_id(url):
@@ -337,7 +254,7 @@ def extract_file_id(url):
 
 def delete_dotfiles(directory, verbose=0):
     """Some extracted archive dirs end up with dotfiles, so delete them """
-    for file in directory.rglob("._*"):
+    for file in directory.rglob(".*"):
         try:
             file.unlink()
             if verbose:
@@ -360,8 +277,8 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
     for row_index, drive_link in tqdm.tqdm(drive_links.items(),
                                            total=len(drive_links)):
-        # if row_index != 12:
-        #     continue
+        # if row_index != 57:
+            # continue
         row_dir = dir_data_images / f"idx_{row_index:04d}"
         row_dir.mkdir(parents=True, exist_ok=True)
 
@@ -415,7 +332,6 @@ def download_images_from_csv(dir_data, df, verbose=0):
         elif output_path.suffix.lower() not in allowed_extensions:
             print(f"Warning: Unsupported file type downloaded: {output_path}")
 
-    ipdb.set_trace()
 
 
 if __name__ == "__main__":

@@ -17,10 +17,10 @@ dir_results = Path(__file__).parent / "results" / Path(__file__).stem
 dir_results.mkdir(exist_ok=True, parents=True)
 
 path_resopnses = Path(
-    "benchmark/form_process/formdata_0/generated_questions_text/qa_results_keyprompt_1_seed_0_keyprompteval_0.json"
+    "benchmark/build_raw_dataset/formdata_0/generated_questions_text/qa_results_keyprompt_1_seed_0_keyprompteval_0.json"
 )
 
-promptkey = 3
+promptkey = 4
 seed = 0 
 prompts = {
     # prompts that try to classify all together - didn't work
@@ -54,6 +54,7 @@ Please suggest a taxonomy of question types.
 Specifically, define 3-5 categories that the questions broadly fall under, and give either examples for each category, or templates that are representative of the types of questions.
 Here are the questions:
 {QUESTIONS}""",
+
     3:
     """\
 I am creating a benchmark of VQA quesitons for analysing microscopy images. 
@@ -63,6 +64,19 @@ All of these questions fall within a particular use case with the following disc
 
 Please suggest a taxonomy of question types. 
 Focus on what aspects of intelligence are required to solve the task, for example "perception", "knowledge", "reasoning".
+Specifically, define 3-5 categories that the questions broadly fall under, and give either examples for each category, or templates that are representative of the types of questions.
+Here are the questions:
+{QUESTIONS}""",
+
+# these ones are emphasizing taxonomy from a bio perspective. 
+    4:"""\
+I am creating a benchmark of VQA quesitons for analysing microscopy images. 
+Below is pasted a number of questions that will be paired with an image or set of images from a microscopy experiment. 
+All of these questions fall within a particular use case with the following discription: 
+"{USE_CASE_DESCRIPTION}"
+
+Please suggest a taxonomy of question types. 
+The taxonomy should be from a biology or microscopy perspective.
 Specifically, define 3-5 categories that the questions broadly fall under, and give either examples for each category, or templates that are representative of the types of questions.
 Here are the questions:
 {QUESTIONS}""",
@@ -87,7 +101,7 @@ for k, v in y.items():
         qs.append(item['question'])
         types.append(item['use_case'])
 assert len(qs) == len(types)
-# print(np.unique(types, return_counts=True))
+print(np.unique(types, return_counts=True))
 # when is the use case -1?
 idxs_nousecase = np.where(np.array(types) == -1)
 np.array(qs)[idxs_nousecase]
@@ -117,7 +131,7 @@ elif promptkey == 1:
     f_save = dir_results / f"promptkey{promptkey}.txt"
     open(f_save, 'w').write(msg)
 
-elif promptkey in (2,3):
+elif promptkey in (2,3,4):
 
     for type_ in (1, 2, 3):
         prompt = prompts[promptkey]
