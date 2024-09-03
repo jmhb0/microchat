@@ -104,7 +104,7 @@ def get_form_questions(key_form, dir_path):
     if not os.path.exists(dir_path):
         raise FileNotFoundError(f"Directory {dir_path} does not exist.")
 
-    file_path = os.path.join(dir_path, "responses.csv")
+    file_path = os.path.join(dir_path, "1_responses_after_edits0.csv")
 
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} does not exist.")
@@ -204,8 +204,8 @@ def create_multichoice_question_prompt(responses, key_prompt):
 
     return prompts_multichoice
 
-def generate_multichoice_questions(prompts_multichoice, model='gpt-4o', seed=0):
-    if model != 'gpt-4o':
+def generate_multichoice_questions(prompts_multichoice, model='gpt-4o-mini', seed=0):
+    if 'gpt-4o' not in model:
         raise ValueError("Only 'gpt-4o' model is supported.")
 
     random.seed(seed)  # Set the random seed for reproducibility

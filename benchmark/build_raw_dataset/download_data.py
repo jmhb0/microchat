@@ -31,12 +31,12 @@ def download_form_responses(idx, url, url_updates, verbose=0):
     dir_data.mkdir(exist_ok=True, parents=True)
 
     # download form responses and load
-    f_csv = dir_data / "responses_raw.csv"
+    f_csv = dir_data / "0_responses_raw_download.csv"
     download_csv(url, f_csv)
     df = pd.read_csv(f_csv, dtype=str, keep_default_na=False)
 
     # download the list of updates
-    f_csv_updates = dir_data / "responses_updates.csv"
+    f_csv_updates = dir_data / "0_edits_responses_raw.csv"
     download_csv(url_updates, f_csv_updates)
     df_updates = pd.read_csv(f_csv_updates, dtype=str, keep_default_na=False)
 
@@ -46,14 +46,13 @@ def download_form_responses(idx, url, url_updates, verbose=0):
     # apply the manual data updates
     df = update_responses(df, df_updates)
 
-    # "Your email" is the auto-filled email. It was added late, so use "Email Address" if its missing
-    df = df.dropna(subset=["Email Address"])  # remove test samples
-
     # save the changes
-    f_save = dir_data / "responses_after_updates.csv"
+    f_save = dir_data / "1_responses_after_edits0.csv"
     df.to_csv(f_save)
 
-    print("\nUnique emails: ", len(df["Your email"].unique()))
+    ipdb.set_trace()
+
+    print("\nUnique emails: ", len(df["Email Address"].unique()))
     print("\nCounts ", df.groupby('Email Address')['Email Address'].count())
 
     print("Unique names: ", len(df["Your name"].unique()))
@@ -71,9 +70,9 @@ def update_responses(df, df_updates):
     df = df.join(df_updates, how='left')
     assert np.array_equal(df['iloc'], df.index.astype(str))
     
-    # key is colname of original data, value is th
+    # key is colname of original data, value is the target
     col_mappings = {
-        "Email Address": "Your email",
+        "Email Address" : "Your email",
         "Image / image set": "update_image",
         "Your name": "update_yourname",
         "caption" :  "update_caption",
@@ -277,8 +276,8 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
     for row_index, drive_link in tqdm.tqdm(drive_links.items(),
                                            total=len(drive_links)):
-        # if row_index != 57:
-            # continue
+        if row_index <= 107:
+            continue
         row_dir = dir_data_images / f"idx_{row_index:04d}"
         row_dir.mkdir(parents=True, exist_ok=True)
 

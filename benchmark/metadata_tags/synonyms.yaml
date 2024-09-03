@@ -1,0 +1,151 @@
+ai_chatbot:
+    - AI chatbot
+    - AI assistant
+    - AI
+approximately:
+    - approximately
+    - about
+benign_finding:
+    - normal
+    - benign
+    - unremarkable
+    - within normal limits
+cant:
+    - cannot
+    - can't
+cautious:
+    - cautious
+    - careful
+    - wary
+clinical_history:
+    - clinical context
+    - clinical history
+    - clinical scenario
+    - clinical findings
+context:
+    - context
+    - consideration
+    - account
+dab:
+    - DAB
+    - DAB (3,3'-diaminobenzidine)
+dont:
+    - do not
+    - don't
+entire:
+    - entire
+    - whole
+    - complete
+experience:
+    - an expert
+    - a trained
+    - a board-certified
+    - an experienced
+expertise:
+    - expertise
+    - experience
+    - knowledge
+    - training
+    - skill
+    - ability
+    - competence
+    - proficiency
+    - mastery
+expression:
+    - expression
+    - staining
+    - positivity
+findings:
+    - findings
+    - changes
+    - features
+    - lesions
+guidance:
+    - guidance
+    - help
+    - assistance
+    - support
+highlights:
+    - highlights
+    - labels
+    - shows
+ihc:
+    - immunohistochemistry
+    - immunohistochemistry (IHC)
+    - IHC
+image_start:
+    - An image
+    - A histopathology image
+    - A photomicrograph
+    - A micrograph
+image:
+    - image
+    - histopathology image
+    - photomicrograph
+    - micrograph
+impression:
+    - impression
+    - interpretation
+interpreted:
+    - interpreted
+    - evaluated
+    - assessed
+    - analyzed
+    - reviewed
+interpreting:
+    - interpreting
+    - evaluating
+    - assessing
+    - analyzing
+    - reviewing
+malignancy:
+    - malignancy
+    - malignant neoplasm
+    - cancer
+    - carcinoma
+    - tumor
+normal:
+    - normal
+    - benign
+    - unremarkable
+obvious:
+    - obvious
+    - evident
+    - clear
+    - overt
+pathologist:
+    - pathologist
+    - surgical pathologist
+    - pathology expert
+    - pathology specialist
+    - pathology consultant
+preliminary:
+    - preliminary
+    - initial
+    - first
+    - tentative
+    - provisional
+    - rudimentary
+    - basic
+    - rough
+seen:
+    - identified
+    - present
+    - seen
+    - appreciated
+shows:
+    - shows
+    - reveals
+    - demonstrates
+    - displays
+    - exhibits
+single:
+    - one
+    - an individual
+    - a single
+specimen:
+    - specimen
+    - case
+tumor:
+    - neoplastic
+    - tumor
