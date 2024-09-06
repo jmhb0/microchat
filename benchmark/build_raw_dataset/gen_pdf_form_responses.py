@@ -1,3 +1,6 @@
+"""
+This is the version that includes the GPT responses.
+"""
 import pandas as pd
 import os
 import json
@@ -197,7 +200,8 @@ def reorder_rows(df):
 def process_responses(idx_form, show_gen_questions=False, prompt_key=0, seed=0, run_eval=0, key_prompt_eval=0):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     formdata_dir = os.path.join(script_dir, f'formdata_{idx_form}')
-    csv_path = os.path.join(formdata_dir, 'responses_after_updates.csv')
+    # csv_path = os.path.join(formdata_dir, 'responses_after_updates.csv')
+    csv_path = os.path.join(formdata_dir, '1_responses_after_edits0.csv')
     
     if show_gen_questions:
         output_dir = os.path.join(formdata_dir, 'form_responses_w_choices', f'keyprompt_{prompt_key}_seed_{seed}')

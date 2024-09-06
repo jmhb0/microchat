@@ -139,8 +139,6 @@ def change_colnames(df):
     return df
 
 
-
-
 def download_csv(url, output_path):
     response = requests.get(url)
     response.raise_for_status()
