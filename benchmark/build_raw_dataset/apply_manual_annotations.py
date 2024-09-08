@@ -29,7 +29,7 @@ def update_dataframes(idx):
     dir_data = dir_this_file / f"formdata_{idx}"
 
     # image updates
-    f_csv = dir_data / "4_images.csv"
+    f_csv = dir_data / "4_images_annotated.csv"
     download_csv(urls_images_updates[idx], f_csv)
     df_images = pd.read_csv(f_csv, dtype=str, keep_default_na=False)
     map_updates_images = {
@@ -39,7 +39,7 @@ def update_dataframes(idx):
     df_images = clean_dataframe(df_images)
 
     # question updates
-    f_csv = dir_data / "4_questions.csv"
+    f_csv = dir_data / "4_questions_annotated.csv"
     download_csv(urls_question_updates[idx], f_csv)
     df_questions = pd.read_csv(f_csv, dtype=str, keep_default_na=False)
 
@@ -56,7 +56,10 @@ def update_dataframes(idx):
     df_questions = apply_updates(df_questions, map_updates_questions)
     df_questions = clean_dataframe(df_questions)
 
-    ipdb.set_trace()
+    f_csv = dir_data / "4_images.csv"
+    df_images.to_csv(f_csv)
+    f_csv = dir_data / "4_questions.csv"
+    df_questions.to_csv(f_csv)
 
     return df_images, df_questions
 

@@ -28,7 +28,7 @@ Make  `3_question_updates.csv` which:
 ### 4. manually do the reviews and then integrate the changes
 From the prior scripts, `3_images_updated.csv` and `3_question_updates.csv` are added to a google sheet and we do manual review. The manual review columns have the prefix `'update`. For example, for original column `'question'`, the prior script created `'question_update` with a suggested new value, and so we create a new column `'update_question'`. Either we write `'X'` if we don't want any updates, or we write a string that is the update. 
 
-The script `'apply_manual_annotations.py'` then just applies all those updates and saves updated files `4_images.csv` and `'4_questions.csv`.
+The script `'apply_manual_annotations.py'` then just applies all those updates, first loading the files `4_images_updated.csv` and `'4_questions_updated.csv` and then saving the updated files to `4_images.csv` and `'4_questions.csv`.
 
 
 ### 5. construct questions
