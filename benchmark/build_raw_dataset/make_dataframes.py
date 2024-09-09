@@ -14,7 +14,7 @@ def make_dataframes(idx=0):
     The current dataset is one csv of form responses plus a directory of image 
     files. Make separate df's for 
     """
-    dir_data = dir_this_file / f"formdata_{idx}"
+    dir_data = Path(f"benchmark/data/formdata_{idx}")
     f_responses = dir_data / "1_responses_after_edits0.csv"
     df = pd.read_csv(f_responses, dtype=str, keep_default_na=False)
 
@@ -41,9 +41,6 @@ def make_dataframes(idx=0):
         json.dump(lookup_person_to_questions, f, indent=4)
     with open(dir_data / "2_lookup_question_to_person.json", 'w') as f:
         json.dump(lookup_question_to_person, f, indent=4)
-
-    ipdb.set_trace()
-
 
 def _map_use_case(use_case):
     """ called in `create_quesitons_dataframe` """
@@ -131,6 +128,8 @@ def create_questions_dframe(df, df_people, lookup_image_to_person):
     df_questions_sorted = df_questions.sort_values(
         ['key_image', 'question_number'])
 
+    df_questions_sorted = df_questions_sorted.reset_index(drop=True).rename_axis('key_question')
+
     return df_questions_sorted, df_people, lookup_person_to_questions, lookup_question_to_person
 
 
@@ -150,6 +149,8 @@ def create_images_dframe(df, dir_data, lookup_image_to_person):
     columns_to_keep = [col for col in df.columns if should_include(col)]
     df_images = df[columns_to_keep].copy()
     df_images['key_image'] = df_images.index
+    df_images.index.name = 'key_image'
+
     df_images['key_person'] = df_images['key_image'].map(
         lookup_image_to_person).fillna(-1).astype(int)
 

@@ -26,12 +26,12 @@ urls_images_updates = {
 
 
 def update_dataframes(idx):
-    dir_data = dir_this_file / f"formdata_{idx}"
+    dir_data = Path(f"benchmark/data/formdata_{idx}")
 
     # image updates
     f_csv = dir_data / "4_images_annotated.csv"
     download_csv(urls_images_updates[idx], f_csv)
-    df_images = pd.read_csv(f_csv, dtype=str, keep_default_na=False)
+    df_images = pd.read_csv(f_csv, dtype=str, keep_default_na=False, index_col='key_image')
     map_updates_images = {
         'Context - image generation': 'update_contexts',
     }
@@ -41,7 +41,7 @@ def update_dataframes(idx):
     # question updates
     f_csv = dir_data / "4_questions_annotated.csv"
     download_csv(urls_question_updates[idx], f_csv)
-    df_questions = pd.read_csv(f_csv, dtype=str, keep_default_na=False)
+    df_questions = pd.read_csv(f_csv, dtype=str, keep_default_na=False, index_col='key_question')
 
     map_updates_questions = {
         # these 3 resolve references to the image number

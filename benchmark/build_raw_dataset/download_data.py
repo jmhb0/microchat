@@ -27,7 +27,7 @@ urls_form_responses_updates = {
 
 
 def download_form_responses(idx, url, url_updates, verbose=0):
-    dir_data = dir_this_file / f"formdata_{idx}"
+    dir_data = f"benchmark/data/formdata_{idx}"
     dir_data.mkdir(exist_ok=True, parents=True)
 
     # download form responses and load

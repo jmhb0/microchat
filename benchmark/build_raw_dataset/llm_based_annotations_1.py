@@ -19,11 +19,11 @@ dir_this_file = Path(__file__).parent
 
 
 def get_dfs(idx_form):
-    dir_data = dir_this_file / f"formdata_{idx_form}"
+    dir_data = Path(f"benchmark/data/formdata_{idx_form}")
     dir_data.mkdir(exist_ok=True, parents=True)
-    df_people = pd.read_csv(dir_data / '2_df_people.csv')
-    df_images = pd.read_csv(dir_data / '2_df_images.csv')
-    df_questions = pd.read_csv(dir_data / '2_df_questions.csv')
+    df_people = pd.read_csv(dir_data / '2_df_people.csv', index_col='key_person')
+    df_images = pd.read_csv(dir_data / '2_df_images.csv', index_col='key_image')
+    df_questions = pd.read_csv(dir_data / '2_df_questions.csv', index_col='key_question')
 
     return df_images, df_people, df_questions
 
@@ -46,7 +46,7 @@ def llm_image_checks(idx_form, df_images):
     cols = cols + ['Context - image generation', 'contexts_updated']
     df_images = df_images[cols]
 
-    dir_data = dir_this_file / f"formdata_{idx_form}"
+    dir_data = Path(f"benchmark/data/formdata_{idx_form}")
     # put in dataframe and save to csv
     f_save = dir_data / "3_images_updates.csv"
     df_images.to_csv(f_save)
@@ -105,8 +105,7 @@ def llm_questions_check(idx_form, df_questions, df_images):
                                                       "incorrect_answer")
     df_questions = llm_could_be_follow_up_but_not_marked(
         idx_form, df_questions)
-    ipdb.set_trace()
-    dir_data = dir_this_file / f"formdata_{idx_form}"
+    dir_data = Path(f"benchmark/data/formdata_{idx_form}")
     f_save = dir_data / "3_question_updates.csv"
     df_questions.to_csv(f_save)
 
@@ -196,7 +195,7 @@ QUESTION:
     prompts_batch = []
     for idx in idxs_usecase2:
         question = df_questions.loc[idx, 'question']
-        key_image = df_questions.loc[idx, 'key_image']
+        key_image = df_questions.loc[idx,'key_image']
         caption = df_images.loc[key_image, 'caption']
         prompt = prompt_template.replace("{{caption}}", str(caption))
         prompt = prompt.replace("{{question}}", question)
