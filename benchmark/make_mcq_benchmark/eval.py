@@ -49,11 +49,14 @@ def eval_qa(key_form,
     f_choices = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}/df_questions_key_choices_{key_choices_gen}.csv"
     )
+    f_eval_closed = Path(
+        f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}/df_questions_key_choices_{key_choices_gen}_evalclosed_{model}.csv"
+    )
 
     if 'gpt-4o' not in model:
         raise ValueError()
 
-    df_questions = pd.read_csv(f_choices)
+    df_questions = pd.read_csv(f_choices, index_col="key_question")
 
     batch_prompts_text = []
     # batch_prompts_text_no_choices = []
@@ -127,27 +130,18 @@ def eval_qa(key_form,
         else:
             preds.append(-1)
 
+    # save response 
+    df_questions.loc[idxs, 'gpt_response'] = msgs
+    df_questions.loc[idxs, 'gpt_prediction'] = preds
+    df_questions.to_csv(f_eval_closed)
+
+    # compute the basic stats
     gts = np.array(gts)
     preds = np.array(preds)
     acc = (gts==preds).sum() / len(gts)
     print(acc)
-    ipdb.set_trace()
 
-    pass
-
-    # # make `vqas_results` to save the llm responses, and also delete the images
-    # vqas_results = copy.deepcopy(vqas)
-    # for i in range(len(idxs)):
-    #     idx = idxs[i]
-    #     question_num = question_nums[i]
-
-    #     del vqas_results[idx][question_num]['imgs']
-    #     vqas_results[idx][question_num]['response'] = msgs[i]
-    #     vqas_results[idx][question_num]['response_no_choices'] = msgs_no_choices[i]
-    #     vqas_results[idx][question_num]['pred'] = preds[i]
-
-    
-    # return vqas_results, gts, preds, acc
+    # todo: free LLM response
 
 
 if __name__ == "__main__":

@@ -249,10 +249,10 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4": 60,
         "gpt-3.5-turbo": 1.5
     }
-    if "gpt-4o" in model:
-        key = "gpt-4o"
-    elif "gpt-4o" in model:
+    if "gpt-4o-mini" in model:
         key = "gpt-4o-mini"
+    elif "gpt-4o" in model:
+        key = "gpt-4o"
     elif "gpt-4-turbo" in model:
         key = "gpt-4-turbo"
     elif 'gpt-4' in model:

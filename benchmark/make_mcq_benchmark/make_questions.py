@@ -35,7 +35,9 @@ def create_questions(df_questions, df_images, key_question_gen, key_form):
     Main function for generating the questions according to the strategy in 
     `key_question_gen`
     """
-    dir_data_save = Path(f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}")
+    dir_data_save = Path(
+        f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
+    )
     dir_data_save.mkdir(exist_ok=True)
 
     if key_question_gen == 0:
@@ -69,7 +71,10 @@ def combine_questions_without_llm(df_questions, df_images):
         # image information
         row_image = df_images.loc[row['key_image']]
         context = row_image['Context - image generation']
-        fs = [Path(row_image['dir_imgs']) / f for f in ast.literal_eval(row_image['fnames_images'])]
+        fs = [
+            Path(row_image['dir_imgs']) / f
+            for f in ast.literal_eval(row_image['fnames_images'])
+        ]
         assert all(f.exists() for f in fs)
         fs = [str(f) for f in fs]
 
@@ -80,14 +85,17 @@ def combine_questions_without_llm(df_questions, df_images):
             question += f"Additional information:\n'''{row['follow_up_summary']}'''\n"
         question += f"Question:\n'''{row['question']}'''\n"
 
-        # save 
+        # save
         questions.append(question)
         fname_images.append(fs)
 
     # overwrite the question column, select just the cols we want, and add filenames
     df_questions['question'] = questions
     df_questions['fname_images'] = fname_images
-    df_questions = df_questions[['question', 'answer', 'key_image', 'fname_images', 'incorrect_answer']]
+    df_questions = df_questions[[
+        'question', 'answer', 'key_image', 'fname_images', 'incorrect_answer',
+        'question_number'
+    ]]
 
     return df_questions
 
@@ -274,7 +282,6 @@ def bak_construct_question(df_questions, df_images, idx, key_question_gen):
     print(f"Cost of llm call ${cost:.3f}")
     msgs = [c[0] for c in responses]
     cost = []
-    ipdb.set_trace()
 
     pass
 
