@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 import os
 import json
+import logging
+logging.basicConfig(level=logging.INFO)
 
 sys.path.insert(0, '.')
 dir_this_file = Path(__file__).parent
@@ -41,6 +43,8 @@ def make_dataframes(idx=0):
         json.dump(lookup_person_to_questions, f, indent=4)
     with open(dir_data / "2_lookup_question_to_person.json", 'w') as f:
         json.dump(lookup_question_to_person, f, indent=4)
+
+    logging.info("Done")
 
 def _map_use_case(use_case):
     """ called in `create_quesitons_dataframe` """
@@ -197,7 +201,7 @@ def create_people_dframe(df):
     grouped = df_people.groupby('key_person')['Your name'].unique()
     inconsistent_keys = grouped[grouped.apply(len) > 1]
     if len(inconsistent_keys) > 0:
-        print("Warning: an inconsistent key exists: ", inconsistent_keys)
+        logging.warning(f"inconsistent keys exist: {inconsistent_keys}")
 
     # create lookups
     lookup_person_to_images = df_people.groupby('key_person')['key_image'].agg(

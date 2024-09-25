@@ -83,6 +83,8 @@ Text:
     # run
     res = call_gpt_batch(prompts_batch, json_mode=True)
     contexts_updated = [r[0]['updated_text'] for r in res]
+    cost = sum([r[1] for r in res])
+    print(f"LLM calling cost ", cost)
 
     # add to the relevant
     df_images['contexts_updated'] = '0'
@@ -139,6 +141,8 @@ Text:
     # run
     res = call_gpt_batch(prompts_batch, json_mode=True)
     followup = [r[0]['ans'] for r in res]
+    cost = sum([r[1] for r in res])
+    print(f"LLM calling cost ", cost)
 
     # add to the relevant
     df_questions['follow_up'] = '0'
@@ -350,3 +354,5 @@ if __name__ == '__main__':
     df_images, df_people, df_questions = get_dfs(idx_form)
     llm_image_checks(idx_form, df_images)
     llm_questions_check(idx_form, df_questions, df_images)
+
+

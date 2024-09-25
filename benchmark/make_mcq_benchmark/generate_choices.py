@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # which set of questions to get - made in make_questions.py
     key_question_gen = 0
     # key for generating the choices
-    key_choices_gen = 1
+    key_choices_gen = 0 
 
     gen_choices(key_form, key_question_gen, key_choices_gen, seed=0)
     ipdb.set_trace()

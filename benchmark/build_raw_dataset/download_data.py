@@ -27,7 +27,7 @@ urls_form_responses_updates = {
 
 
 def download_form_responses(idx, url, url_updates, verbose=0):
-    dir_data = f"benchmark/data/formdata_{idx}"
+    dir_data = Path(f"benchmark/data/formdata_{idx}")
     dir_data.mkdir(exist_ok=True, parents=True)
 
     # download form responses and load
@@ -68,29 +68,29 @@ def update_responses(df, df_updates):
     Sourced from the sheet in `urls_form_responses_updates`
     """
     df = df.join(df_updates, how='left')
-    assert np.array_equal(df['iloc'], df.index.astype(str))
-    
+    assert np.array_equal(
+        df['iloc'], df.index.astype(str)
+    ), "need to fill out the iloc col in the manual updates sheet https://docs.google.com/spreadsheets/d/1frCi5IaKlDprEvN0GpSoQOtAJNBQq0lU0ukiN0_vsIA/edit?gid=0#gid=0"
+
     # key is colname of original data, value is the target
     col_mappings = {
-        "Email Address" : "Your email",
+        "Email Address": "Your email",
         "Image / image set": "update_image",
         "Your name": "update_yourname",
-        "caption" :  "update_caption",
-        "Answer 1" : "update_answer_1", 
-        "Question 3" : "update_question_3",
-        "Answer 3" : "update_answer_3", 
-        "Question 4" : "update_question_4",
-
+        "caption": "update_caption",
+        "Answer 1": "update_answer_1",
+        "Question 3": "update_question_3",
+        "Answer 3": "update_answer_3",
+        "Question 4": "update_question_4",
     }
     for col_base, col_replace in col_mappings.items():
         col_base_idx = [
-            ix for ix, col in enumerate(df.columns) if col == col_base 
+            ix for ix, col in enumerate(df.columns) if col == col_base
         ]
         assert len(col_base_idx) == 1, "col name error"
 
         col_replace_idx = [
-            ix for ix, col in enumerate(df.columns)
-            if col == col_replace
+            ix for ix, col in enumerate(df.columns) if col == col_replace
         ]
         assert len(col_replace_idx) == 1, "col name error"
 
@@ -240,7 +240,9 @@ def process_archive_file(archive_path, allowed_extensions, verbose=0):
     # Check for unsupported file types
     for file in parent_dir.iterdir():
         if file.is_file() and file.suffix.lower() not in allowed_extensions:
-            print(f"Warning: Unsupported file type found after extraction: {file}")
+            print(
+                f"Warning: Unsupported file type found after extraction: {file}"
+            )
 
 
 def extract_file_id(url):
@@ -328,7 +330,6 @@ def download_images_from_csv(dir_data, df, verbose=0):
                                  verbose=verbose)
         elif output_path.suffix.lower() not in allowed_extensions:
             print(f"Warning: Unsupported file type downloaded: {output_path}")
-
 
 
 if __name__ == "__main__":

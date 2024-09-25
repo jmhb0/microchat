@@ -59,7 +59,7 @@ def eval_qa(key_form,
     df_questions = pd.read_csv(f_choices, index_col="key_question")
 
     batch_prompts_text = []
-    # batch_prompts_text_no_choices = []
+    # batch_prompts_text_no_G = []
     batch_prompts_imgs = []
     idxs = []
     # question_nums = []
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     # which set of questions to get - made in make_questions.py
     key_question_gen = 0
     # key for generating the choices
-    key_choices_gen = 1
+    key_choices_gen = 0
     model = 'gpt-4o-mini'
 
     eval_qa(key_form, key_question_gen, key_choices_gen, seed=0, model=model)

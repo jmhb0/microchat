@@ -174,7 +174,7 @@ def reorder_columns(df):
 
 def process_responses(idx_form):
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    formdata_dir = os.path.join(script_dir, f'formdata_{idx_form}')
+    formdata_dir = os.path.join("benchmark/data", f'formdata_{idx_form}')
     csv_path = os.path.join(formdata_dir, '1_responses_after_edits0.csv')
     output_dir = os.path.join(formdata_dir, 'form_responses')
     

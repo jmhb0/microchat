@@ -7,12 +7,17 @@ In `download_data.csv`, we create data and put it into folder `benchmark/build_r
 - This file will apply the edits, and make `1_responses_after_edits0.csv`. 
 - This file also downloads the images into directory `benchmark/build_raw_dataset/formdata_{idx}/images/idx_{num}/` where `num` is the index of the csv file in `1_responses_after_edits0.csv`. So we have one directory per form submission.
 
+
 ### 2. make dataframes for people, images, and questions
 In `make_dataframes.py`
 - Reads `1_responses_after_edits0.csv` which has one form submission per row with multiple questions. 
 - Creates dataframes `df_people`, `df_questions`, and `df_images`. The images have `key_person` to link pack to the people dataframe, the images have `key_image` and `key_person` to link back to the image and people dataframes respectively. 
 - We save lookup dictionaries between things. These ones are 1-1 mappings: `2_lookup_image_to_person.json`, `2_lookup_question_to_person.json`. And we save 1-many mappings (as a list) in `2_lookup_person_to_images.json` and `2_lookup_person_to_questions.json`. 
 
+### 2.5 view the downloaded data
+BTW, there is also `gen_pdf_initial_responses.py` for putting the downloaded data from `1` into pdfs - one pdf per form submission. 
+
+Some old scripts that I don't use anymore are `gen_pdf_form_responses.py` and `gen_multichoice.py`.
 ### 3. Use an LLM to do some annotation corrections, and also flag certain data for review
 In `llm_based_annotations.py` we call an LLM to help add metadata annotations or catch errors. These will later be verified. 
 
@@ -29,6 +34,5 @@ Make  `3_question_updates.csv` which:
 From the prior scripts, `3_images_updated.csv` and `3_question_updates.csv` are added to a google sheet and we do manual review. The manual review columns have the prefix `'update`. For example, for original column `'question'`, the prior script created `'question_update` with a suggested new value, and so we create a new column `'update_question'`. Either we write `'X'` if we don't want any updates, or we write a string that is the update. 
 
 The script `'apply_manual_annotations.py'` then just applies all those updates, first loading the files `4_images_updated.csv` and `'4_questions_updated.csv` and then saving the updated files to `4_images.csv` and `'4_questions.csv`.
-
 
 
