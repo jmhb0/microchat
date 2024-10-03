@@ -26,7 +26,7 @@ urls_form_responses_updates = {
 }
 
 
-def download_form_responses(idx, url, url_updates, verbose=0):
+def download_form_responses(idx, url, url_updates, download_imgs=True, verbose=0):
     dir_data = Path(f"benchmark/data/formdata_{idx}")
     dir_data.mkdir(exist_ok=True, parents=True)
 
@@ -58,8 +58,11 @@ def download_form_responses(idx, url, url_updates, verbose=0):
     print("Unique names: ", len(df["Your name"].unique()))
     print("\nNames", df.groupby('Your name')['Your name'].count())
 
-    print("downloading the images")
-    download_images_from_csv(dir_data, df, verbose=verbose)
+    if download_imgs:
+        print("downloading the images")
+        download_images_from_csv(dir_data, df, verbose=verbose)
+    else: 
+        print("Skipping downloading images because `download_imgs=False`")
 
 
 def update_responses(df, df_updates):
@@ -335,7 +338,9 @@ def download_images_from_csv(dir_data, df, verbose=0):
 if __name__ == "__main__":
     verbose = 0
     key = '0'
+    download_imgs = False
     download_form_responses(key,
                             urls_form_responses[key],
                             urls_form_responses_updates[key],
+                            download_imgs=download_imgs,
                             verbose=verbose)

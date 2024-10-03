@@ -33,6 +33,7 @@ def make_dataframes(idx=0):
     df_people.to_csv(dir_data / '2_df_people.csv')
     df_images.to_csv(dir_data / '2_df_images.csv')
     df_questions.to_csv(dir_data / '2_df_questions.csv')
+    ipdb.set_trace()
 
     # save lookups
     with open(dir_data / "2_lookup_person_to_images.json", 'w') as f:
@@ -81,6 +82,7 @@ def create_questions_dframe(df, df_people, lookup_image_to_person):
         # Check if the question column exists and is not empty
         if q_col in df.columns and not df[q_col].isna().all():
             # Get non-null indices for this question
+            assert len(df[q_col])>0
             indices = df[q_col].dropna().index
 
             for idx in indices:

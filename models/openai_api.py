@@ -6,7 +6,7 @@ Models: https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo
 import ipdb
 import base64
 import asyncio
-from openai import OpenAI, AsyncOpenAI, ChatCompletion
+import openai
 from pathlib import Path
 from PIL import Image
 import numpy as np
@@ -21,18 +21,29 @@ import logging
 import concurrent.futures
 from threading import Lock
 import time
-import tqdm
+from tqdm import tqdm
 
 import sys
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.WARNING)
 
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 from cache import cache_utils
+# from cache import cache_utils_redis as cache_utils
 
-client = OpenAI()
-cache_openai = lmdb.open("cache/cache_openai", map_size=int(1e11))
+client = openai.OpenAI()
+cache_openai = lmdb.open("cache/cache_openai", map_size=int(1e12))
 cache_lock = Lock()
 
+# logging.getLogger("openai").setLevel(logging.ERROR)
+# logging.getLogger("_client").setLevel(logging.ERROR)
+
+HITS = 0 
+MISSES = 0
+
+# cache_openai = redis.Redis(host="localhost", port=6379, db=0)
+# cache_openai.config_set("save", "60 1")
 
 def call_gpt(
     # args for setting the `messages` param
@@ -42,7 +53,8 @@ def call_gpt(
     json_mode: bool = True,
     # kwargs for client.chat.completions.create
     detail: str = "high",
-    model: str = "gpt-4o",
+    model: str = "gpt-4o-2024-08-06",
+    # model: str ="gpt-4o-mini-2024-07-18",
     temperature: float = 1,
     max_tokens: int = 2048,
     top_p: float = 1,
@@ -53,6 +65,7 @@ def call_gpt(
     # args for caching behaviour
     cache: bool = True,
     overwrite_cache: bool = False,
+    debug=None,
     num_retries:
     # if json_mode=True, and not json decodable, retry this many time
     int = 3):
@@ -64,11 +77,13 @@ def call_gpt(
     calling args/kwargs. The caching only saves the first return message, and not
     the whole response object. 
 
-    imgs: optionally add images. Must be a sequence of numpy arrays, shape (H,W,3)
+    imgs: optionally add images. Must be a sequence of numpy arrays. 
     overwrite_cache (bool): do NOT get response from cache but DO save it to cache.
     seed (int): doesnt actually work with openai API atm, but it is in the 
         cache key, so changing it will force the API to be called again
     """
+    global HITS, MISSES
+    print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
     # response format
     if json_mode:
         response_format = {"type": "json_object"}
@@ -119,7 +134,12 @@ def call_gpt(
         if msg is not None and not overwrite_cache:
             if json_mode:
                 msg = json.loads(msg)
+            with cache_lock:
+                HITS += 1
             return msg, None
+    with cache_lock:
+        MISSES += 1
+        # print("Debug: ", debug)
 
     # not caching, so if imgs,then encode the image to the http payload
     if imgs:
@@ -144,16 +164,6 @@ def call_gpt(
         completion_tokens = response.usage.completion_tokens
         msg = response.choices[0].message.content
 
-        if json_mode:
-            try:
-                _ = json.loads(msg)
-                break  # successfully output json
-
-            except json.decoder.JSONDecodeError:
-                if i == num_retries - 1:
-                    raise f"Response not valid json, after {num_retries} tries"
-                logging.info(f"Response not valid json, retrying")
-                continue
 
     # save to cache if enabled
     if cache:
@@ -165,6 +175,7 @@ def call_gpt(
 
     response = dict(prompt_tokens=prompt_tokens,
                     completion_tokens=completion_tokens)
+    price = compute_api_call_cost(prompt_tokens, completion_tokens, model=model)
 
     return msg, response
 
@@ -183,6 +194,7 @@ def call_gpt_batch(texts,
                    seeds=None,
                    json_modes=None,
                    get_meta=True,
+                   debug=None,
                    **kwargs):
     """ 
     with multithreading
@@ -196,14 +208,17 @@ def call_gpt_batch(texts,
 
     # handle having a different seed per call
     all_kwargs = [kwargs.copy() for _ in range(n)]
-    if seeds is not None or json_modes is not None:
+    if seeds is not None or json_modes is not None or debug is not None:
         for i in range(n):
             if seeds is not None:
                 all_kwargs[i]['seed'] = seeds[i]
             if json_modes is not None:
                 all_kwargs[i]['json_mode'] = json_modes[i]
+            if debug is not None:
+                all_kwargs[i]['debug'] = debug[i]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=64) as executor:
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
         futures = []
 
         for text, img, _kwargs in zip(texts, imgs, all_kwargs):
@@ -212,6 +227,11 @@ def call_gpt_batch(texts,
 
         # run
         results = [list(future.result()) for future in futures]
+
+    # reset the cache logging 
+    global HITS, MISSES
+    HITS, MISSES = 0, 0 
+    print()
 
     if get_meta:
         for i, (msg, tokens) in enumerate(results):
@@ -243,7 +263,7 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-3.5-turbo": 0.5
     }
     prices_per_million_output = {
-        "gpt-4o-mini": 0.6,
+        "gpt-4o-mini": 0.075,
         "gpt-4o": 15,
         "gpt-4-turbo": 30,
         "gpt-4": 60,
@@ -274,37 +294,13 @@ if __name__ == "__main__":
     sys.path.insert(0, "..")
     sys.path.insert(0, ".")
 
-    text0 = "How did Steve Irwin die?"
-    # text1 = "what is your favourite australian animal?"
-    # text2 = "how many chucks could a wood chuck chuck?"
-    # text3 = "how fast does a lemur move?"
-    # text4 = "who has the best llm?"
+    text0 = "How did Steve Irwin die? "
+    # text1 = "how many chucks could a wood chuck chuck?"
+    # text2 = "who has the best llm?"
 
-    model = "gpt-3.5-turbo"
-    # # model = "gpt-4-turbo-2024-04-09"
-    msg, res = call_gpt(text0, cache=False, json_mode=False)
-    # res = call_gpt_batch([text0, text0], cache=False, json_mode=False)
+    model = "gpt-4o-mini"
+    print(model)
+    # msg, res = call_gpt(text0, model=model, cache=False, json_mode=False)
+    res = call_gpt_batch([text0]*10, cache=False, json_mode=False)
     ipdb.set_trace()
     pass
-
-    # texts = [text0, text1, text2, text0, text1]
-
-    # if 1:
-    #     # run async
-    #     start = time.time()
-    #     results0 = call_gpt_batch(texts=texts,
-    #                               cache=False,
-    #                               json_mode=False,
-    #                               model=model)
-    #     print(time.time() - start, f"parallel for {len(results0)} results")
-
-    # # run sync
-    # start = time.time()
-    # for text in texts:
-    #     res, msg = call_gpt(text=text,
-    #                         cache=False,
-    #                         json_mode=False,
-    #                         model=model)
-    # print(time.time() - start, f"sync for {len(texts )} results")
-    # ipdb.set_trace()
-    # pass
