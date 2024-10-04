@@ -30,29 +30,22 @@ sys.path.insert(0, ".")
 
 from models.openai_api import call_gpt_batch
 
+# https://platform.openai.com/docs/models/gpt-4o
 model = "gpt-4o-2024-08-06"
 
 dir_results = Path(__file__).parent / "results" / Path(__file__).stem
 dir_results.mkdir(exist_ok=True, parents=True)
 data_dir = Path("benchmark/data/formdata_0")
 
-# https://platform.openai.com/docs/models/gpt-4o
-# more expensive and better
-model_4o = "gpt-4o-2024-05-13"
-# much cheaper but a little worse, not sure how much worse
-model_4omini = "gpt-4o-mini-2024-07-18	"
-
-## raw vqa bench
-f_images = data_dir / "4_images.csv"
-f_questions = data_dir / "4_questions.csv"
-df_images = pd.read_csv(f_images)
-df_questions = pd.read_csv(f_questions)
-
-## `df` is the generated choices. samples coming from the first set of generated questions and chocesk
+## data
+# first get the dataframe with the questions and generated mcq's
 key_question_gen = 0
 key_choices_gen = 0
 f_questions_choices = data_dir / f"question_strategy_{key_question_gen}" / f"df_questions_key_choices_{key_choices_gen}.csv"
 df = pd.read_csv(f_questions_choices)
+# also the images and questions dataframes
+df_images = pd.read_csv(data_dir / "4_images.csv")
+df_questions = pd.read_csv(data_dir / "4_questions.csv")
 
 # some useful strings
 df['question_and_answer'] = [

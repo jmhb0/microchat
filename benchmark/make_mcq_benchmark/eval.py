@@ -150,8 +150,8 @@ if __name__ == "__main__":
     # which set of questions to get - made in make_questions.py
     key_question_gen = 0
     # key for generating the choices
-    key_choices_gen = 0
-    model = 'gpt-4o-mini'
+    key_choices_gen = 2
+    model = "gpt-4o-2024-08-06"
 
     eval_qa(key_form, key_question_gen, key_choices_gen, seed=0, model=model)
     ipdb.set_trace()
