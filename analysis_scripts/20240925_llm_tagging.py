@@ -47,6 +47,7 @@ df = pd.read_csv(f_questions_choices)
 df_images = pd.read_csv(data_dir / "4_images.csv")
 df_questions = pd.read_csv(data_dir / "4_questions.csv")
 
+## IMPORTANT, the field 'question' has the image context as well
 # some useful strings
 df['question_and_answer'] = [
     f"{q}\n\nAnswer:\n```{a}```"
