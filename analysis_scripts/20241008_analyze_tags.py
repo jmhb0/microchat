@@ -152,6 +152,82 @@ def compare_length_results(args, df):
     plt.tight_layout()
     plt.savefig(os.path.join(args.save_dir, 'comparison_plot.png'))
 
+
+def plot_experiment_change_results(args, df):
+    # Count total questions
+    total_questions = len(df)
+    
+    # Count correct and incorrect for baseline and experiment
+    baseline_correct = df['base_is_correct'].sum()
+    baseline_incorrect = total_questions - baseline_correct
+    experiment_correct = df['is_correct'].sum()
+    experiment_incorrect = total_questions - experiment_correct
+    
+    # Count transitions
+    stayed_correct = ((df['base_is_correct'] == True) & (df['is_correct'] == True)).sum()
+    stayed_incorrect = ((df['base_is_correct'] == False) & (df['is_correct'] == False)).sum()
+    correct_to_incorrect = ((df['base_is_correct'] == True) & (df['is_correct'] == False)).sum()
+    incorrect_to_correct = ((df['base_is_correct'] == False) & (df['is_correct'] == True)).sum()
+    
+    # Set up the plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+    
+    # Plot 1: Baseline vs Experiment
+    conditions = ['Baseline', 'Experiment']
+    correct_counts = [baseline_correct, experiment_correct]
+    incorrect_counts = [baseline_incorrect, experiment_incorrect]
+    
+    x = np.arange(len(conditions))
+    width = 0.35
+    
+    ax1.bar(x - width/2, correct_counts, width, label='Correct', color='green', alpha=0.7)
+    ax1.bar(x + width/2, incorrect_counts, width, label='Incorrect', color='red', alpha=0.7)
+    
+    ax1.set_ylabel('Number of Questions')
+    ax1.set_title('Baseline vs Experiment Results')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(conditions)
+    ax1.legend()
+    
+    # Add value labels
+    for i, v in enumerate(correct_counts):
+        ax1.text(i - width/2, v, str(v), ha='center', va='bottom')
+    for i, v in enumerate(incorrect_counts):
+        ax1.text(i + width/2, v, str(v), ha='center', va='bottom')
+    
+    # Plot 2: Transitions
+    transitions = ['Stayed\nCorrect', 'Stayed\nIncorrect', 'Correct to\nIncorrect', 'Incorrect to\nCorrect']
+    counts = [stayed_correct, stayed_incorrect, correct_to_incorrect, incorrect_to_correct]
+    colors = ['green', 'red', 'orange', 'blue']
+    
+    ax2.bar(transitions, counts, color=colors, alpha=0.7)
+    ax2.set_ylabel('Number of Questions')
+    ax2.set_title('Question Transitions')
+    
+    # Add value labels
+    for i, v in enumerate(counts):
+        ax2.text(i, v, str(v), ha='center', va='bottom')
+    
+    # Add text boxes with additional information
+    info_text1 = f'Total questions: {total_questions}\n'
+    info_text1 += f'Baseline accuracy: {baseline_correct/total_questions:.2%}\n'
+    info_text1 += f'Experiment accuracy: {experiment_correct/total_questions:.2%}'
+    
+    ax1.text(0.95, 0.95, info_text1, transform=ax1.transAxes, fontsize=9,
+             verticalalignment='top', horizontalalignment='right',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    info_text2 = f'Improved: {incorrect_to_correct}\n'
+    info_text2 += f'Worsened: {correct_to_incorrect}\n'
+    info_text2 += f'Net change: {incorrect_to_correct - correct_to_incorrect}'
+    
+    ax2.text(0.95, 0.95, info_text2, transform=ax2.transAxes, fontsize=9,
+             verticalalignment='top', horizontalalignment='right',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(args.save_dir, 'change_correct_plot.png'))
+
 def analyze_tags(args, tag_df):
     os.makedirs(args.save_dir, exist_ok=True)
     # create histograms and calculate statistics
@@ -226,15 +302,17 @@ def analyze_tags(args, tag_df):
 def main(args):
     tag_df = preprocess_dfs(args.res_path, args.tag_path, args.base_path)
     analyze_tags(args, tag_df)
-    compare_length_results(args, tag_df)
+    # compare_length_results(args, tag_df)
+    plot_experiment_change_results(args, tag_df)
     # create pdf with images
     png_to_pdf(args.save_dir, os.path.join(args.save_dir, 'analysis_report.pdf'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv')
     parser.add_argument('--tag_path', type=str, default='analysis_scripts/results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
-    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241108_length_version')
+    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241108_blind_version')
     args = parser.parse_args()
     main(args)
