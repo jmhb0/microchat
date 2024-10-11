@@ -11,7 +11,7 @@ from reportlab.lib.units import inch
 
 import argparse
 
-def preprocess_dfs(res_path, tag_path):
+def preprocess_dfs(res_path, tag_path, baseline_path):
     def read_response(res_path):
         df = pd.read_csv(res_path)
         # parse answer for a correct/incorrect column
@@ -33,13 +33,34 @@ def preprocess_dfs(res_path, tag_path):
         df = pd.read_csv(tag_path)
         return df
     
+    def read_baseline(base_path):
+        base_df = read_response(base_path)
+        base_df.rename(columns={'gpt_response': 'base_gpt_response',
+                                'gpt_prediction': 'base_gpt_prediction',
+                                'is_correct': 'base_is_correct',
+                                'correct_length': 'base_correct_length',
+                                'mean_distractor_length': 'base_mean_distractor_length'},
+                                inplace=True)
+        return base_df
+    
     print('Loading response file from ', res_path)
     print('Loading tagged file from ', tag_path)
+    print('Loading baseline file from ', baseline_path)
+
     # read tagged and response files
     res_df = read_response(res_path)
     tag_df = read_tagged(tag_path)
+    base_df = read_baseline(baseline_path)
     # merge files
     tag_df = pd.merge(res_df, tag_df, on=['key_question', 'key_image', 'question_number'])
+    tag_df = pd.merge(tag_df, base_df, on=['key_question', 'key_image', 'question_number'])
+    # # calculate delta with baseline
+    # tag_df['delta_correct_length'] = tag_df['correct_length'] - tag_df['base_correct_length']
+    # tag_df['delta_mean_distractor_length'] = tag_df['mean_distractor_length'] - tag_df['base_mean_distractor_length']
+    # tag_df['flipped_is_correct'] = tag_df['base_is_correct'] - tag_df['is_correct'] # pos - neg = 1, neg - pos = -1, 0 = no change
+
+    
+    # tag_df['flipped_is_correct'] * tag_df['correct_is_longer'] # 1 became neg, -1 became pos, 0 no change or isn't longer
     return tag_df
 
 def png_to_pdf(input_folder, output_pdf):
@@ -68,10 +89,73 @@ def png_to_pdf(input_folder, output_pdf):
 
     c.save()
 
+
+def compare_length_results(args, df):
+    # Identify questions that became shorter and those that remained longer
+    became_shorter = df[(df['base_correct_length'] > df['base_mean_distractor_length']) & 
+                        (df['correct_length'] <= df['mean_distractor_length'])]
+    remained_longer = df[(df['base_correct_length'] > df['base_mean_distractor_length']) & 
+                         (df['correct_length'] > df['mean_distractor_length'])]
+    
+    # Function to calculate counts for a given dataset
+    def get_counts(data):
+        baseline_correct = data['base_is_correct'].sum()
+        baseline_incorrect = len(data) - baseline_correct
+        current_correct = data['is_correct'].sum()
+        current_incorrect = len(data) - current_correct
+        return baseline_correct, baseline_incorrect, current_correct, current_incorrect
+
+    # Get counts for both datasets
+    shorter_counts = get_counts(became_shorter)
+    longer_counts = get_counts(remained_longer)
+    
+    # Set up the plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+    conditions = ['Baseline', 'Current']
+    x = range(len(conditions))
+    width = 0.35
+    
+    # Function to create a single subplot
+    def create_subplot(ax, counts, title):
+        baseline_correct, baseline_incorrect, current_correct, current_incorrect = counts
+        ax.bar([i - width/2 for i in x], [baseline_correct, current_correct], width, label='Correct', color='green', alpha=0.7)
+        ax.bar([i + width/2 for i in x], [baseline_incorrect, current_incorrect], width, label='Incorrect', color='red', alpha=0.7)
+        
+        ax.set_ylabel('Number of Questions')
+        ax.set_title(title)
+        ax.set_xticks(x)
+        ax.set_xticklabels(conditions)
+        ax.legend()
+        
+        # Add value labels on the bars
+        for i, v in enumerate([baseline_correct, current_correct]):
+            ax.text(i - width/2, v, str(v), ha='center', va='bottom')
+        for i, v in enumerate([baseline_incorrect, current_incorrect]):
+            ax.text(i + width/2, v, str(v), ha='center', va='bottom')
+        
+        # Add a text box with additional information
+        total = sum(counts) // 2
+        baseline_accuracy = baseline_correct / total
+        current_accuracy = current_correct / total
+        info_text = f'Total questions: {total}\n'
+        info_text += f'Baseline accuracy: {baseline_accuracy:.2%}\n'
+        info_text += f'Current accuracy: {current_accuracy:.2%}'
+        
+        ax.text(0.95, 0.95, info_text, transform=ax.transAxes, fontsize=9,
+                verticalalignment='top', horizontalalignment='right',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    # Create the two subplots
+    create_subplot(ax1, shorter_counts, 'Questions that Became Shorter')
+    create_subplot(ax2, longer_counts, 'Questions that Remained Longer')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(args.save_dir, 'comparison_plot.png'))
+
 def analyze_tags(args, tag_df):
     os.makedirs(args.save_dir, exist_ok=True)
     # create histograms and calculate statistics
-    def hist_col_by_col(tag_df, col_name, second_col_name='is_correct'):
+    def bar_col_by_col(tag_df, col_name, second_col_name='is_correct'):
         # Group by the specified column and 'is_correct', then count occurrences
         hist_df = tag_df[[second_col_name, col_name]].groupby([col_name, second_col_name]).size().unstack(fill_value=0)
         
@@ -110,6 +194,23 @@ def analyze_tags(args, tag_df):
         plt.savefig(os.path.join(args.save_dir, f'{second_col_name}_by_{col_name}_pie.png'), bbox_inches='tight')
         plt.close()
 
+    def plot_hist(tag_df, col_name, col_name2=None, bins=30):
+        save_name = os.path.join(args.save_dir, f'{col_name}_hist.png')
+        plt.figure(figsize=(10, 6))
+        # Plot the first histogram
+        plt.hist(tag_df[col_name], bins=bins, alpha=0.5, label=col_name)
+        if col_name2 is not None:
+            # Plot the second histogram
+            plt.hist(tag_df[col_name2], bins=bins, alpha=0.5, label=col_name2)
+            save_name = os.path.join(args.save_dir, f'{col_name}_{col_name2}_hist.png')
+        plt.xlabel('Values')
+        plt.ylabel('Frequency')
+        plt.title(f'Histogram')
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.savefig(save_name)
+
+
     tag_df['correct_is_longer'] = tag_df['correct_length'] > tag_df['mean_distractor_length']
     # for each type of question make a histogram of correct/incorrect answers
     tag_cols = ['_use_case', '_sub_use_case', '_image_scale','_image_modality']
@@ -120,17 +221,20 @@ def analyze_tags(args, tag_df):
             # hist_col_by_col(tag_df, col, second_col)
             print(f'Creating pie chart for {second_col} by {col}')
             pie_col_by_col(tag_df, col, second_col)
-    # create pdf with images
-    png_to_pdf(args.save_dir, os.path.join(args.save_dir, 'tag_analysis_report.pdf'))
+    plot_hist(tag_df, 'correct_length', 'mean_distractor_length')
 
 def main(args):
-    tag_df = preprocess_dfs(args.res_path, args.tag_path)
+    tag_df = preprocess_dfs(args.res_path, args.tag_path, args.base_path)
     analyze_tags(args, tag_df)
+    compare_length_results(args, tag_df)
+    # create pdf with images
+    png_to_pdf(args.save_dir, os.path.join(args.save_dir, 'analysis_report.pdf'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--res_path', type=str, default='../benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--tag_path', type=str, default='results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
-    parser.add_argument('--save_dir', type=str, default='results/20241008_analyze_tags')
+    parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--tag_path', type=str, default='analysis_scripts/results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
+    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241108_length_version')
     args = parser.parse_args()
     main(args)
