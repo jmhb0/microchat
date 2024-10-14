@@ -9,6 +9,13 @@ from PIL import Image
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.units import inch
+
 import argparse
 
 def preprocess_dfs(res_path, tag_path, baseline_path):
@@ -152,8 +159,119 @@ def compare_length_results(args, df):
     plt.tight_layout()
     plt.savefig(os.path.join(args.save_dir, 'comparison_plot.png'))
 
+def create_pdf_from_dataframes(output_filename, dataframes_and_conditions):
+    def split_long_text(text, max_length=100):
+        """Split long text into smaller chunks."""
+        words = text.split()
+        chunks = []
+        current_chunk = []
 
-def plot_experiment_change_results(args, df):
+        for word in words:
+            if len(' '.join(current_chunk + [word])) <= max_length:
+                current_chunk.append(word)
+            else:
+                chunks.append(' '.join(current_chunk))
+                current_chunk = [word]
+
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
+
+        return '\n'.join(chunks)
+    doc = SimpleDocTemplate(output_filename, pagesize=landscape(letter), topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Define colors for each condition
+    condition_colors = {
+        'stayed_correct': colors.green,
+        'stayed_incorrect': colors.red,
+        'correct_to_incorrect': colors.orange,
+        'incorrect_to_correct': colors.blue,
+    }
+
+    for df, condition in dataframes_and_conditions:
+        # Add a page break before each condition (except the first one)
+        if elements:
+            elements.append(PageBreak())
+
+        # Determine the color for this condition
+        condition_color = condition_colors[condition]
+
+        # Create custom styles with color
+        title_style = ParagraphStyle(
+            'ConditionTitle',
+            parent=styles['Heading1'],
+            alignment=TA_CENTER,
+            spaceAfter=12,
+            textColor=condition_color
+        )
+        subtitle_style = ParagraphStyle(
+            'ExampleTitle',
+            parent=styles['Heading2'],
+            alignment=TA_CENTER,
+            spaceAfter=12,
+            textColor=condition_color
+        )
+
+        # Add the condition title with the specific color
+        title = Paragraph(condition, title_style)
+        title.textColor = condition_color
+        elements.append(title)
+
+        # Select the columns to display
+        columns_to_display = list(df.columns)
+
+        # Create a page for each example
+        for index, row in df.iterrows():
+            if index > 0:
+                elements.append(PageBreak())
+            
+            # Add example number as subtitle with the same color as the condition
+            subtitle = Paragraph(f"Example {index + 1}", subtitle_style)
+            subtitle.textColor = condition_color
+            elements.append(subtitle)
+            elements.append(Spacer(1, 12))
+
+            # Create a list to hold the formatted data for the table
+            table_data = []
+
+            # Add header and data as separate rows
+            for col in columns_to_display:
+                header = Paragraph(split_long_text(col, 20), styles['Normal'])
+                cell_content = split_long_text(str(row[col]), 100)
+                cell = Paragraph(cell_content, ParagraphStyle('Normal', fontSize=8, leading=10))
+                table_data.append([header, cell])
+
+            # Create the table
+            table = Table(table_data, colWidths=[2*inch, 6*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ]))
+
+            elements.append(table)
+
+    # Build the PDF
+    doc.build(elements)
+
+
+
+def plot_experiment_change_results(args, df, sample_qs=True, num_samples=3):
+    def sample_qual_qs(df, cond, num_samples=3):
+        this_df = df[cond]
+        sample_df = this_df.sample(num_samples)
+        sample_df = sample_df[['key_question', 'key_image', 'question_number',
+                               'question_and_answer_and_context', 'llm_response_choices',
+                               'choices', '_image_modality', '_image_scale',
+                               '_sub_use_case', '_question_has_answer']]
+        return sample_df
+
     # Count total questions
     total_questions = len(df)
     
@@ -163,11 +281,31 @@ def plot_experiment_change_results(args, df):
     experiment_correct = df['is_correct'].sum()
     experiment_incorrect = total_questions - experiment_correct
     
+    # Find transitions
+    stayed_correct = ((df['base_is_correct'] == True) & (df['is_correct'] == True))
+    stayed_incorrect = ((df['base_is_correct'] == False) & (df['is_correct'] == False))
+    correct_to_incorrect = ((df['base_is_correct'] == True) & (df['is_correct'] == False))
+    incorrect_to_correct = ((df['base_is_correct'] == False) & (df['is_correct'] == True))
+
+    if sample_qs:
+        df_1 = sample_qual_qs(df, stayed_correct, num_samples=num_samples)
+        df_2 = sample_qual_qs(df, stayed_incorrect, num_samples=num_samples)
+        df_3 = sample_qual_qs(df, correct_to_incorrect, num_samples=num_samples)
+        df_4 = sample_qual_qs(df, incorrect_to_correct, num_samples=num_samples)
+        dataframes_and_conditions = [
+            (df_1, 'stayed_correct'),
+            (df_2, 'stayed_incorrect'),
+            (df_3, 'correct_to_incorrect'),
+            (df_4, 'incorrect_to_correct')]
+        print('Creating PDF with sample questions')
+        create_pdf_from_dataframes(os.path.join(args.save_dir, 'sample_questions.pdf'),
+                                   dataframes_and_conditions)     
+    
     # Count transitions
-    stayed_correct = ((df['base_is_correct'] == True) & (df['is_correct'] == True)).sum()
-    stayed_incorrect = ((df['base_is_correct'] == False) & (df['is_correct'] == False)).sum()
-    correct_to_incorrect = ((df['base_is_correct'] == True) & (df['is_correct'] == False)).sum()
-    incorrect_to_correct = ((df['base_is_correct'] == False) & (df['is_correct'] == True)).sum()
+    stayed_correct = stayed_correct.sum()
+    stayed_incorrect = stayed_incorrect.sum()
+    correct_to_incorrect = correct_to_incorrect.sum()
+    incorrect_to_correct = incorrect_to_correct.sum()
     
     # Set up the plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
@@ -227,6 +365,8 @@ def plot_experiment_change_results(args, df):
     
     plt.tight_layout()
     plt.savefig(os.path.join(args.save_dir, 'change_correct_plot.png'))
+
+        
 
 def analyze_tags(args, tag_df):
     os.makedirs(args.save_dir, exist_ok=True)
@@ -295,24 +435,26 @@ def analyze_tags(args, tag_df):
         for second_col in second_cols:
             # print(f'Creating histogram for {second_col} by {col}')
             # hist_col_by_col(tag_df, col, second_col)
-            print(f'Creating pie chart for {second_col} by {col}')
             pie_col_by_col(tag_df, col, second_col)
     plot_hist(tag_df, 'correct_length', 'mean_distractor_length')
+
+
 
 def main(args):
     tag_df = preprocess_dfs(args.res_path, args.tag_path, args.base_path)
     analyze_tags(args, tag_df)
-    # compare_length_results(args, tag_df)
+    compare_length_results(args, tag_df)
     plot_experiment_change_results(args, tag_df)
     # create pdf with images
+    print('Creating PDF with all images')
     png_to_pdf(args.save_dir, os.path.join(args.save_dir, 'analysis_report.pdf'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
-    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv')
     parser.add_argument('--tag_path', type=str, default='analysis_scripts/results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
-    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241108_blind_version')
+    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241011_length_version')
     args = parser.parse_args()
     main(args)
