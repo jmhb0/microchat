@@ -31,6 +31,22 @@ Options:
 {{CHOICES}}
 """,
         "regex_pattern": r"answer is \(?([0-9])\)?",
+    },
+    1: {
+        "about":
+        "based on prompt 0, but no images provided",
+        "template": """\
+The following is a multiple choice question (with answers).\
+If an image is mentioned ignore this information and try your best to answer the question.
+Think step by step and then output the answer in the format of \"The answer is (X)\" at the end."
+
+
+{{QUESTION}}
+
+Options:
+{{CHOICES}}
+""",
+        "regex_pattern": r"answer is \(?([0-9])\)?",
     }
 }
 
@@ -38,13 +54,13 @@ Options:
 def eval_qa(key_form,
             key_question_gen,
             key_choices_gen,
+            key_prompt_eval=0,
             model='gpt-4o-mini',
             seed=0,
             verbose=False):
     """ 
     Run eval - both with and without the multi-choice options. 
     """
-    key_prompt_eval = 0
 
     f_choices = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}/df_questions_key_choices_{key_choices_gen}.csv"
@@ -109,6 +125,9 @@ def eval_qa(key_form,
 
     # call gpt
     seeds = [seed] * len(batch_prompts_text)
+    # blind experiment change
+    if key_prompt_eval == 1:
+        batch_prompts_imgs = None
     responses = call_gpt_batch(texts=batch_prompts_text,
                                imgs=batch_prompts_imgs,
                                model=model,
@@ -151,8 +170,11 @@ if __name__ == "__main__":
     key_question_gen = 0
     # key for generating the choices
     key_choices_gen = 2
+    # key for evaluation prompt
+    key_prompt_eval = 1 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"
 
-    eval_qa(key_form, key_question_gen, key_choices_gen, seed=0, model=model)
+    eval_qa(key_form, key_question_gen, key_choices_gen,
+            key_prompt_eval=key_prompt_eval, seed=0, model=model)
     ipdb.set_trace()
     pass
