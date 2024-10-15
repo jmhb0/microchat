@@ -18,10 +18,10 @@ def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0):
     dir_data_questions = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
     )
-    df_questions = pd.read_csv(dir_data_questions / "1_df_questions.csv",
+    df_questions = pd.read_csv(dir_data_questions / "clean_df_questions.csv",
                                index_col='key_question')
 
-    if key_choices_gen in (0, 1, 2, 3):
+    if key_choices_gen in (0, 1, 2, 3, 4):
         df_questions = gen_choices_simple(df_questions, key_choices_gen, seed)
 
     else:
@@ -67,7 +67,18 @@ Sample incorrect answer:
     """\
 You are an expert in molecular and cell biology, and in microscopy. 
 I will give you an original biology-related question and its answer, your task is to rephrase an equivalent question with an identical concise answer. The question is related to an image, but we don't show you the image.
-Meanwhile, I want to transfer this QA-pair into a multi-choice question. Please generate 5 incorrect options to construct the candidate options. Make sure the incorrect options are the close to the length of the correct answer.
+Meanwhile, I want to transfer this QA-pair into a multi-choice question. Please generate 5 incorrect options to construct the candidate options. Make sure the incorrect options are similar in length to the correct answer.
+Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
+
+{{question}}
+""",
+    4:
+        """\
+You are an expert in molecular and cell biology, and in microscopy. 
+I will give you an original biology-related question and its answer, your task is to rephrase an equivalent question with an identical concise answer. The question is related to an image, but we don't show you the image.
+Meanwhile, I want to transfer this QA-pair into a multi-choice question.
+Please generate 5 incorrect options to construct the candidate options that mimic these 5 errors: perception error (confuses the elements in the image), lack of knowledge (lacks domain specific knowledge), reasoning error (has all the correct information but a reasoning error leads to the wrong answer), lack of knowledge + reasoning error, perception + reasoning error.
+Make sure the incorrect options are a similar in length to the correct answer.
 Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
 
 {{question}}
@@ -86,7 +97,7 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
         # 2 is placeholder for the full model using prompt 0
         model = "gpt-4o-2024-08-06"
         key_prompt_template = 0
-    elif key_choices_gen >= 3: # we want to use the full model
+    elif key_choices_gen > 2: # we want to use the full model
         model = "gpt-4o-2024-08-06"
         key_prompt_template = key_choices_gen
     else:
@@ -147,9 +158,9 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 0
+    key_question_gen = 0 # 0 is current question strategy, 3 is w/o context
     # key for generating the choices
-    key_choices_gen = 3
+    key_choices_gen = 4
 
     gen_choices(key_form, key_question_gen, key_choices_gen, seed=0)
     ipdb.set_trace()

@@ -30,7 +30,7 @@ def load_dfs(key_form=0):
     return df_images, df_questions
 
 
-def create_questions(df_questions, df_images, key_question_gen, key_form):
+def create_questions(df_questions, df_images, key_question_gen, key_form, add_context=True):
     """ 
     Main function for generating the questions according to the strategy in 
     `key_question_gen`
@@ -39,23 +39,26 @@ def create_questions(df_questions, df_images, key_question_gen, key_form):
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
     )
     dir_data_save.mkdir(exist_ok=True)
-
-    if key_question_gen == 0:
+    if key_question_gen == 3:
+        add_context = False # default True
+    
+    if key_question_gen in (0, 3):
         df_questions = summarize_follow_up_chain(df_questions,
                                                  df_images,
                                                  key_question_gen=0)
+        
         df_questions_final = combine_questions_without_llm(
-            df_questions, df_images)
+            df_questions, df_images, add_context=add_context)
 
         pass
 
     else:
         raise NotImplementedError()
 
-    df_questions_final.to_csv(dir_data_save / f"1_df_questions.csv")
+    df_questions_final.to_csv(dir_data_save / f"clean_df_questions.csv")
 
 
-def combine_questions_without_llm(df_questions, df_images):
+def combine_questions_without_llm(df_questions, df_images, add_context=True):
     """
     Simplest approach is to just naively create the question by combining the 
     context, question, and (optionally) the prior context from followup questions. 
@@ -79,7 +82,10 @@ def combine_questions_without_llm(df_questions, df_images):
         fs = [str(f) for f in fs]
 
         # create the question string step-by-step
-        question = f"Description of image preparation:\n'''{context}'''\n"
+        question = f""
+        if add_context:
+            question = f"Description of image preparation:\n'''{context}'''\n"
+        
         if row['follow_up_chain'] != '0':
             assert row['follow_up_summary'] != ''
             question += f"Additional information:\n'''{row['follow_up_summary']}'''\n"
@@ -156,7 +162,7 @@ PAST_QUESTIONS_AND_ANSWERS:
 
 
 def summarize_follow_up_chain(df_questions, df_images, key_question_gen=0):
-    if key_question_gen != 0:
+    if key_question_gen not in prompt_template_summarize_follow_up_chains:
         raise NotImplementedError()
 
     df_questions = _create_follow_up_chain(df_questions)
@@ -185,14 +191,15 @@ def summarize_follow_up_chain(df_questions, df_images, key_question_gen=0):
 
         context = df_images.loc[row['key_image'], 'Context - image generation']
 
-        prompt = prompt_template_summarize_follow_up_chains[0]
+        prompt = prompt_template_summarize_follow_up_chains[key_question_gen]
         prompt = prompt.replace("{{context}}", context)
         prompt = prompt.replace("{{past_questions}}", past_questions_str)
         batch_prompts.append(prompt)
 
     responses = call_gpt_batch(batch_prompts,
                                json_mode=True,
-                               model='gpt-4o-mini')
+                               model='gpt-4o-2024-08-06')
+                            #    model='gpt-4o-mini')
     cost = sum([c[1] for c in responses])
     print(f"Cost of llm call ${cost:.3f}")
     msgs = [c[0] for c in responses]
@@ -356,7 +363,7 @@ def answer_breakout(df_questions, df_images, idx, key_question_gen):
 
 if __name__ == "__main__":
     key_form = 0
-    key_question_gen = 0
+    key_question_gen = 3 # 0 default, 3 is no context in final question
     df_images, df_questions = load_dfs(key_form)
     create_questions(df_questions, df_images, key_question_gen, key_form)
     ipdb.set_trace()
