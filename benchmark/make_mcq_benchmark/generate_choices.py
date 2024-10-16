@@ -145,8 +145,13 @@ def make_choices(questions, seed=0):
         random.seed(seed_)
         choices = question['incorrect_answers'].copy()
         insert_position = random.randint(0, len(choices))
+        option_nums = list(range(len(choices)))
         choices.insert(insert_position, question['answer'])
-        random.shuffle(choices)
+        option_nums.insert(insert_position, 'c')
+        random_indices = random.randint(0, len(choices))
+        choices = choices[random_indices]
+
+        # random.shuffle(choices)
         correct_index = choices.index(question['answer'])
         all_choices.append(dict(choices=choices, correct_index=correct_index))
         seed_ += 1

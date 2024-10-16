@@ -167,9 +167,9 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 0
+    key_question_gen = 3
     # key for generating the choices
-    key_choices_gen = 4
+    key_choices_gen = 3
     # key for evaluation prompt
     key_prompt_eval = 0 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"

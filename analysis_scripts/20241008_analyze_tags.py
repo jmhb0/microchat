@@ -31,8 +31,9 @@ def preprocess_dfs(res_path, tag_path, baseline_path):
         mask[np.arange(len(choices)), gt_idx] = False
         df['mean_distractor_length'] = np.mean(np.char.str_len(choices[mask].reshape(-1, 5)), axis=1)
         # keep only basic columns
-        cols = ['key_question', 'key_image', 'question_number', 'gpt_response', 'gpt_prediction',
-                'is_correct', 'correct_length', 'mean_distractor_length']
+        cols = ['key_question', 'key_image', 'question_number', 'fname_images',
+                'gpt_response', 'gpt_prediction', 'is_correct', 
+                'correct_length', 'mean_distractor_length']
         df = df[cols]
         return df
     
@@ -46,7 +47,8 @@ def preprocess_dfs(res_path, tag_path, baseline_path):
                                 'gpt_prediction': 'base_gpt_prediction',
                                 'is_correct': 'base_is_correct',
                                 'correct_length': 'base_correct_length',
-                                'mean_distractor_length': 'base_mean_distractor_length'},
+                                'mean_distractor_length': 'base_mean_distractor_length',
+                                'fname_images': 'base_fname_images'},
                                 inplace=True)
         return base_df
     
@@ -267,8 +269,8 @@ def plot_experiment_change_results(args, df, sample_qs=True, num_samples=3):
         this_df = df[cond]
         sample_df = this_df.sample(num_samples)
         sample_df = sample_df[['key_question', 'key_image', 'question_number',
-                               'question_and_answer_and_context', 'llm_response_choices',
-                               'choices', '_image_modality', '_image_scale',
+                               'question_and_answer_and_context', 'choices', 'gpt_response',
+                               '_image_modality', '_image_scale',
                                '_sub_use_case', '_question_has_answer']]
         return sample_df
 
@@ -451,10 +453,13 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
-    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv')
+    # parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
+    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_4_evalclosed_gpt-4o-2024-08-06.csv') # for error distractors, base should be length
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # for length
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv') # for blind
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # for no context
     parser.add_argument('--tag_path', type=str, default='analysis_scripts/results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
-    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241011_length_version')
+    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241015_errormode_version')
     args = parser.parse_args()
     main(args)
