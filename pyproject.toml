@@ -26,6 +26,11 @@ optional = true
 [tool.poetry.group.dvc.dependencies]
 dvc = {extras = ["s3"], version = "^3.17.0"}
 
+[tool.poetry.group.dspy]
+optional = true
+[tool.poetry.group.dspy.dependencies]
+dspy-ai = {extras = ["chromadb"], version = "^2.5.9"}
+
 [tool.poetry.scripts]
 microchat = "microchat.__main__:main"
 
