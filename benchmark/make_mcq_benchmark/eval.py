@@ -169,9 +169,9 @@ if __name__ == "__main__":
     # which set of questions to get - made in make_questions.py
     key_question_gen = 0
     # key for generating the choices
-    key_choices_gen = 2
+    key_choices_gen = 4
     # key for evaluation prompt
-    key_prompt_eval = 1 # 1 is blind 0 is default
+    key_prompt_eval = 0 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"
 
     eval_qa(key_form, key_question_gen, key_choices_gen,
