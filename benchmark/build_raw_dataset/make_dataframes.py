@@ -33,7 +33,7 @@ def make_dataframes(idx=0):
     df_people.to_csv(dir_data / '2_df_people.csv')
     df_images.to_csv(dir_data / '2_df_images.csv')
     df_questions.to_csv(dir_data / '2_df_questions.csv')
-    ipdb.set_trace()
+    
 
     # save lookups
     with open(dir_data / "2_lookup_person_to_images.json", 'w') as f:
@@ -45,7 +45,11 @@ def make_dataframes(idx=0):
     with open(dir_data / "2_lookup_question_to_person.json", 'w') as f:
         json.dump(lookup_question_to_person, f, indent=4)
 
-    logging.info("Done")
+    logging.info("Saved files")
+    ipdb.set_trace()
+    pass
+    # print(df_people)
+
 
 def _map_use_case(use_case):
     """ called in `create_quesitons_dataframe` """
