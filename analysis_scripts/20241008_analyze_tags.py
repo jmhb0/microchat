@@ -454,12 +454,16 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv')
-    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_4_evalclosed_gpt-4o-2024-08-06.csv') # for error distractors, base should be length
+    parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # length as base
+    # parser.add_argument('--base_path', type=str, default='benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # no context as base
+
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_4_evalclosed_gpt-4o-2024-08-06.csv') # for error distractors, base should be length
     # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # for length
     # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_2_evalclosed_blind_gpt-4o-2024-08-06.csv') # for blind
     # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_3_evalclosed_gpt-4o-2024-08-06.csv') # for no context
+    parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_0/df_questions_key_choices_5_evalclosed_gpt-4o-2024-08-06.csv') # for in-context example
+    # parser.add_argument('--res_path', type=str, default='benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_5_evalclosed_gpt-4o-2024-08-06.csv') # for in-context example + no context q
     parser.add_argument('--tag_path', type=str, default='analysis_scripts/results/20240925_llm_tagging/df_choices_with_llm_preds.csv')
-    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241015_errormode_version')
+    parser.add_argument('--save_dir', type=str, default='analysis_scripts/results/20241015_incontexteg_version')
     args = parser.parse_args()
     main(args)
