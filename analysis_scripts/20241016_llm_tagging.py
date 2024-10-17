@@ -24,6 +24,7 @@ import numpy as np
 from collections import Counter
 import logging
 import ast
+import tiktoken
 
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
@@ -40,7 +41,7 @@ data_dir = Path("benchmark/data/formdata_0")
 ## data
 # first get the dataframe with the questions and generated mcq's
 key_question_gen = 0
-key_choices_gen = 0
+key_choices_gen = 3
 f_questions_choices = data_dir / f"question_strategy_{key_question_gen}" / f"df_questions_key_choices_{key_choices_gen}.csv"
 df = pd.read_csv(f_questions_choices)
 # also the images and questions dataframes
@@ -104,7 +105,7 @@ Here is the text to summarize:
 ```
 {{text}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nDoing eli5 summarisation")
     prompts = [
@@ -131,7 +132,7 @@ Here is the text to summarize:
 ```
 {{text}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nDoing eli5 summarisation 2")
     prompts = [
@@ -282,10 +283,10 @@ Question: The centrosome-marker protein is localized to which organelle?
 Answer: centrosome
 ```
 
-Your task is to identify if this occurs in the question, return "1" if it is and "0" otherwise. 
+Your task is to identify if this occurs in the question, return '1' if it is and '0' otherwise. 
 Also give an explanation. 
 The json output should be:
-{"is_answered" : "0|1, "explanation" : "..."}
+{'is_answered' : '0|1', 'explanation' : '...'}
 
 Here is the context and question:
 ```
@@ -298,9 +299,9 @@ if 1:
     print("\nRunning 'question has answer' test")
     prompts = []
     for t_q, t_a in zip(df['question'], df['answer']):
-    	prompt = prompt_template_question_has_answer.replace("{{text_question}}", str(t_q))
-    	prompt = prompt.replace("{{text_answer}}", str(t_a))
-    	prompts.append(prompt)
+        prompt = prompt_template_question_has_answer.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_answer}}", str(t_a))
+        prompts.append(prompt)
         
     res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
     cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
@@ -309,6 +310,153 @@ if 1:
     df['_question_has_answer_explanation'] = [
         r[0]['explanation'] for r in res
     ]
+
+### testing if the image is necessary to solve the question (blind experiment would work)
+prompt_template_question_no_image = """
+Below is a text that is paired with a microscopy image. 
+The text is a question and answer choices where only one is correct.
+
+Your task is to identify if the question can be answered without the image or if the options can be ruled out easily without having a deep knowledge about the question.
+If this occurs, return '1' and '0' otherwise. 
+
+Also give an explanation. 
+The json output should be:
+{'is_no_image' : '0|1', 'explanation' : '...'}
+
+Here is the question and answer choices:
+```
+{{text_question}}
+Answer choices:
+{{text_choices}}
+```"""
+if 1:
+    json_mode = True
+    print("\nRunning 'question doesn't need image' test")
+    prompts = []
+    for t_q, t_c in zip(df['question'], df['choices']):
+        t_c = ast.literal_eval(t_c)['choices'] 
+        prompt = prompt_template_question_no_image.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_choices}}", str(t_c))
+        prompts.append(prompt)
+
+    res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
+    cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
+    print(f"Cost ${cost:.2f} with model {model}")
+    df['_question_no_image'] = [r[0]['is_no_image'] for r in res]
+    df['_question_no_image_explanation'] = [
+        r[0]['explanation'] for r in res
+    ]
+
+### verbose or convoluted choices
+prompt_template_convoluted = """
+Below is a text that is paired with a microscopy image. 
+The text is a question and answer choices where only one is correct.
+
+Your task is to identify if the wording of the question or the choices is convoluted or unnecessarily verbose.
+If this occurs, return '1' and '0' otherwise. 
+
+Also give an explanation. 
+The json output should be:
+{'is_convoluted' : '0|1', 'explanation' : '...'}
+
+Here is the question and answer choices:
+```
+{{text_question}}
+Answer choices:
+{{text_choices}}
+```"""
+if 1:
+    json_mode = True
+    print("\nRunning 'question is convoluted' test")
+    prompts = []
+    for t_q, t_c in zip(df['question'], df['choices']):
+        t_c = ast.literal_eval(t_c)['choices'] 
+        prompt = prompt_template_convoluted.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_choices}}", str(t_c))
+        prompts.append(prompt)
+    # try:
+    res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
+    # except:
+    #     ipdb.set_trace()
+    #     res = call_gpt_batch(prompts, model=model, json_mode=json_mode, overwrite_cache=True)
+    cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
+    print(f"Cost ${cost:.2f} with model {model}")
+    df['_question_convoluted'] = [r[0]['is_convoluted'] for r in res]
+    df['_question_convoluted_explanation'] = [
+        r[0]['explanation'] for r in res
+    ]    
+
+### question tests established knowledge
+prompt_template_basic = """
+Below is a text that is paired with a microscopy image. 
+The text is a question and answer choices where only one is correct.
+
+Your task is to identify if the question phrasing and its choices make the question easy to answer with established knowledge and do not require complex reasoning.
+If this occurs, return '1' and '0' otherwise. 
+
+Also give an explanation. 
+The json output should be:
+{'is_basic' : '0|1', 'explanation' : '...'}
+
+Here is the question and answer choices:
+```
+{{text_question}}
+Answer choices:
+{{text_choices}}
+```"""
+if 1:
+    json_mode = True
+    print("\nRunning 'question is basic' test")
+    prompts = []
+    for t_q, t_c in zip(df['question'], df['choices']):
+        t_c = ast.literal_eval(t_c)['choices'] 
+        prompt = prompt_template_basic.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_choices}}", str(t_c))
+        prompts.append(prompt)
+
+    res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
+    cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
+    print(f"Cost ${cost:.2f} with model {model}")
+    df['_question_basic'] = [r[0]['is_basic'] for r in res]
+    df['_question_basic_explanation'] = [
+        r[0]['explanation'] for r in res
+    ]    
+
+### question tests established knowledge
+prompt_template_bad_grammar = """
+Below is a text that is paired with a microscopy image. 
+The text is a question and answer choices where only one is correct.
+
+Your task is to identify if the question and its choices have grammar or spelling mistakes.
+If this occurs, return '1' and '0' otherwise. 
+
+Also give an explanation.
+The json output should be:
+{'is_bad_grammar' : '0|1', 'explanation' : '...'}
+
+Here is the question and answer choices:
+```
+{{text_question}}
+Answer choices:
+{{text_choices}}
+```"""
+if 1:
+    json_mode = True
+    print("\nRunning 'question has bad grammar or spelling' test")
+    prompts = []
+    for t_q, t_c in zip(df['question'], df['choices']):
+        t_c = ast.literal_eval(t_c)['choices'] 
+        prompt = prompt_template_bad_grammar.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_choices}}", str(t_c))
+        prompts.append(prompt)
+
+    res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
+    cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
+    print(f"Cost ${cost:.2f} with model {model}")
+    df['_question_bad_grammar'] = [r[0]['is_bad_grammar'] for r in res]
+    df['_question_bad_grammar_explanation'] = [
+        r[0]['explanation'] for r in res
+    ]   
 
 ### testing whether the answer in 'choices' matches what was actually provided 
 prompt_template_choices_matches_freeform = """
@@ -337,21 +485,21 @@ GENERATED_ANSWER:
 {{generated_answer}}
 ```
 """
-if 1:
+if 0:
     json_mode = True
     print("\nRunning test for whether the generated answer in choices matches the freeform answer")
 
     prompts = []
     all_choices = []
     for t_q, t_a, t_c in zip(df['question'], df['answer'], df['choices']):
-    	prompt = prompt_template_choices_matches_freeform
-    	prompt = prompt.replace("{{question_and_context}}", str(t_q))
-    	prompt = prompt.replace("{{answer}}", str(t_a))
-    	choices = ast.literal_eval(t_c)
-    	all_choices.append(choices)
-    	choices_ans = choices['choices'][choices['correct_index']]
-    	prompt = prompt.replace("{{generated_answer}}", choices_ans)
-    	prompts.append(prompt)
+        prompt = prompt_template_choices_matches_freeform
+        prompt = prompt.replace("{{question_and_context}}", str(t_q))
+        prompt = prompt.replace("{{answer}}", str(t_a))
+        choices = ast.literal_eval(t_c)
+        all_choices.append(choices)
+        choices_ans = choices['choices'][choices['correct_index']]
+        prompt = prompt.replace("{{generated_answer}}", choices_ans)
+        prompts.append(prompt)
     	
     res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
     cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
@@ -363,7 +511,7 @@ if 1:
     ]
 
 # test Laura's idea about the correct answer being the longest 
-if 1: 
+if 0: 
 	choices = [ast.literal_eval(d) for d in df['choices']]
 	correct_idxs = [c['correct_index'] for c in choices]
 	# lengts[i][j] is the string length of the jth choice of sample i
@@ -379,13 +527,38 @@ if 1:
 	print(f"Median length of all choices {np.median(lengths_longest):.0f}")
 	print(f"Median length of correct choices {np.median(lengths_all):.0f}")
 
+# add length of distractor and correct choices to tags
+if 1:
+    num_incorrect = 5
+    gt_idx = df['choices'].apply(lambda x: ast.literal_eval(x)['correct_index']).to_numpy()
+    choices = np.vstack(df['choices'].apply(lambda x: ast.literal_eval(x)['choices']))
+    df['correct_length'] = np.char.str_len(choices[np.arange(len(choices)), gt_idx])
+    mask = np.ones_like(choices, dtype=bool)
+    mask[np.arange(len(choices)), gt_idx] = False
+    df['mean_distractor_length'] = np.mean(np.char.str_len(choices[mask].reshape(-1, num_incorrect)), axis=1)
+    df['correct_is_longer'] = ((df['correct_length'] > df['mean_distractor_length']) * 1).astype(str)
+    # token length tags
+    enc = tiktoken.encoding_for_model("gpt-4o")
+    vec_encode_len = np.vectorize(lambda x: len(enc.encode(x)))
+    df['correct_token_length'] = vec_encode_len(choices[np.arange(len(choices)), gt_idx])
+    df['mean_distractor_token_length'] = np.mean(vec_encode_len(choices[mask].reshape(-1, num_incorrect)), axis=1)
 
+# summarize all tag metrics
+if 1:
+    def count_tag_instances(df, tag_name):
+        num = df[tag_name].value_counts().loc['1']
+        print(f'| {tag_name} | {num} | {num/len(df):.2f} |')
 
+    count_tag_instances(df, '_question_has_answer')
+    count_tag_instances(df, '_question_no_image')
+    count_tag_instances(df, '_question_convoluted')
+    count_tag_instances(df, '_question_basic')
+    count_tag_instances(df, '_question_bad_grammar')
+    # count_tag_instances(df, '_answer_generation_is_different')
+    count_tag_instances(df, 'correct_is_longer')
 
-
-
-
-f_save = dir_results / "df_choices_with_llm_preds.csv"
+f_save = dir_results / f"df_choices_with_llm_preds_{key_question_gen}_{key_choices_gen}.csv"
+print(f'saving to {f_save}')
 df.to_csv(f_save)
 ipdb.set_trace()
 pass
