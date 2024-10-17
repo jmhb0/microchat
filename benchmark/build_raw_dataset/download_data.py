@@ -338,7 +338,7 @@ def download_images_from_csv(dir_data, df, verbose=0):
 if __name__ == "__main__":
     verbose = 0
     key = '0'
-    download_imgs = False
+    download_imgs = True
     download_form_responses(key,
                             urls_form_responses[key],
                             urls_form_responses_updates[key],

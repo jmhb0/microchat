@@ -1,4 +1,11 @@
 ## Organization
+Source links: 
+- Form: https://docs.google.com/forms/u/1/d/1t7Z7IIUKrfX_9uaHrA5RtyyadL4DavajLlKA1tecFzE/edit?usp=drive_web
+- Google sheet with form responses: https://docs.google.com/spreadsheets/d/1zfNH_d9SqTtxau9aUA5GfTi_WSkwwRv6cUy8LHcKuk4/edit?resourcekey#gid=626873631
+- Google sheet for manual form updates: https://docs.google.com/spreadsheets/d/1frCi5IaKlDprEvN0GpSoQOtAJNBQq0lU0ukiN0_vsIA/edit?gid=0#gid=0
+- Google sheet for manual review of df_images: 
+- Google sheet for manual review of df_questions: 
+
 
 ### 1. download data
 In `download_data.csv`, we create data and put it into folder `benchmark/build_raw_dataset/formdata_{idx}` where `idx` is the index for the form number. (So far we only have idx 0). It creates these files. 
