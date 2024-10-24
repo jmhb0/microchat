@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import ast
+import copy
 import random
 
 sys.path.insert(0, '.')
@@ -14,7 +15,7 @@ from models.openai_api import call_gpt_batch
 dir_this_file = Path(__file__).parent
 
 
-def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0):
+def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=True):
     dir_data_questions = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
     )
@@ -26,6 +27,7 @@ def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0):
 
     else:
         raise NotImplementedError()
+    df_questions = update_question(df_questions, update_q)
 
     df_questions['choices'] = make_choices(
         df_questions['llm_response_choices'], seed)
@@ -33,6 +35,17 @@ def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0):
     f_save = dir_data_questions / f"df_questions_key_choices_{key_choices_gen}.csv"
     df_questions.to_csv(f_save)
     print(f"Saved to {f_save}")
+
+
+def update_question(df_questions, update_q):
+    df_questions['original_question'] = copy.deepcopy(df_questions['question'])
+    df_questions['original_answer'] = copy.deepcopy(df_questions['answer'])
+    if update_q:
+        df_questions['question'] = df_questions['llm_response_choices'].apply(
+            lambda x: ast.literal_eval(x)['question'])
+        df_questions['answer'] = df_questions['llm_response_choices'].apply(
+            lambda x: ast.literal_eval(x)['answer']) 
+    return df_questions
 
 
 prompt_template_simple = {
@@ -98,6 +111,26 @@ incorrect_answers: ['The protein is distributed throughout the cytoplasm, which 
 
 Now I will give you an original biology-related question and its answer, your task is to rephrase an equivalent question with an identical concise answer. The question is related to an image, but we don't show you the image.
 Meanwhile, I want to transfer this QA-pair into a multi-choice question. Please generate 5 incorrect options to construct the candidate options. Make sure the incorrect options are similar in length to the correct answer.
+Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
+
+{{question}}
+""",
+
+    6:
+    """\
+You are an expert in molecular and cell biology, and in microscopy. 
+I will give you an original biology-related question and its answer, your task is to rephrase an equivalently difficult question.
+Considerations:
+- The question is related to an image, we don't show you the image, but the question should need the image information to be answered correctly.
+- Make sure the question does not contain the answer.
+- Check for grammar, conciseness, precise wording.
+
+Additionally, I want to transfer this QA-pair into a multi-choice question. Please generate 5 incorrect options to construct the candidate options.
+Considerations:
+- Make sure the incorrect options are similar in length to the correct answer.
+- The incorrect options should be plausible but incorrect.
+- Make sure that the incorrect options are difficult to rule out.
+
 Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
 
 {{question}}
@@ -177,9 +210,9 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 3 # 0 is current question strategy, 3 is w/o context
+    key_question_gen = 0 # 0 is current question strategy, 3 is w/o context
     # key for generating the choices
-    key_choices_gen = 3
+    key_choices_gen = 6
 
     gen_choices(key_form, key_question_gen, key_choices_gen, seed=0)
     ipdb.set_trace()
