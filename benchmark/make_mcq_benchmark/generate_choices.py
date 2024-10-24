@@ -15,13 +15,18 @@ from models.openai_api import call_gpt_batch
 dir_this_file = Path(__file__).parent
 
 
-def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=True):
+def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=True, subset=None):
     dir_data_questions = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
     )
     df_questions = pd.read_csv(dir_data_questions / "clean_df_questions.csv",
                                index_col='key_question')
+    if subset:
+        df_questions = df_questions[:subset]
 
+
+    if key_choices_gen in (6,7):
+        assert key_question_gen == 0, "debugging key_choices_gen number only"
     if key_choices_gen in prompt_template_simple.keys():
         df_questions = gen_choices_simple(df_questions, key_choices_gen, seed)
 
@@ -115,7 +120,6 @@ Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['..
 
 {{question}}
 """,
-
     6:
     """\
 You are an expert in molecular and cell biology, and in microscopy. 
@@ -135,6 +139,35 @@ Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['..
 
 {{question}}
 """,
+
+    7: # for debugging only
+    """\
+Please generate 3 distractors for this question given the image:
+
+{{question}}
+Answer: '''{{answer}}'''
+
+Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
+""",
+
+    8: # also debugging but summarized
+    """\
+You are an expert in molecular and cell biology, and in microscopy. 
+I will give you an original biology-related question and its answer, your task is to rephrase an equivalent question with identical answer. 
+The question related to an image, and we don't show the image.
+
+Meanwhile, I want to transfer this QA-pair into a multi-choice question. 
+The answer should be summarized and short. 
+Please generate 3 incorrect options. 
+The incorrect options should also be summarized and short, but should be challenging to eliminate. 
+
+{{question}}
+Answer: '''{{answer}}'''
+
+Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
+""",
+
+
 }
 
 
@@ -145,7 +178,7 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
     if key_choices_gen in (0, 1):
         model = "gpt-4o-mini-2024-07-18 "
         key_prompt_template = key_choices_gen
-    if key_choices_gen == 2:
+    elif key_choices_gen == 2:
         # 2 is placeholder for the full model using prompt 0
         model = "gpt-4o-2024-08-06"
         key_prompt_template = 0
@@ -159,9 +192,11 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
     for idx, row in df_questions.iterrows():
         prompt = prompt_template_simple[key_prompt_template]
         prompt = prompt.replace("{{question}}", row['question'])
+        prompt = prompt.replace("{{answer}}", str(row['answer']))
         # this next line will have no effect for some prompts
         prompt = prompt.replace("{{sample_incorrect_answer}}",
                                 str(row['incorrect_answer']))
+
         batch_prompts.append(prompt)
         assert "{{" not in prompt
 
@@ -175,6 +210,7 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
     msgs = [c[0] for c in responses]
 
     df_questions['llm_response_choices'] = msgs
+    ipdb.set_trace()
 
     return df_questions
 
@@ -210,10 +246,11 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 0 # 0 is current question strategy, 3 is w/o context
-    # key for generating the choices
-    key_choices_gen = 6
+    key_question_gen = 0
+    # key for generatin the choices
+    key_choices_gen = 7
+    subset = None #150
 
-    gen_choices(key_form, key_question_gen, key_choices_gen, seed=0)
+    gen_choices(key_form, key_question_gen, key_choices_gen, subset=subset, seed=0)
     ipdb.set_trace()
     pass

@@ -1,0 +1,147 @@
+# NBME Guidelines
+<nbme_item_writing_guidelines>
+## One best answer items
+The one-best-answer questions are designed to make explicit that only one option is to be selected. These items are the most widely used multiple-choice item format. They consist of a stem, which most often includes a vignette (eg, a clinical or scientific scenario) and a lead-in question, followed by a series of option choices, with one correct answer and anywhere from three to seven distractors. *The incorrect option choices should be directly related to the lead-in and be homogeneous with the correct answer*. This item describes a situation (in this instance, a patient scenario) and asks the test-taker to indicate the most likely cause of the problem, most likely mechanism of action, most likely subcellular structure, or best next step. The incorrect options may be "partially true" and not "completely wrong", they are "less correct" than the "keyed answer" and thus not the single best answer. The test-taker is instructed to select the "most likely subcellular function" or "most likely diagnosis". The experts should all agree that the "keyed answer" is the "most likely" or "best" answer, although other choices could be somewhat likely although less so than the correct answer. As long as the options can be laid out on a single continuum, from the "least likely" or "worst" option to the "most likely" or "best" option (e.g., "Least Likely Diagnosis" to "Most Likely Diagnosis"), then distractors in one-best-answer items do not have to be totally wrong.
+
+### Homogeneous Options
+Along with a focused lead-in, a good item will have a keyed answer and distractors that are homogeneous. They all directly address the lead-in in the same manner and can be rank ordered along a single dimension. The one-best-answer example below is a flawed item that can occur when options are not listed on a single dimension. After reading the lead-in, the test-taker has only the vaguest idea what the question is about. In order to determine the "best" answer, the test-taker must decide whether "it occurs frequently in women" is more or less true than "it is seldom associated with acute pain in a joint." The diagram of these options might look like the figure to the left of the sample item below. The options are heterogeneous and deal with miscellaneous facts; they cannot be rank ordered from least to most true along a single dimension. Although this item appears to assess knowledge of several different points, its inherent flaws preclude this. The item by itself is not clear; the item cannot be answered without looking at the options.
+
+### Cover-the-options rule
+This leads us to another important guideline for writing good one-best-answer items—the "cover-the-options"
+rule. If a lead-in is properly focused, a test-taker should usually be able to read the vignette and lead-in, cover
+the options, and guess the correct answer without seeing the option set. For example, in this next item, after
+reading the lead-in, the test-taker should be able to answer the item without seeing the options. When writing
+items, covering the options and attempting to answer the item is a good way to check whether this rule has
+been followed
+
+
+### General Rules for One-Best-Answer Items
+Because test-takers are required to select the single best answer, one-best-answer items must satisfy the following rules (for more detail, see the six rules below):
+- Item and option text must be clear and unambiguous. Avoid imprecise phrases such as "is associated with" or "is useful for" or "is important"; words that provide cueing such as "may" or "could be"; and vague terms such as "usually" or "frequently."
+- The lead-in should be closed and focused and ideally worded in such a way that the test-taker can cover the options and guess the correct answer. This is known as the "cover-the-options" rule.
+- *All options should be homogeneous* so that they can be judged as entirely true or entirely false on a single dimension.
+- Incorrect options can be partially or wholly incorrect.
+
+
+## Basic rules for writing one-best-answer items
+RULE 1: Each item should focus on an important concept or testing point.
+As a health care provider or educator involved in the development of an examination, you may be asked to write items to assess test-taker knowledge of a particular domain. What do you want the test-taker to know or demonstrate? The topic of the item usually results from the examination blueprint, which is the outline of the major topics to be covered. For instance, if an examination is intended to assess knowledge of the cardiovascular system, the blueprint might have two dimensions: 1) disease-based (eg, hypertension, ischemic heart disease, systolic heart failure), and 2) task-based (eg, assessment of foundational science principles, diagnosis, history, prognosis). The blueprint would likely include topics along both dimensions and might call for six items on hypertension, four on systolic heart failure, two on diastolic heart failure, ten on ischemic heart disease, and so on. Along the task dimension there might be a similar distribution of topics. A clear and comprehensive blueprint or other set of test specifications should always be available so that item writers can stay focused on the important topics and write a sufficient number of items for each topic.
+
+RULE 2: Each item should assess application of knowledge, not recall of an isolated fact. The first step in writing an item is to develop an appropriate stimulus to introduce the topic, such as a clinical or experimental vignette, to provide context to the question being asked. If there is no such stimulus, the resulting item will generally be assessing knowledge recall. Recall items make it difficult for the educator to assess any higher level within Bloom’s taxonomy, such as "application of knowledge." For instance, an item consisting of one sentence, "Which of the following medications is used to decrease preload in systolic heart failure?" would assess only the recall on the mechanisms of action of a list of pharmacotherapeutic agents. It can be helpful to use actual patient scenarios that you previously encountered as a source of ideas for items and vignettes. However, you should avoid relying on or adhering too closely to patient cases because these often have atypical features that may divert from a typical or representative case and lead to confusion. Additionally, in some instances, such as the example with systolic heart failure, there will be an additional step that you must keep in mind: you should consider the underlying cause of the heart failure. Patient demographics, past medical history, and other factors will differ depending on the cause of the condition. Patients with systolic heart failure from a viral cardiomyopathy versus from ischemic heart disease may have different demographics and a different history (eg, a younger patient with a viral illness preceding the onset of heart failure symptoms as compared to an older patient with risk factors for ischemic heart disease). 
+The details of the vignette should be guided by the level of the test-taker. Here are two examples for test-takers with two levels of education/experience:
+
+Test-taker with "Less Education/New Experience": A systolic heart failure vignette for a second-semester first-year medical student would include very typical features and classic symptoms: shortness of breath with physical activity that improves with rest; awakening at night short of breath, relieved by sitting up; pedal edema; and pertinent negatives such as the absence of chest pain. Risk factors might include an upper respiratory illness two weeks ago or a history of heavy alcohol ingestion over 20 years.
+
+Test-taker with "More Advanced Education/Skills": A test-taker, such as one sitting for a specialty certifying examination, would be able to work through a vignette that included some atypical features, as is the case with many actual patients. The demographic information may or may not be significant for the more advanced test- takers. For instance, every patient lives somewhere, and many will have a current or past occupation that may or may not be related to the cause of their illness. In a vignette for a 30-year-old man with shortness of breath and wheezing in which the diagnosis is asthma, the demographic information might or might not be related to the diagnosis. The patient might be a farmer, but the most likely diagnosis is still asthma and not farmer’s lung or silo-filler’s lung.
+
+RULE 3: The item lead-in should be focused, closed, and clear; the test-taker should be able to answer the item based on the vignette and lead-in alone.
+The next step in item writing is to phrase the question with the use of a lead-in, where the accompanying vignette allows the lead-in to be focused on the patient, such as, "Which of the following is the most appropriate next step in management?" or "Which of the following is the most likely diagnosis?" An open- ended lead-in such as, "The diagnosis in the patient is:" should be avoided. The lead-in should be a single, closed, clear question. Ideally, after reading the vignette and the lead-in, a test-taker should be able to answer the item without seeing the options. Another reason to use a closed lead-in is because it helps to avoid certain item flaws, such as "grammatical cueing".
+
+RULE 4: All options should be homogeneous and plausible to avoid cueing to the correct option.
+Homogeneity:
+At this point in item writing, the patient-based, closed lead-in created with Rule 3 in mind will direct the focus and grammatical form of the answer options. Maintaining a consistent focus and parallel format among the answer options results in homogeneity, which allows test-takers to weigh each option within a single mindset without construct-irrelevant distractions. For example, in response to "Which of the following is the most likely cause of this patient’s condition?," a list of answer options in which all choices are diagnoses (eg, tuberculosis, meningitis, etc.), is easier to process than a list containing both diagnoses and underlying pathogens (eg, tuberculosis, Neisseria meningitidis, etc.).
+
+Plausibility:
+The correct answer should always be the "most" correct of the answer options, but the distractors should be plausible enough to entice test-takers who do not know the correct answer. Otherwise, test-takers can arrive at the correct answer by eliminating distractors based on their improbability within the context of the patient scenario.
+When writing answer options, start by generating the correct answer for the lead-in. Generating parallel and plausible yet incorrect distractors is more challenging. For questions regarding diagnosis, the topic area may be the answer—if you are assigned to write two items on community-acquired pneumonia (CAP), one item on the diagnosis and one item on management, the assignment has already generated the keyed answer for the lead-in, "Which of the following is the most likely diagnosis?" Examples of reasonable distractors in an item in which the correct diagnosis is CAP could include pulmonary embolus, lung cancer, and pneumothorax.
+
+RULE 5: Each item should be reviewed to identify and remove technical flaws that add irrelevant difficulty or benefit savvy test-takers.
+Once you have written your item, take a step back and look closely at its structure. The bulk of the text (vignette or case information) should precede, rather than follow, the lead-in. The clinical or experimental vignette should make sense and follow a logical sequence: first list the patient demographics, then history, physical examination, laboratory data, and so on. The use of a template to ensure all of these sections are in place and correctly structured is highly recommended. As you review your item, ask yourself the following questions. If the options were removed, could a knowledgeable test-taker answer the question correctly? Is there anything in the phrasing or text that would confuse the knowledgeable test-taker? Are there any clues to help a testwise student guess the item correctly? Finally, you should ask a colleague to review the items you have written, particularly for content, clarity, and appropriateness for your test-taker population.
+
+## Determining level of cognition to assess
+Items can be grouped into two general categories, based on the cognitive task required of the test-taker:
+1. Recall of a Fact: An item that assesses rote memory of a fact (without requiring its application).
+2. Application of Knowledge: An item that requires a test-taker to apply knowledge to reach a conclusion, make a prediction, or select a course of action that does not depend on memory alone.
+
+Items that test recall of a fact require test-takers to read an item and to recall isolated facts, concepts, and principles or to recognize previously encountered situations (eg, experiments, patient encounters, case studies). These items often begin by citing a disease and then asking what patient findings are expected. For example, "Which of the following findings is most likely to be seen in postsurgical patients with pulmonary embolism?" is an item structured similarly to most textbook questions. The test-taker could look up the disease and find the answer in a single paragraph. From a practical standpoint, these items also seem clinically backwards—patients would not tell their provider what disease they have and then ask the provider to determine the signs and symptoms.
+
+Application of knowledge items, on the other hand, require test-takers to read an item and identify relevant information, interpret that information in a certain context, integrate that information with what they already know, and then answer the question posed. Vignette-based items (items that include a detailed patient or experimental scenario) often provide a vehicle for eliciting the demonstration of these higher-order thinking skills. Some examples of these application of knowledge items can be found throughout this book. Determining the cognitive task for an item – recall vs application of knowledge – depends on the intended end-use of the item. The use of recall items may be best for formative assessment purposes or the evaluation of simpler concepts that might not lend themselves to clinical or experimental scenarios. For a medium-to high-stakes summative examination, use of vignette-based items that require higher-order thinking skills and application of knowledge would be preferable to simple recall items.
+
+Determining the cognitive task for an item – recall vs application of knowledge – depends on the intended end-use of the item. The use of recall items may be best for formative assessment purposes or the evaluation of simpler concepts that might not lend themselves to clinical or experimental scenarios. For a medium-to high-stakes summative examination, use of vignette-based items that require higher-order thinking skills and application of knowledge would be preferable to simple recall items.
+
+
+## The Shape of a Good Multiple-Choice Item
+A well-constructed one-best-answer item will have a particular silhouette as shown in the illustration below. A biological or experimental scenario with contextual information may serve as the stem, and all of the options are listed in a concise and uniform manner. The stem should include all relevant facts; no additional information should be provided in the options.
+
+Make sure the item stem adheres to the following rules:
+- Focuses on important concepts rather than trivial facts
+- Can be answered without looking at the options
+- Includes all relevant facts; no additional data should be provided in the options
+- Is not "tricky" or overly complex
+- Is not negatively phrased (eg, avoid using "except" or "not" in the lead-in)
+
+### Structure of a good multiple-choice item
+<question_stem>
+<vignette>Provide necessary details or context in the vignette, taking care not to give away the answer in the context.<vignette>
+<lead-in>Pose your question here in the lead-in.<lead-in>:
+<question_stem>
+
+<answer_choices>Insert your answer option set here, making sure it follows the "cover-the-options" rule.<answer_choices>
+
+## Guideline for writing item lead-in
+The lead-in should consist of a single, clearly formulated question so that the test-taker can answer without looking at the options. As mentioned previously, satisfying the "cover-the-options" rule is an essential component of a good question.
+
+## Summary of technical item flaws
+### Issues Related to Irrelevant Difficulty
+Flaw: Long, complex options
+Solution:
+ - Put common text in stem.
+ - Use parallel construction in options.
+ - Shorten options.
+
+Flaw: Tricky, unnecessarily complicated stems
+Solution:
+ - Include content that is necessary to answer the question or to make distractors attractive.
+ - Avoid teaching statements.
+
+Flaw: Inconsistent use of numeric 
+Solution:
+ - Avoid overlapping options
+ - Ask for minimum or maximum value to avoid multiple correct answers.
+
+Flaw: Vague terms
+Solution:
+ - Avoid frequency terms, like usually and often. Such terms are interpreted differently by different people.
+
+Flaw: "None of the above" option
+Solution:
+ - Replace "None of the above" with specific action (eg, No intervention needed).
+
+Flaw: Nonparallel options
+Solution:
+ - Edit options to be parallel in grammatical form and structure.
+
+Flaw: Negatively structured stem (eg, "Each of the following EXCEPT")
+Solution:
+ - Revise lead-in to have a positive structure
+ - If possible, use correct options to create a scenario.
+
+### Cues that could give away the correct answer
+Flaw: Collectively exhaustive options (subset of options cover all possibilities)
+Solution:
+ - Replace at least one option in subset.
+ - When revising, avoid creating option pair.
+
+Flaw: Absolute terms ("always," "never") in options
+Solution:
+ - Eliminate absolute terms.
+ - Use focused lead-in and short homogeneous options.
+
+Flaw: Grammatical clues
+Solution
+ - Make all options singular or all options plural.
+ - Use closed lead-ins.
+
+Flaw: Correct answer stands out (correct always longest etc)
+Solution:
+ - Revise options to equal length. Remove language used for teaching points and rationales.
+
+Flaw: Word repeats (clang clue)
+Solution:
+ - Replace repeated word in either stem or option. OR
+ - Use repeated word in all options.
+
+Flaw: Convergence
+Solution:
+ - Revise options to balance use of terms.
+</nbme_item_writing_guidelines>
