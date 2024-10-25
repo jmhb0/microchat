@@ -47,7 +47,7 @@ def create_optimizer(
     # set metric if not provided
     if not metric:
         metric = dspy.evaluate.answer_exact_match
-        logger.info(f"Using default metric: {metric}")
+        logger.info(f"Using default metric: {metric.__name__}")
     elif not isinstance(metric, dspy.Evaluate):
         logger.error(f"Metric {metric} is not an instance of dspy.Evaluate.")
         raise ValueError(f"Metric {metric} is not an instance of dspy.Evaluate.")

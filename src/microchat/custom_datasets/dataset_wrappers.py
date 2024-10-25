@@ -8,10 +8,11 @@ https://github.com/sanketx/AL-foundation-models/blob/main/ALFM/src/datasets/data
 __all__ = [
     "HotPotQAWrapper",
     "SciEvalWrapper",
+    "MicroChatWrapper",
 ]
 
-from typing import Optional
-
+import os
+from typing import Optional, Union
 
 from dotenv import find_dotenv
 from dotenv import load_dotenv
@@ -20,18 +21,38 @@ from dotenv import load_dotenv
 import dspy
 from dspy.datasets import HotPotQA
 from loguru import logger
+from pathlib import Path
 
-from microchat.custom_datasets.base_dataset import HFDataset
+from microchat import DATA_ROOT
+from microchat.custom_datasets.base_dataset import HFDataset, CSVDataset
 
 load_dotenv(find_dotenv())
 RANDOM_SEED = 8675309
+
+load_dotenv(find_dotenv())
+
+
+class BaseDataWrapper:
+    def __init__(self, root: str = None, **kwargs: Optional[dict]):
+        self.name: str = self.__class__.__name__.replace("Wrapper", "").lower()
+        self.filepath: Path = self._check_filepath(root)
+        self.kwargs: dict = kwargs
+
+    def _check_filepath(self, root: Union[str, Path]) -> Path:
+        if not root or root is None:
+            root = Path(DATA_ROOT)
+
+        filepath = Path(root).joinpath(self.name).with_suffix(".csv")
+        if not filepath.exists():
+            raise FileNotFoundError(f"File not found: {filepath}")
+
+        return filepath
 
 
 class HotPotQAWrapper:
     @staticmethod
     def __call__(
-        # dataset_name: str,
-        root: str = None,
+        dataset_name: str,
         split: str = "train",
         random_seed: Optional[int] = RANDOM_SEED,
         **kwargs: Optional[dict],
@@ -47,13 +68,14 @@ class HotPotQAWrapper:
         )
 
 
-# OpenDFM / SciEval
+#####
+# HuggingFace datasets
+# OpenDFM/SciEval
 class SciEvalWrapper:
 
     @staticmethod
     def __call__(
         dataset_name: str = "OpenDFM/SciEval",
-        split: str = "validation",
         random_seed: Optional[int] = RANDOM_SEED,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
@@ -61,11 +83,58 @@ class SciEvalWrapper:
 
         return HFDataset(
             dataset_name=dataset_name,
-            split=split,
             train_seed=random_seed,
-            # train_size=20,
-            # dev_seed=random_seed + 1,
-            # dev_size=50,
-            # test_size=0,
+            **kwargs,
+        )
+
+
+class BioDEXWrapper:
+    @staticmethod
+    def __call__(
+        dataset_name: str = "BioDEX/BioDEX-Reactions",
+        split: str = "train",
+        random_seed: Optional[int] = RANDOM_SEED,
+        **kwargs: Optional[dict],
+    ) -> dspy.datasets.Dataset:
+        """Create a HotPotQA dataset object."""
+
+        return HFDataset(
+            dataset_name=dataset_name,
+            train_seed=random_seed,
+            **kwargs,
+        )
+
+
+#####
+# Custom CSV datasets
+# MicroChat (custom CSV)
+class MicroChatWrapper(BaseDataWrapper):
+
+    def __init__(self, root: Optional[str] = None, **kwargs: Optional[dict]):
+        super().__init__(root, **kwargs)
+
+    # @staticmethod
+    def __call__(
+        self,
+        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        random_seed: Optional[int] = RANDOM_SEED,
+        root: Optional[str] = None,
+        subset: Optional[list] = ["original_question", "revised_question"],
+        **kwargs: Optional[dict],
+    ) -> dspy.datasets.Dataset:
+        """Create a MicroChat dataset object."""
+        root = root or Path(os.getenv("DATA_ROOT"))
+        filepath = self.filepath
+        if not Path(filepath).exists():
+            if root:
+                filepath = root.joinpath(filepath)
+            else:
+                logger.error(f"File not found: {filepath}")
+                raise FileNotFoundError(f"File not found: {filepath}")
+
+        return CSVDataset(
+            filepath=filepath,
+            train_seed=random_seed,
+            subset=subset,
             **kwargs,
         )

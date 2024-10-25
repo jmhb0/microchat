@@ -10,7 +10,6 @@ from enum import Enum
 
 # import all dataset wrappers
 from microchat.custom_datasets.dataset_wrappers import *
-from microchat.custom_datasets.dataset_wrappers import SciEvalWrapper
 
 
 class DatasetType(Enum):
@@ -18,3 +17,4 @@ class DatasetType(Enum):
 
     hotpotqa = HotPotQAWrapper()
     scieval = SciEvalWrapper()
+    microchat = MicroChatWrapper()  # expecting file $DATA_ROOT/microchat.csv

@@ -6,8 +6,6 @@ https://github.com/sanketx/AL-foundation-models/blob/main/ALFM/src/models/regist
 """
 
 from enum import Enum
-import pydantic
-import tiktoken.core
 
 MODELS = [
     "claude-3-opus-20240229",
@@ -21,6 +19,12 @@ class ModelType(Enum):
     """Enum of supported Models."""
 
     # openai
+    gpt_3_5_turbo = ("openai", "gpt-3.5-turbo")  # points to latest snapshot
+
+    gpt_4_turbo = ("openai", "gpt-4-turbo")  # points to latest snapshot
+    gpt_4_turbo_20240409 = ("openai", "gpt-4-turbo-2024-07-18")
+    gpt_4_turbo_preview = ("openai", "gpt-4-turbo-preview")  # points to latest snapshot
+
     gpt_4o_mini = ("openai", "gpt-4o-mini")  # points to latest snapshot
     gpt_4o_mini_20240718 = ("openai", "gpt-4o-mini-2024-07-18")
 
