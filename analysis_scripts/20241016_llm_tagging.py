@@ -41,7 +41,7 @@ data_dir = Path("benchmark/data/formdata_0")
 ## data
 # first get the dataframe with the questions and generated mcq's
 key_question_gen = 0
-key_choices_gen = 3
+key_choices_gen = 6
 f_questions_choices = data_dir / f"question_strategy_{key_question_gen}" / f"df_questions_key_choices_{key_choices_gen}.csv"
 df = pd.read_csv(f_questions_choices)
 # also the images and questions dataframes

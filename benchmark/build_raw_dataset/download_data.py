@@ -279,7 +279,7 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
     for row_index, drive_link in tqdm.tqdm(drive_links.items(),
                                            total=len(drive_links)):
-        if row_index <= 107:
+        if row_index <= 185:
             continue
         row_dir = dir_data_images / f"idx_{row_index:04d}"
         row_dir.mkdir(parents=True, exist_ok=True)
@@ -338,7 +338,8 @@ def download_images_from_csv(dir_data, df, verbose=0):
 if __name__ == "__main__":
     verbose = 0
     key = '0'
-    download_imgs = True
+    download_imgs = 1
+    # download_imgs = 0
     download_form_responses(key,
                             urls_form_responses[key],
                             urls_form_responses_updates[key],

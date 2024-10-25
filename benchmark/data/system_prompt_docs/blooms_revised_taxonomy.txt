@@ -1,0 +1,105 @@
+# Bloom's revised taxonomy
+<blooms_revised_taxonomy>
+What is the revised Bloom's Taxonomy?
+
+The revised Bloom's Taxonomy is based upon the cognitive objectives model that was developed in the 1950's by Benjamin Bloom. According to Bloom, there are six levels of cognitive behavior that can explain thinking skills and abilities used in the classroom (and in real life, for that matter):
+- Creating: Encouraging an individual to look at things differently or to generate new concepts or ideas. In Bloom's original taxonomy model this was known as “synthesis”. It requires that the student use designing or organizational skills.
+- Evaluating: This requires that learners have a reason behind the course of action that they took and involves experimentation and hypothesis. In this process, the student is asked to critique or summarize information.
+- Analyzing: In this process, learners will have to break down the data that was provided in order to fully grasp the content (as it is now in more manageable parts). This usually requires learners to use comparative and/or deconstruction skills.
+- Applying: This asks learners to use information that they already have gained, in order to solve a problem that may be similar in nature. This involves implementation of prior knowledge and skills.
+- Understanding: Requires that the learners explain the situation or process in order to show that they have understood the materials. This usually involves summarizing, paraphrasing or detailed descriptions.
+- Remembering: The learner's ability to retain and recall information. This usually comes in the form of recognition, retrieving, or listing.
+
+According to the model, the first two categories are typically not ideal for multiple-choice tests, as they don't generally allow for predetermined answers (and are classified as “divergent thinking”). However, the last four cognitive abilities allow for more predictable, concrete answers (also known as “convergent thinking”). As such, they are perfect for eLearning tests that are designed around the multiple-choice structure.It's important to mention that you can also transform a higher level thinking “divergent” question into a “convergent” thinking multiple-choice question if you ensure that it has a concrete answer. For example, you could present the learner with a question that outlines the protocol involved in manufacturing a turbine engine. Then, ask them to describe the next step in the process that you have purposefully left out. This would force the learner to evaluate the process to see which step is missing, which would enable you to determine if they have a firm grasp of the process' summary, rules, and concepts.
+
+## 5 Tips to Write a Multiple-Choice Test Based on The Revised Bloom's Taxonomy
+
+One of the primary benefits associated with creating tests based upon this model is that the tests will not be unnecessarily difficult for the learner and are more effective in assessing the learner's knowledge of the subject matter. Not to mention that they are easier to correct and to modify. Here are 5 tips that you can use to write multiple-choice eLearning tests:
+
+1. Always use plausible incorrect answers in the questions
+   One of the biggest mistakes that eLearning test creators make is not making the incorrect answers convincing enough. You have to make them plausible so that you are able to test their ability to remember the information and apply it to the problem. This is the only true way to gauge if a learner fully understands the concept.
+2. Integrate charts into the exam
+   Include charts or graphs in your test, which will force the learner to use their analyzing skills. By having them interpret the data, they will be tested on whether or not they have really absorbed the information.
+3. Transform the verb
+   If you want to include a divergent thinking question on your test, you can generally accomplish this by turning it into a noun. For example, if you are trying to test your learner's ability to describe a scientific process, have them choose the best description for it. This can be used to test both their creating and evaluating skills.
+4. Create examples or stories to test their understanding abilities
+   Write out detailed stories or examples that the learner must read before answering corresponding multiple-choice questions. This will not only test their understanding ability, but their analyzing skills as well. You can also make the learner tap into their remembering or applying abilities if you create a story or example that asks them to draw upon knowledge they've already acquired.
+5. Use multilevel thinking
+   These are the questions that include wording such as “the most appropriate” or “most important”. Such questions serve to test the learners’ judgment skills or understanding of an in-depth subject. For example, you could ask a learner a question about identifying a particular mental illness by first giving them a detailed explanation of a patient who exhibits a set of observed symptoms, then ask them to apply a particular psychological theory to come up with a diagnosis.         
+
+## Examples of Multiple Choice Items at the Levels of Bloom’s Taxonomy
+
+Level 1: Recall
+Definition: Remembering previously learned material; may involve the recall of a wide range of
+material from specific facts to complete theories, but merely requires bringing to mind the
+appropriate information.
+Example:
+A three-year-old child can usually be expected to:
+
+a. Cry when separated from his or her mother
+b. Have imaginary friends
+c. Play with other children of the same age
+d. Constantly argue with older siblings
+
+Level 2: Comprehension
+Definition: The ability to grasp the meaning of material; may be shown by translating material
+from one form to another; by interpreting material (explaining or summarizing), by estimating
+future trends (predicting consequences of effects).
+Example:
+The termination process is MOST often associated with:
+
+a. Evaluating goals and accomplishments
+b. Implementing a plan of action
+c. Setting limits
+d. Developing a contract
+
+Level 3: Application
+Definition: The ability to use learned materials in new and concrete situations; may include the
+application of such things as rules, methods, concepts, principles, laws, and theories.
+
+Example:
+Mrs. H has had little energy to care for her young children or her house since her husband died
+a few months ago. She has no income and little food. The protective service agency has become
+involved since her children were left unsupervised. What is the FIRST goal to work toward in
+implementing a treatment plan for Mrs. H?
+
+a. Help her grieve her husband’s death
+b. Get a volunteer parent aid to help with parenting skills
+c. Help her get AFDC and food stamps
+d. Refer her for medication for depression
+
+Level 4: Analysis
+Definition: The ability to break down material into its component parts so that its
+organizational structure may be understood; may include the identification of the parts,
+analysis of the relationships between parts, and recognition of the organizational principles
+involved.
+
+Example:
+A seven-year-old boy is brought to a child guidance clinic by his parents for treatment. The boy
+is hyperactive, has violent temper tantrums, is difficult to control, and gets along poorly with his
+peers. He has a history of a difficult, high forceps delivery, projectile vomiting, and was a fussy,
+irritable baby. The social worker should:
+
+a. Refer the child to a neurologist
+b. Begin psychotherapy with the parents
+c. Ascertain what the parents have done to reinforce this behavior
+d. See the parents and child together for therapy
+
+Level 5: Synthesis
+Definition: The ability to put parts together to form a new whole; may involve the production
+of a plan of operation or a set of abstract relations.
+
+Example:
+A fourteen-year-old girl refuses to attend school despite pleading by both of her parents. A
+physical examination reveals no medical problem, and a joint assessment by the social worker
+and psychiatrist indicates no apparent reactive element instigating the sudden school
+avoidance. The girl appears depressed; she herself is unsure of why she is not attending school.
+The BEST intervention by the social worker is to:
+
+a. Recommend that the girl remain home for at least another week without pressure
+b. Intervene with school authorities to provide her with home tutoring when absent
+c. Urge all concerned to apply pressure to achieve return to school and arrange an
+appointment with the girl
+d. Begin to assist the family to explore alternative schools for possible transfer
+
+</blooms_revised_taxonomy>

@@ -73,6 +73,8 @@ def eval_qa(key_form,
         raise ValueError()
 
     df_questions = pd.read_csv(f_choices, index_col="key_question")
+    df_questions = df_questions[:240]
+
 
     batch_prompts_text = []
     # batch_prompts_text_no_G = []
@@ -159,6 +161,8 @@ def eval_qa(key_form,
     preds = np.array(preds)
     acc = (gts==preds).sum() / len(gts)
     print(acc)
+    ipdb.set_trace()
+    pass
 
     # todo: free LLM response
 
@@ -167,9 +171,9 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 3
+    key_question_gen = 0
     # key for generating the choices
-    key_choices_gen = 5
+    key_choices_gen = 7
     # key for evaluation prompt
     key_prompt_eval = 0 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"
