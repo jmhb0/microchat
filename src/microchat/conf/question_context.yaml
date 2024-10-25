@@ -1,166 +1,134 @@
 nbme:
   basic_rules_for_writing_one_best_answer_multiple_choice: |
-    # Basic rules for writing one-best-answer items
-    RULE 1: Each item should focus on an important concept or testing point.
-    A clear and comprehensive blueprint or other set of test specifications should always be available so that item writers can stay focused on the important topics and write a sufficient number of items for each topic.
-
-    RULE 2: Each item should assess application and synthesis of knowledge, not image classification or recall of an isolated fact.
-    The first step in writing an item is to develop an appropriate stimulus to introduce the topic, such as an experimental vignette or interesting result to provide context to the question being asked. If there is no such stimulus, the resulting item will generally be assessing knowledge recall. Recall items make it difficult for the educator to assess any higher level within Bloom’s taxonomy, such as "application of knowledge." For instance, an item consisting of one sentence, "Which of the following organelles is involved in protein synthesis?" would assess only the recall on the biological function of organelles. It can be helpful to use actual experimental scenarios as a source of ideas for items and vignettes. 
+    Summary of Basic Rules for Writing One-Best-Answer Items:
     
-    RULE 3: The item lead-in (aka question stem) should be focused, closed, and clear; the test-taker should be able to answer the item based on the vignette and lead-in alone.
-    The next step in item writing is to phrase the question with the use of a lead-in, where the accompanying vignette allows the lead-in to be focused on analyzing and interpreting the biology image result, generating cogent hypotheses to explain the results, or suggesting focused experiments to test hypotheses or mechanisms of action.
-    An open- ended lead-in such as, "The most likely implications of this experimental results are:" should be avoided. The lead-in should be a single, closed, clear question. Ideally, after reading the experimental vignette and the lead-in, a test-taker should be able to answer the item without seeing the options. Another reason to use a closed lead-in is because it helps to avoid certain item flaws, such as "grammatical cueing".
+    - Focus on Important Concepts:
+        Each item should address a significant concept or testing point.
+        Use a clear blueprint or test specifications to ensure coverage of all essential topics.
 
-    RULE 4: All options should be homogeneous and plausible to avoid cueing to the correct option.
-    Homogeneity:
-    At this point in item writing, the experimental-based, closed lead-in created with Rule 3 in mind will direct the focus and grammatical form of the answer options. Maintaining a consistent focus and parallel format among the answer options results in homogeneity, which allows test-takers to weigh each option within a single mindset without construct-irrelevant distractions. For example, in a clinical question, the response to "Which of the following is the most likely cause of this patient’s condition?," a list of answer options in which all choices are diagnoses (eg, tuberculosis, meningitis, etc.), is easier to process than a list containing both diagnoses and underlying pathogens (eg, tuberculosis, Neisseria meningitidis, etc.).
+    - Assess Higher-Order Thinking, Not Recall:
+        Design items that test application and synthesis of knowledge.
+        Provide an appropriate stimulus (e.g., an experimental vignette) to offer context.
+        Avoid questions that merely require recall of isolated facts.
 
-    Plausibility:
-    The correct answer should always be the "most" correct of the answer options. However, the distractors should be plausible and challenging enough to entice test-takers who do not know the correct answer. Otherwise, test-takers can arrive at the correct answer by eliminating distractors based on their improbability within the context of the experimental scenario.
-    When writing answer options, start by generating the correct answer for the lead-in. Generating parallel and plausible yet incorrect distractors is more challenging.
+    - Craft Clear and Focused Lead-ins:
+        The question stem should be specific, closed-ended, and unambiguous.
+        Test-takers should be able to answer the question based solely on the vignette and lead-in.
+        Steer clear of open-ended or vague lead-ins.
 
-    RULE 5: Each item should be reviewed to identify and remove technical flaws that add irrelevant difficulty or benefit savvy test-takers.
-    Once you have written your item, take a step back and look closely at its structure. The bulk of the text (vignette or case information) should precede, rather than follow, the lead-in.
-    The experimental vignette should make sense and follow a logical sequence. Use the minimal necessary experimental context to answer the question. Avoid using specific cell line names, organelles, diseases or other clues that could give away the answer.
-    The use of a template to ensure all of these sections are in place and correctly structured is highly recommended. As you review your item, ask yourself the following questions.
-      - If the options were removed, could a knowledgeable test-taker answer the question correctly?
-      - Is there anything in the phrasing or text that would confuse the knowledgeable test-taker? 
-      - Are there any clues to help a testwise student guess the item correctly, even if they don't know the answer?
-    Finally, you should ask a knowledgeable colleague to review the items you have written, particularly for content, clarity, and appropriateness for the test-taker population (e.g., PhD level biology experts).
+    - Ensure Homogeneous and Plausible Options:
+        All answer choices should be consistent in content and format.
+        Distractors should be plausible and challenging to prevent easy elimination.
+        The correct answer should be the most accurate among equally plausible options.
+
+    - Review for Technical Flaws:
+        Check that the item's structure is logical, with the vignette preceding the lead-in.
+        Use only necessary context and avoid clues that could reveal the answer.
+        During review, ask:
+          + Can the question be answered without the options?
+          + Is the phrasing clear and free from confusion?
+          + Are there unintended clues benefiting test-wise students?
+        Have a knowledgeable colleague review the item for content, clarity, and appropriateness.
   determining_level_of_cognition_for_multiple_choice: |
-    # Determining level of cognition to assess
-    Items can be grouped into two general categories, based on the cognitive task required of the test-taker:
-    1. Recall of a Fact: An item that assesses rote memory of a fact (without requiring its application).
-    2. Application of Knowledge: An item that requires a test-taker to apply knowledge to reach a conclusion, make a prediction, or select a course of action that does not depend on memory alone.
+    Levels of Cognitive Assessment in Test Items:
+    1. Recall of a Fact:
+       - Assesses rote memory without requiring application.
+       - Requires test-takers to recall isolated facts, concepts, or principles.
+       - Example: "Which findings are most likely in patients with pulmonary embolism?"
+       - Often less practical in real-world scenarios.
+
+    2. Application of Knowledge:
+      - Requires applying knowledge to interpret information and reach conclusions.
+      - Involves identifying relevant information and integrating it with existing knowledge.
+      - Often presented as vignette-based items with detailed scenarios.
+      - Encourages higher-order thinking skills.
     
-    Items that test recall of a fact require test-takers to read an item and to recall isolated facts, concepts, and principles or to recognize previously encountered situations (eg, experiments, patient encounters, case studies). These items often begin by citing a disease and then asking what patient findings are expected. For example, "Which of the following findings is most likely to be seen in postsurgical patients with pulmonary embolism?" is an item structured similarly to most textbook questions. The test-taker could look up the disease and find the answer in a single paragraph. From a practical standpoint, these items also seem clinically backwards—patients would not tell their provider what disease they have and then ask the provider to determine the signs and symptoms.
-
-    Application of knowledge items, on the other hand, require test-takers to read an item and identify relevant information, interpret that information in a certain context, integrate that information with what they already know, and then answer the question posed. Vignette-based items (items that include a detailed patient or experimental scenario) often provide a vehicle for eliciting the demonstration of these higher-order thinking skills. Some examples of these application of knowledge items can be found throughout this book. Determining the cognitive task for an item – recall vs application of knowledge – depends on the intended end-use of the item. The use of recall items may be best for formative assessment purposes or the evaluation of simpler concepts that might not lend themselves to clinical or experimental scenarios. For a medium-to high-stakes summative examination, use of vignette-based items that require higher-order thinking skills and application of knowledge would be preferable to simple recall items.
-
-    Determining the cognitive task for an item – recall vs application of knowledge – depends on the intended end-use of the item. The use of recall items may be best for formative assessment purposes or the evaluation of simpler concepts that might not lend themselves to clinical or experimental scenarios. For a medium-to high-stakes summative examination, use of vignette-based items that require higher-order thinking skills and application of knowledge would be preferable to simple recall items.
+    Choosing Between Recall and Application Items:
+    1. Recall Items:
+       - Best suited for formative assessments or evaluating simpler concepts.
+       - Useful when scenarios are not applicable.
+    2. Application Items:
+       - Preferable for medium- to high-stakes summative examinations.
+       - Ideal for assessing higher-order thinking and practical application of knowledge.
   general_rules_for_one_best_answer_multiple_choice: |
-    # General Rules for One-Best-Answer Items
-    Because test-takers are required to select the single best answer, one-best-answer items must satisfy the following rules (for more detail, see the six rules below):
-    - Item and option text must be clear and unambiguous. Avoid imprecise phrases such as "is associated with" or "is useful for" or "is important"; words that provide cueing such as "may" or "could be"; and vague terms such as "usually" or "frequently."
-    - The lead-in should be closed and focused and ideally worded in such a way that the test-taker can cover the options and guess the correct answer. This is known as the "cover-the-options" rule.
-    - All options should be homogeneous so that they can be judged as entirely true or entirely false on a single dimension.
-    - Incorrect options can be partially or wholly incorrect.
+    Summary of General Rules for One-Best-Answer Items:
+      - Clarity and Precision: Ensure that item and option text is clear and unambiguous. Avoid imprecise phrases like "is associated with," cueing words such as "may" or "could be," and vague terms like "usually" or "frequently."
+      - Focused Lead-in: The lead-in should be closed and focused, allowing test-takers to answer correctly without seeing the options ("cover-the-options" rule).
+      - Homogeneous Options: All options should be similar in content and structure, enabling them to be judged as entirely true or false on a single dimension.
+      - Incorrect Options: Incorrect options can be either partially or wholly incorrect.
   guideline_writing_lead_in_for_one_best_answer_multiple_choice: |
     # Guideline for writing item lead-in
     The lead-in should consist of a single, clearly formulated question so that the test-taker can answer without looking at the options. As mentioned previously, satisfying the "cover-the-options" rule is an essential component of a good question.
   one_best_answer_items: |
-    # One best answer items
-    The one-best-answer questions are designed to make explicit that only one option is to be selected. These items are the most widely used multiple-choice item format. They consist of a stem, which most often includes a vignette (eg, an experimental or scientific scenario) and a lead-in question, followed by a series of option choices, with one correct answer and anywhere from three to seven distractors.
-      - The incorrect option choices should be directly related to the lead-in and be homogeneous with the correct answer
-      - This item describes a situation (in this instance, interpreting an experimental result) and asks the test-taker to indicate the most likely of the problem, most likely mechanism of action, most likely interpretation of image finding, or the best next experiment.
-      - The incorrect options may be "partially true" and not "completely wrong", they are "less correct" than the "keyed answer" and thus not the single best answer.
-      - The test-taker is instructed to select the "most likely interpretation" or "most likely diagnosis". The experts should all agree that the "keyed answer" is the "most likely" or "best" answer, although other choices could be somewhat likely although less so than the correct answer. As long as the options can be laid out on a single continuum, from the "least likely" or "worst" option to the "most likely" or "best" option (e.g., "Least Likely Diagnosis" to "Most Likely Diagnosis"), then distractors in one-best-answer items do not have to be totally wrong.
-
-    # Homogeneous Options
-    Along with a focused lead-in, a good item will have a keyed answer and distractors that are homogeneous. They all directly address the lead-in in the same manner and can be rank ordered along a single dimension. The one-best-answer example below is a flawed item that can occur when options are not listed on a single dimension. After reading the lead-in, the test-taker has only the vaguest idea what the question is about. In order to determine the "best" answer, the test-taker must decide whether "it occurs frequently in women" is more or less true than "it is seldom associated with acute pain in a joint." The diagram of these options might look like the figure to the left of the sample item below. The options are heterogeneous and deal with miscellaneous facts; they cannot be rank ordered from least to most true along a single dimension. Although this item appears to assess knowledge of several different points, its inherent flaws preclude this. The item by itself is not clear; the item cannot be answered without looking at the options.
-
-    # Cover-the-options rule
-    This leads us to another important guideline for writing good one-best-answer items—the "cover-the-options" rule. If a lead-in is properly focused, a test-taker should usually be able to read the vignette and lead-in, cover the options, and guess the correct answer without seeing the option set. For example, in this next item, after reading the lead-in, the test-taker should be able to answer the item without seeing the options. When writing items, covering the options and attempting to answer the item is a good way to check whether this rule has been followed.
+    One-Best-Answer Items: These are multiple-choice questions with a stem (often including a vignette), a focused lead-in question, and several options—one correct answer and several distractors. Distractors should be directly related to the lead-in and homogeneous with the correct answer. Incorrect options may be partially true but are less correct than the keyed answer. The test-taker is instructed to select the "most likely" or "best" answer among options that can be ranked along a single continuum.
+    Homogeneous Options: All options should address the lead-in in the same manner and be rankable along a single dimension. Heterogeneous options that cover miscellaneous facts and cannot be ordered from least to most correct are flawed. A well-designed item allows the test-taker to understand the question without relying on the options.
+    Cover-the-Options Rule: A properly focused lead-in should enable the test-taker to answer the question without seeing the options. Covering the options and attempting to answer the item is a good way to check if this rule has been followed.
   shape_of_a_good_one_best_answer_multiple_choice: |
-    # The Shape of a Good Multiple-Choice Item
-    A well-constructed one-best-answer item will have a particular silhouette as shown in the illustration below. A biological or experimental scenario with contextual information may serve as the stem, and all of the options are listed in a concise and uniform manner. The stem should include all relevant facts; no additional information should be provided in the options.
-
-    Make sure the item stem adheres to the following rules:
-    - Focuses on important concepts rather than trivial facts
-    - Can be answered without looking at the options
-    - Includes all relevant facts; no additional data should be provided in the options
-    - Is not "tricky" or overly complex
-    - Is not negatively phrased (eg, avoid using "except" or "not" in the lead-in)
-
-    ### Structure of a good multiple-choice item
-    <question_stem>
-    <vignette>Provide necessary details or context in the vignette, taking care not to give away the answer in the context.<vignette>
-    <lead-in>Pose your question here in the lead-in.<lead-in>:
-    <question_stem>
-
-    <answer_choices>Insert your answer option set here, making sure it follows the "cover-the-options" rule.<answer_choices>
+    # Summary of Guidelines for Crafting Effective Multiple-Choice Items:
+    
+    - Focus on Important Concepts: Ensure the question addresses significant ideas rather than trivial details.
+    - Self-Contained Stem:
+        Include all relevant facts within the stem.
+        Design the stem so it can be answered without referring to the options.
+        Avoid adding extra information in the answer choices.
+     - Clarity and Simplicity:
+        Keep the question straightforward, not tricky or overly complex.
+        Use positive phrasing; avoid negatives like "except" or "not" in the lead-in.    
+     - Structure of the Item:
+        Vignette: Provide necessary context or details without giving away the answer.
+        Lead-in: Clearly pose the question to be answered.
+        Answer Choices: Offer a concise and uniform list of options, adhering to the "cover-the-options" rule.
   irrelevant_difficulty_in_multiple_choice: |
-    Good content and good structure contribute to the quality of an item. However, quality can be impacted negatively by technical item flaws in the vignette, question stem, or answer choices. There are two kinds of technical item flaws:
-    1. A flaw that adds irrelevant difficulty to the item can confuse all test-takers. These flaws make the item challenging for reasons unrelated to the testing objective/point of the item and can add construct-irrelevant variance to the final test score.
-    2. A flaw that cues the more savvy and confident test-takers (aka the “testwise”) and aids them in guessing the right answer. These flaws related to “testwiseness” make it easier for some students to answer the item correctly based on their test-taking skills alone, without necessarily knowing the content.
+    # Technical item flaws can negatively impact test question quality by either:
+      1. Adding irrelevant difficulty: Confusing all test-takers and introducing construct-irrelevant variance.
+      2. Cueing testwise individuals: Helping savvy test-takers guess the correct answer without knowing the content.
+    
+    # Common flaws related to irrelevant difficulty and their solutions:
+    - Long, complex options
+        Solution: Move common text to the stem, use parallel construction, and shorten options.
 
-    # Technical flaws in questions and distractors, related to irrelevant difficulty
-    Flaw: Long, complex options
-    Solution:
-     - Put common text in stem.
-     - Use parallel construction in options.
-     - Shorten options.
-    
-    Flaw: Tricky, unnecessarily complicated stems
-    Solution:
-     - Include content that is necessary to answer the question or to make distractors attractive.
-     - Avoid teaching statements.
-    
-    Flaw: Inconsistent use of numeric 
-    Solution:
-     - Avoid overlapping options
-     - Ask for minimum or maximum value to avoid multiple correct answers.
-    
-    Flaw: Vague terms
-    Solution:
-     - Avoid frequency terms, like usually and often. Such terms are interpreted differently by different people.
-    
-    Flaw: "None of the above" option
-    Solution:
-     - Replace "None of the above" with specific action (eg, No intervention needed).
-    
-    Flaw: Nonparallel options
-    Solution:
-     - Edit options to be parallel in grammatical form and structure.
-    
-    Flaw: Negatively structured stem (eg, "Each of the following EXCEPT")
-    Solution:
-     - Revise lead-in to have a positive structure
-     - If possible, use correct options to create a scenario.
+    - Tricky or unnecessarily complicated stems
+        Solution: Include only necessary content and avoid teaching statements.
+
+    - Inconsistent use of numeric ranges
+        Solution: Avoid overlapping options and specify if seeking a minimum or maximum value.
+
+    - Vague terms
+        Solution: Avoid frequency terms like "usually" or "often"; use precise language.
+
+    - "None of the above" options
+        Solution: Replace with specific actions (e.g., "No intervention needed").
+
+    - Nonparallel options
+        Solution: Edit options to be parallel in grammatical form and structure.
+
+    - Negatively structured stems (e.g., "Each of the following EXCEPT")
+        Solution: Revise the lead-in to a positive structure and, if possible, use correct options to create a scenario.
   cues_that_give_away_the_answer: |
-    Good content and good structure contribute to the quality of an item. However, quality can be impacted negatively by technical item flaws in the vignette, question stem, or answer choices. There are two kinds of technical item flaws:
-    1. A flaw that adds irrelevant difficulty to the item can confuse all test-takers. These flaws make the item challenging for reasons unrelated to the testing objective/point of the item and can add construct-irrelevant variance to the final test score.
-    2. A flaw that cues the more savvy and confident test-takers (aka the “testwise”) and aids them in guessing the right answer. These flaws related to “testwiseness” make it easier for some students to answer the item correctly based on their test-taking skills alone, without necessarily knowing the content.
+    # Technical item flaws can negatively impact test question quality by either:
+      1. Adding irrelevant difficulty: Confusing all test-takers and introducing construct-irrelevant variance.
+      2. Cueing testwise individuals: Helping savvy test-takers guess the correct answer without knowing the content.
     
-    # Cues that could give away the correct answer
-    Flaw: Collectively exhaustive options (subset of options cover all possibilities)
-    Solution:
-     - Replace at least one option in subset.
-     - When revising, avoid creating option pair.
-    
-    Flaw: Absolute terms ("always," "never") in options
-    Solution:
-     - Eliminate absolute terms.
-     - Use focused lead-in and short homogeneous options.
-    
-    Flaw: Grammatical clues
-    Solution
-     - Make all options singular or all options plural.
-     - Use closed lead-ins.
-    
-    Flaw: Correct answer stands out (correct always longest etc)
-    Solution:
-     - Revise options to equal length. Remove language used for teaching points and rationales.
-    
-    Flaw: Word repeats (clang clue)
-    Solution:
-     - Replace repeated word in either stem or option. OR
-     - Use repeated word in all options.
-    
-    Flaw: Convergence
-    Solution:
-     - Revise options to balance use of terms.
+    # Common flaws related to irrelevant difficulty and their solutions:    
+    - Collectively Exhaustive Options: A subset of options covers all possibilities, making the correct answer more apparent.
+        Solution: Replace at least one option in the subset and avoid creating option pairs.
+
+    - Absolute Terms ("always," "never"): These terms can signal the correct answer.
+        Solution: Eliminate absolute terms and use focused lead-ins with short, homogeneous options.
+
+    - Grammatical Clues: Inconsistencies in grammar between the stem and options can hint at the answer.
+        Solution: Ensure all options are grammatically consistent and use closed lead-ins.
+
+    - Correct Answer Stands Out: The correct option is noticeably longer or more detailed.
+        Solution: Revise all options to be of equal length and remove unnecessary language.
+
+    - Word Repeats (Clang Clues): Repetition of words from the stem in the correct option.
+        Solution: Replace repeated words in either the stem or options, or include them in all options.
+
+    - Convergence: The correct answer combines terms from multiple other options.
+        Solution: Balance the use of terms across all options.
 blooms:
-  blooms_1956: |
-    # Bloom’s Taxonomy (1956)
-    The original Bloom’s Taxonomy framework consists of six levels that build off of each other as the learning experience progresses. It was developed in 1956 by Benjamin Bloom, an American educational psychologist. Below are descriptions of each level:
-     - Knowledge: Identification and recall of course concepts learned
-     - Comprehension: Ability to grasp the meaning of the material 
-     - Application: Demonstrating a grasp of the material at this level by solving problems and creating projects
-     - Analysis: Finding patterns and trends in the course material
-     - Synthesis: The combining of ideas or concepts to form a working theory 
-     - Evaluation: Making judgments based on the information students have learned as well as their own insights
-  blooms_2001: |
+  blooms_revised: |
     # Revised Bloom’s Taxonomy (2001)
     A group of educational researchers and cognitive psychologists developed the new and revised Bloom’s Taxonomy framework in 2001 to be more action-oriented. This way, students work their way through a series of verbs to meet learning objectives. Below are descriptions of each of the levels in revised Bloom’s Taxonomy:
      - Remember/Recall: To bring an awareness of the concept to learners’ minds.
@@ -170,129 +138,96 @@ blooms:
      - Synthesis/Evaluate: Making judgments about the value of ideas, theories, items and materials.
      - Create: Reorganizing concepts into new structures or patterns through generating, producing or planning.
   blooms_question_stems: |
-    # General examples of question stems for each level of Bloom's taxonomy:
-    - Knowledge: Recalling facts and information
-      • What is …?
-      • Where is …?
-      • When did _______ happen?
-      • How did ______ happen?
-      • How would you explain …?
-      • How would you describe …?
-      • What do you recall …?
-      • How would you show …?
-      • Who (what) were the main …?
-      • What are three …?
-      • What is the definition of...?
-    - Comprehension: Explaining the meaning of information
-      • How would you classify the type of …?
-      • How would you compare …? contrast …?
-      • How would you rephrase the meaning …?
-      • What facts or ideas show …?
-      • What is the main idea of …?
-      • Which statements support …?
-      • How can you explain what is meant …?
-      • What can you say about …?
-      • Which is the best answer …?
-      • How would you summarize …?
-    - Application: Using learned knowledge in new situations or to solve a real life biomedical problem
-      • How would you use …?
-      • What examples can you find to …?
-      • How would you solve _______ using what you have learned …?
-      • How would you organize _______ to show …?
-      • How would you show your understanding of …?
-      • What approach would you use to …?
-      • How would you apply what you learned to develop…?
-      • What other way would you plan to …?
-      • What would result if …?
-      • How can you make use of the facts to …?
-      • What elements would you choose to change …?
-      • What facts would you select to show …?
-      • What questions would you ask in an interview with…?
-    - Analysis: Breaking down a whole into component parts; Examining critically
-      • What are the parts or features of …?
-      • How is _______ related to …?
-      • Why do you think …?
-      • What is the theme …?
-      • What motive is there …?
-      • What conclusions can you draw …?
-      • How would you classify …?
-      • How can you identify the different parts …?
-      • What evidence can you find …?
-      • What is the relationship between …?
-      • How can you make a distinction between …?
-      • What is the function of …?
-      • What ideas justify …?
-    - Evaluating: Making judgments about the merits of ideas, materials, or phenomena based on criteria
-      • Why do you agree with the actions? The outcomes?
-      • What is your opinion of …? (Must explain why)
-      • How would you prove …? disprove …?
-      • How can you assess the value or importance of …?
-      • What would you recommend …?
-      • How would you rate or evaluate the …?
-      • What choice would you have made …?
-      • How would you prioritize …?
-      • What details would you use to support the view …?
-      • Why was it better than …?
-    - Creating: Putting ideas together to form a new and different whole
-      • What changes would you make to solve …?
-      • How would you improve …?
-      • What would happen if …?
-      • How can you elaborate on the reason …?
-      • What alternative can you propose …?
-      • How can you invent …?
-      • How would you adapt ________ to create a different …?
-      • How could you change (modify) the plot (plan) …?
-      • What could be done to minimize (maximize) …?
-      • What way would you design …?
-      • What could be combined to improve (change) …?
-      • How would you test or formulate a theory for …?
-      • What would you predict as the outcome of ...?
-      • How can a model be constructed that would change…?
-      • What is an original way for the …?
+    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
+    - Recall: Basic definitions, facts, and terms, as well as basic image classification or object identification. Students recall facts and basic concepts, such as memorizing and defining elements seen in images.
+      "What is the name of this cellular structure?"
+      "Where is this type of tissue commonly found?"
+      "When does this stage of cell division occur?"
+      "How would you describe the features observed in this image?"
+      "Which organ is represented in this histological slide?"
+      "What are the main components visible in this image?"
+      "Define the term associated with the highlighted area."
+      "Identify the cell type shown in the micrograph."
+      "List three characteristics of this tissue type."
+      "What is the function of the structure labeled 'A'?"
+    - Comprehension: Basic understanding of architectural and subcellular organization of cells and tissues. Interpretation of subcellular structures, cell types, and organs from images without relating them to broader concepts.
+      "How would you classify this tissue based on its structure?"
+      "How does this image compare to normal anatomy?"
+      "What is the main idea illustrated by this histological section?"
+      "Which statements support the identification of this cell type?"
+      "How can you explain the organization of cells in this image?"
+      "What can you say about the relationship between these two structures?"
+      "Which is the best description of the area indicated?"
+      "How would you summarize the features seen in this slide?"
+      "Explain the significance of the staining pattern observed."
+      "Identify and describe the location of specialized cells in this tissue."
+    - Application: Visual identification in new situations by applying acquired knowledge. Requires additional functional or structural knowledge about the cells or tissues.
+      "How would you use your knowledge of histology to identify abnormalities in this image?"
+      "What examples can you find that demonstrate pathological changes?"
+      "How would you solve a diagnostic problem using this tissue sample?"
+      "How would you organize the observed features to show disease progression?"
+      "What approach would you use to differentiate between these two cell types?"
+      "How would you apply what you've learned to explain the function of this structure?"
+      "What other scenarios can you predict based on these histological findings?"
+      "What would result if the highlighted area was damaged?"
+      "How can you make use of the staining techniques to identify specific cells?"
+      "What elements would you analyze to confirm a diagnosis?"
+    - Analysis: Visual identification and analysis requiring comprehensive additional knowledge. Connecting structure and function within a single cell type or structure, examining relationships critically.
+      "What are the key features of the cells shown, and how do they relate to their function?"
+      "How is the observed tissue architecture related to its physiological role?"
+      "Why do you think these structural changes have occurred?"
+      "What conclusions can you draw about the disease state from this image?"
+      "How would you classify the different cell populations present?"
+      "How can you identify the stages of the cell cycle depicted?"
+      "What evidence supports the presence of an infection in this tissue?"
+      "What is the relationship between the two highlighted structures?"
+      "How can you distinguish between benign and malignant features here?"
+      "What functions are impaired due to the alterations seen in this slide?"
+    - Synthesis/Evaluation: Interactions between different cell types or tissues to predict relationships; judging and critiquing knowledge of multiple elements simultaneously in new situations. Potential to use scientific or clinical judgment.
+      "What changes would you make to this experimental design to improve results?"
+      "How would you improve patient outcomes based on these histological findings?"
+      "What would happen to organ function if this cell type were depleted?"
+      "How can you elaborate on the mechanisms leading to the observed pathology?"
+      "What alternative diagnoses can you propose given the image data?"
+      "How can you invent a treatment strategy targeting the affected cells?"
+      "How would you adapt current therapies to address the abnormalities shown?"
+      "What could be done to minimize tissue damage in this condition?"
+      "What way would you design a follow-up study to test your hypothesis?"
+      "How would you evaluate the effectiveness of a new drug using these images?"
+      "Predict the outcome of the disease progression based on histological evidence."
+      "How can a model be constructed to change our understanding of this tissue?"
+      "What is an original approach to treat the disorder indicated by the slide?"
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
-    Level 1: Recall - Basic definitions, facts, and terms as well as basic image classification or object identification. Recall facts and basic concepts (ex. recall, define, memorize) (Krathwohl 2002)
-                  - Skills assessed: Recall, memorization
-                  - Recall MC questions: These questions only require recall. Students may memorize the answer without understanding the concepts of process. Recall questions test whether students know the "what" but does not test if they understand the "why".
-    Level 2: Comprehension (aka understand) - Basic understanding of architectural and subcellular organization of cells and tissues, and concepts (organelles, tissue types, etc). Interpretation of subcellular organization, cell types, and organs from novel images, often limited to a single cell type or structure. Explain ideas or concepts, without relating to anything else (ex. classify, identify, locate) (Krathwohl 2002). "Requires recall and comprehension of facts. Image questions asking to identify a structure/cell type without requiring a full understanding of the relationship of all parts" (Zaidi 2017).
-                  - Skills assessed: Explain, identify, classify, locate
-                  - Comprehension MC questions:  These questions require recall and comprehension of facts. Image questions asking to identify a structure/cell type without requiring a full understanding of all parts. The process of identification requires students to evaluate internal or external contextual clues without requiring knowledge of functional aspects.
-    Level 3: Application - Visual identification in new situations by applying acquired knowledge. Additional functional or structural knwoledge about the cell/tissue is also required. Use information in new situations (ex. apply, implement, use) (Krathwohl,2002). "Two-step questions that require image-based identification as well as the application of knowledge (e.g., identify structure and know function/ purpose)" (Zaidi 2017).
-                  - Skills assessed: Apply, connect
-                  - Application MC questions:  Two-step questions that require image-based identification as well as the application of knowledge (e.g., identify structure and explain/demonstrate knowledge of function/purpose).
-    Level 4: Analysis - Visual identification and analysis of *comprehensive* additional knowledge. Connection between structure and function confined to single cell type/structure. Draw connections among ideas (ex. organize, analyze, calculate, compare, contrast, attribute) (Krathwohl 2002) "Students must call upon multiple independent facts and properly join them together." (Zaidi 2017).
-                  - Skills assessed: Analyze, classify
-                  - Analysis MC questions: Students must call upon multiple independent facts and properly join them together. May be required to correctly analyze accuracy of multiple statements in order to elucidate the correct answer. The student must also evaluate all options and understand all steps and can't rely on simple recall.
-    Level 5: Synthesis/Evaluation - Interactions between different cell types/tissues to predict relationships; judge and critique knowledge of multiple cell types/tissues at the same time in new situations. Potential to use scientific or clinical judgement to make decisions. Justify a decision (ex. critique, judge, predict, appraise) (Krathwohl 2002).
-                  - Skills assessed: Predict, judge, critique, decide, evaluate
-                  - Synthesis/evaluation MC questions: Use information in a *new* context with the possibility for a scientific or clinical judgement. Students are required to go through multiple steps and apply those connections to a situation (e.g., predicting an outcome, scientific result, or diagnosis or critiquing a suggested experimental or clinical plan.)
-  blooms_taxonomy_verb_chart: |
-    Remembering : Retrieving, recognizing, and recalling relevant knowledge from long‐term memory.
-    Remembering verbs: Cite, Define, Describe, Draw, Enumerate, Identify, Index, Indicate, Label, List, Match, Meet, Name, Outline, Point, Quote, Read, Recall, Recite, Recognize, Record, Repeat, Reproduce, Review, Select, State, Study, Tabulate, Trace, Write
-
-    Understanding : Constructing meaning from oral, written, and graphic messages through interpreting, exemplifying, classifying, summarizing, inferring, comparing, and explaining.
-    Understanding verbs: Add, Approximate, Articulate, Associate, Characterize, Clarify, Classify, Compare, Compute, Contrast, Convert, Defend, Describe, Detail, Differentiate, Discuss, Distinguish, Elaborate, Estimate, Example, Explain, Express, Extend, Extrapolate, Factor, Generalize, Give, Infer, Interact, Interpolate, Interpret, Observe, Paraphrase, Picture graphically, Predict, Review, Rewrite, Subtract, Summarize, Translate, Visualize
-
-    Applying : Carrying out or using a procedure for executing, or implementing.
-    Applying verbs: Acquire, Adapt, Allocate, Alphabetize, Apply, Ascertain, Assign, Attain, Avoid, Back up, Calculate, Capture, Change, Classify, Complete, Compute, Construct, Customize, Demonstrate, Depreciate, Derive, Determine, Diminish, Discover, Draw, Employ, Examine, Exercise, Explore, Expose, Express, Factor, Figure, Graph, Handle, Illustrate, Interconvert, Investigate, Manipulate, Modify, Operate, Personalize, Plot, Practice, Predict, Prepare, Price, Process, Produce, Project, Provide, Relate, Round off, Sequence, Show, Simulate, Sketch, Solve, Subscribe, Tabulate, Transcribe, Translate, Use
-
-    Analyzing : Breaking material into constituent parts, determining how the parts relate to one another and to an overall structure or purpose through differentiating, organizing, and attributing.
-    Analyzing verbs: Analyze, Audit, Blueprint, Breadboard, Break down, Characterize, Classify, Compare, Confirm, Contrast, Correlate, Detect, Diagnose, Diagram, Differentiate, Discriminate, Dissect, Distinguish, Document, Ensure, Examine, Explain, Explore, Figure out, File, Group, Identify, Illustrate, Infer, Interrupt, Inventory, Investigate, Layout, Manage, Maximize, Minimize, Optimize, Order, Outline, Point out, Prioritize, Proofread, Query, Relate, Select, Separate, Subdivide, Train, Transform
-
-    Evaluating : Making judgments based on criteria and standards through checking and critiquing.
-    Evaluating verbs: Appraise, Assess, Compare, Conclude, Contrast, Counsel, Criticize, Critique, Defend, Determine, Discriminate, Estimate, Evaluate, Explain, Grade, Hire, Interpret, Judge, Justify, Measure, Predict, Prescribe, Rank, Rate, Recommend, Release, Select, Summarize, Support, Test, Validate, Verify
-
-    Creating : Putting elements together to form a coherent or functional whole; reorganizing elements into a new pattern or structure through generating, planning, or producing.
-    Creating verbs: Abstract, Animate, Arrange, Assemble, Budget, Categorize, Code, Combine, Compile, Compose, Construct, Cope, Correspond, Create, Cultivate, Debug, Depict, Design, Develop, Devise, Dictate, Enhance, Explain, Facilitate, Format, Formulate, Generalize, Generate, Handle, Import, Improve, Incorporate, Integrate, Interface, Join, Lecture, Model, Modify, Network, Organize, Outline, Overhaul, Plan, Portray, Prepare, Prescribe, Produce, Program, Rearrange, Reconstruct, Relate, Reorganize, Revise, Rewrite, Specify, Summarize
-#  blooms_taxonomy_examples: |
-#    Question: What specific changes in this scientific image indicate that the sample has been exposed to a high cumulative dose of electrons?
-#    Bloom's level:
+    Level 1: Recall
+        Focus: Remembering basic definitions, facts, terms, and simple identification of objects in images.
+        Skills Assessed: Recall, Memorization.
+        Common Question Stems: "What is...?",  "Where is...?", "When does... occur?", "Identify the...", "List the characteristics of...", "Define the term associated with..."
+    
+    Level 2: Comprehension (Understand)
+        Focus: Understanding the organization of cells and tissues; interpreting images without broader context.
+        Skills Assessed: Explain, Identify, Classify, Locate.
+        Common Question Stems: "How would you classify...?", "How does this image compare to...?", "What is the main idea illustrated by...?", "Explain the significance of...", "Summarize the features seen in..."
+    
+    Level 3: Application
+        Focus: Applying knowledge to new situations; visual identification requiring additional functional or structural understanding.
+        Skills Assessed: Apply, Connect.
+        Common Question Stems: "How would you use your knowledge to...?", "What examples can you find that demonstrate...?", "How would you solve...?", "What approach would you use to differentiate...?", "How would you apply what you've learned to explain...?"
+    
+    Level 4: Analysis
+        Focus: Analyzing comprehensive knowledge; connecting structure and function within a single cell type or structure.
+        Skills Assessed: Analyze, Classify.
+        Common Question Stems: "What are the key features of... and how do they relate to...?", "How is... related to its function?", "Why do you think...?", "What conclusions can you draw about...?" "How can you distinguish between...?"
+    
+    Level 5: Synthesis/Evaluation    
+        Focus: Predicting relationships between different cell types or tissues; judging and critiquing multiple elements in new situations; using scientific or clinical judgment.
+        Skills Assessed: Predict, Judge, Critique, Decide, Evaluate.
+        Common Question Stems: "What changes would you make to...?", "How would you improve...?", "What would happen if...?", "What alternative can you propose...?", "How would you evaluate the effectiveness of...?", "Predict the outcome of..."
   blooms_tips_for_mc_question: |
-    # 5 Tips to Write a Multiple-Choice Test Based on The Revised Bloom's Taxonomy
+    # Essential Components for Writing Multiple-Choice Tests Based on the Revised Bloom's Taxonomy:
 
-    One of the primary benefits associated with creating tests based upon this model is that the tests will not be unnecessarily difficult for the learner and are more effective in assessing the learner's knowledge of the subject matter. Not to mention that they are easier to correct and to modify. Here are 5 tips that you can use to write multiple-choice tests:
-    1. Always use plausible incorrect answers in the questions: One of the biggest mistakes that eLearning test creators make is not making the incorrect answers convincing enough. You have to make them plausible so that you are able to test their ability to remember the information and apply it to the problem. This is the only true way to gauge if a learner fully understands the concept.
-    2. Integrate charts into the exam: Include charts or graphs in your test, which will force the learner to use their analyzing skills. By having them interpret the data, they will be tested on whether or not they have really absorbed the information.
-    3. Transform the verb: If you want to include a divergent thinking question on your test, you can generally accomplish this by turning it into a noun. For example, if you are trying to test your learner's ability to describe a scientific process, have them choose the best description for it. This can be used to test both their creating and evaluating skills.
-    4. Create examples or stories to test their understanding abilities: Write out detailed stories or examples that the learner must read before answering corresponding multiple-choice questions. This will not only test their understanding ability, but their analyzing skills as well. You can also make the learner tap into their remembering or applying abilities if you create a story or example that asks them to draw upon knowledge they've already acquired.
-    5. Use multilevel thinking: These are the questions that include wording such as “the most appropriate” or “most important”. Such questions serve to test the learners’ judgment skills or understanding of an in-depth subject. For example, you could ask a learner a question about identifying a particular mental illness by first giving them a detailed explanation of a patient who exhibits a set of observed symptoms, then ask them to apply a particular psychological theory to come up with a diagnosis.         
+    Use Plausible Distractors: Craft convincing incorrect answers to effectively assess learners' understanding and ability to apply knowledge.
+    Integrate Charts and Graphs: Include visual data for interpretation to test analyzing skills.
+    Transform Verbs into Nouns: Modify questions to test creating and evaluating skills by asking for the best description of a concept.
+    Use Examples or Stories: Provide detailed scenarios that require learners to apply, understand, and analyze information.
+    Employ Multilevel Thinking Questions: Use phrases like "most appropriate" or "most important" to assess judgment skills and deep comprehension.
