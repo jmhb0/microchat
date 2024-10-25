@@ -2,7 +2,7 @@
 """dspy_modules.py in src/microchat/models."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -16,90 +16,75 @@ from microchat.models.base_signatures import ReviseQuestion, ReviseQuestionConte
 
 context = yaml_loader(Path(MODULE_ROOT, "conf", "question_context.yaml"))
 
-
-# Define the module
-class CoTRAG(dspy.Module):
-    def __init__(self, num_passages=5, **kwargs):
+# Base class for RAG Modules
+class BaseRAG(dspy.Module):
+    def __init__(self, num_passages: int = 5, **kwargs):
+        """Initialize shared components for RAG modules."""
         super().__init__()
-
+        self.num_passages = num_passages
         self.context = None
         self.retrieve = None
-        if kwargs.get("context") == "nbme":
-            signature: dspy.Signature = ReviseQuestionContext
-            self.context = context["nbme"]
-            # convert to List[str] with each passage key.strip().replace("_", " ").capitalize() | value.strip()
-            self.context = [
-                f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
-                for k, v in self.context.items()
-            ]
-        elif kwargs.get("context") == "blooms":
-            signature: dspy.Signature = ClassifyBlooms
-            self.context = context["blooms"]
-            # convert to List[str] with each passage key.strip().replace("_", " ").capitalize() | value.strip()
-            self.context = [
-                f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
-                for k, v in self.context.items()
-            ]
-        else:
-            self.retrieve = dspy.Retrieve(k=num_passages)
-
-        self.generate_answer = dspy.ChainOfThought(signature)
+        self.signature: Optional[dspy.Signature] = None
         self.kwargs = kwargs
+        self._set_context_and_signature()
 
-    def forward(self, question):
-        # get fixed context if provided
-        if self.context is None:
-            self.context = self.retrieve(question).passages
+    def _set_context_and_signature(self):
+        """Set context and signature based on specified context type."""
+        if self.kwargs.get("context") == "nbme":
+            self.signature = ReviseQuestionContext
+            self.context = self._format_context(context["nbme"])
+        elif self.kwargs.get("context") == "blooms":
+            self.signature = ClassifyBlooms
+            self.context = self._format_context(context["blooms"])
         else:
-            context = self.context
+            self.retrieve = dspy.Retrieve(k=self.num_passages)
 
-        prediction = self.generate_answer(context=context, question=question)
+
+    @staticmethod
+    def _format_context(raw_context: dict) -> List[str]:
+        """Format context into list of strings with capitalized keys and stripped values."""
+        return [
+            f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
+            for k, v in raw_context.items()
+        ]
+
+    def generate_answer(self, question: str, context: Optional[List[str]] = None):
+        """Generate an answer using the given context and question."""
+        if context is None:
+            context = self.retrieve(question).passages if self.retrieve else self.context
+        prediction = dspy.ChainOfThought(self.signature)(context=context, question=question)
         return dspy.Prediction(context=context, answer=prediction.answer)
 
 
-class CoTMultiHopRAG(dspy.Module):
-    """Simplified Baleen (Khattab et al., 2021) module for multi-hop reasoning."""
-    def __init__(self, num_passages=5, passages_per_hop: int = 3, max_hops:int = 3, **kwargs):
-        super().__init__()
+# Define the module
+# Specific RAG module implementations
+class CoTRAG(BaseRAG):
+    def __init__(self, num_passages: int = 5, **kwargs):
+        """Initialize the CoTRAG module with specified context and passages."""
+        super().__init__(num_passages=num_passages, **kwargs)
+        if not self.signature:
+            self.signature = ReviseQuestion  # Default signature if none is specified
 
-        self.context: List[str] = None
-        self.retrieve = None
-        self.generate_query: dspy.Signature = [dspy.ChainOfThought(GenerateSearchQuery) for _ in range(max_hops)]
-        self.max_hops = 2
-        if kwargs.get("context") == "nbme":
-            signature: dspy.Signature = ReviseQuestionContext
-            self.context = context["nbme"]
-            # convert to List[str] with each passage key.strip().replace("_", " ").capitalize() | value.strip()
-            self.context = [
-                f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
-                for k, v in self.context.items()
-            ]
-        elif kwargs.get("context") == "blooms":
-            signature: dspy.Signature = ClassifyBlooms
-            self.context = context["blooms"]
-            # convert to List[str] with each passage key.strip().replace("_", " ").capitalize() | value.strip()
-            self.context = [
-                f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
-                for k, v in self.context.items()
-            ]
-        else:
-            self.retrieve = dspy.Retrieve(k=num_passages)
+    def forward(self, question: str):
+        """Forward method for processing the question through the RAG pipeline."""
+        return self.generate_answer(question)
 
-        self.generate_answer = dspy.ChainOfThought(signature)
-        self.kwargs = kwargs
 
-    def forward(self, question):
-        # get fixed context if provided
+class CoTMultiHopRAG(BaseRAG):
+    """Module for multi-hop reasoning with multiple query hops."""
+    def __init__(self, num_passages: int = 5, passages_per_hop: int = 3, max_hops: int = 3, **kwargs):
+        super().__init__(num_passages=num_passages, **kwargs)
+        self.passages_per_hop = passages_per_hop
+        self.max_hops = max_hops
+        self.generate_query = [dspy.ChainOfThought(GenerateSearchQuery) for _ in range(max_hops)]
+        if not self.signature:
+            self.signature = ReviseQuestion  # Default signature if none is specified
+
+    def forward(self, question: str):
+        """Multi-hop forward method for iterative retrieval and answering."""
         if self.context is None:
             for hop in range(self.max_hops):
-                query = self.generate_query[hop](
-                    context=self.context, question=question
-                ).query
+                query = self.generate_query[hop](context=self.context, question=question).query
                 passages = self.retrieve(query).passages
                 self.context = dspy.deduplicate(self.context + passages)
-        else:
-            context = self.context
-
-
-        prediction = self.generate_answer(context=context, question=question)
-        return dspy.Prediction(context=context, answer=prediction.answer)
+        return self.generate_answer(question)
