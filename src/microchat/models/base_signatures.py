@@ -75,3 +75,17 @@ class ClassifyBlooms(dspy.Signature):
     answer = dspy.OutputField(
         desc="The Bloom's taxonomy category for the revised question."
     )
+
+class GenerateSearchQuery(dspy.Signature):
+    """Write a simple search query that will help answer a complex question."""
+
+    context = dspy.InputField(desc="may contain relevant facts")
+    question = dspy.InputField()
+    query = dspy.OutputField()
+
+class GenerateAnswer(dspy.Signature):
+    """Answer questions with short factoid answers."""
+
+    context = dspy.InputField(desc="may contain relevant facts")
+    question = dspy.InputField()
+    answer = dspy.OutputField(desc="often between 1 and 5 words")
