@@ -1,3 +1,34 @@
+taxonomy:
+  revised:
+    1:
+        - recall
+        - remember
+        - recollection
+        - memorize
+        - memorization
+    2:
+        - understand
+        - understanding
+        - comprehend
+        - comprehension
+        - comprehending
+    3:
+        - apply
+        - application
+        - applying
+    4:
+        - analyze
+        - analysis
+        - analyzing
+    5:
+        - synthesis
+        - evaluate
+        - evaluation
+        - synthesis/evaluation
+    6:
+        - create
+        - creating
+        - creation
 prompt: |
   You are an expert in BioMedical AI, helping biologists and computer scientists design a benchmark to test vision-language models' perception and reasoning capabilities. You are helping the benchmark creators classify the Bloom's taxonomy category for multiple-choice questions.
   Your expertise and body of knowledge include a deep familiarity with the revised Bloom's taxonomy and training from the National Board of Medical Examiners (NBME)  on how to write high-quality multiple-choice items to test content knowledge and reasoning. You always state if you are uncertain or do not know the correct Bloom's classification.
