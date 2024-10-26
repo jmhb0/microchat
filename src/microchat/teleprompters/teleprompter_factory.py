@@ -57,11 +57,12 @@ def create_optimizer(
     config.update(kwargs or {})
     default_config = yaml_loader(MODULE_ROOT.joinpath("conf", "opt_config.yaml"))
     default_config = default_config.get(optimizer_type.name, {})
+    config.update(default_config)
 
     # load model
     logger.info(f"Loading optimizer: {optimizer_type.name}")
     match optimizer_type:
-        case OptimizerType.bootstrap_optuna:
+        case OptimizerType.bootstrap:
             optimizer = dspy.BootstrapFewShot(metric=metric, **config)
 
         case OptimizerType.bootstrap_random:
@@ -72,9 +73,10 @@ def create_optimizer(
                 **config
             )
         case OptimizerType.bootstrap_optuna:
-            config = {
+            raise NotImplementedError("Optuna not implemented.")
 
-            }
+        case OptimizerType.mipro_v2:
+            optimizer = dspy.MIPROv2(metric=metric, **config)
 
         case _:  # no match
             raise NotImplementedError(

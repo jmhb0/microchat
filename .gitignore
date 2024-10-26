@@ -8,6 +8,8 @@ output.png
 analysis_scripts/results/
 data/*
 !data/*.py
+!data/**/*.dvc
+!data/**/*.csv.dvc
 results
 tmp*
 *.DS_Store*

@@ -22,8 +22,11 @@ taxonomy:
         - analyzing
     5:
         - synthesis
+        - synthesize
+        - synthesizing
         - evaluate
         - evaluation
+        - evaluating
         - synthesis/evaluation
     6:
         - create

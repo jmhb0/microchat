@@ -131,76 +131,76 @@ blooms:
   blooms_revised: |
     # Revised Bloom’s Taxonomy (2001)
     A group of educational researchers and cognitive psychologists developed the new and revised Bloom’s Taxonomy framework in 2001 to be more action-oriented. This way, students work their way through a series of verbs to meet learning objectives. Below are descriptions of each of the levels in revised Bloom’s Taxonomy:
-     - Remember/Recall: To bring an awareness of the concept to learners’ minds.
-     - Understand/Comprehend: To summarize or restate the information in a particular way.
+     - Remember/Recall: To bring an awareness of the concept to learners’ minds. Simple image identification or basic fact recall.
+     - Understand/Comprehend: To summarize or restate the information in a particular way. Basic image interpretation or understanding 
      - Apply: The ability to use learned material in new and concrete situations.
      - Analyze: Understanding the underlying structure of knowledge to be able to distinguish between fact and opinion.
      - Synthesis/Evaluate: Making judgments about the value of ideas, theories, items and materials.
      - Create: Reorganizing concepts into new structures or patterns through generating, producing or planning.
-  blooms_question_stems: |
-    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
-    - Recall: Basic definitions, facts, and terms, as well as basic image classification or object identification. Students recall facts and basic concepts, such as memorizing and defining elements seen in images.
-      "What is the name of this cellular structure?"
-      "Where is this type of tissue commonly found?"
-      "When does this stage of cell division occur?"
-      "How would you describe the features observed in this image?"
-      "Which organ is represented in this histological slide?"
-      "What are the main components visible in this image?"
-      "Define the term associated with the highlighted area."
-      "Identify the cell type shown in the micrograph."
-      "List three characteristics of this tissue type."
-      "What is the function of the structure labeled 'A'?"
-    - Comprehension: Basic understanding of architectural and subcellular organization of cells and tissues. Interpretation of subcellular structures, cell types, and organs from images without relating them to broader concepts.
-      "How would you classify this tissue based on its structure?"
-      "How does this image compare to normal anatomy?"
-      "What is the main idea illustrated by this histological section?"
-      "Which statements support the identification of this cell type?"
-      "How can you explain the organization of cells in this image?"
-      "What can you say about the relationship between these two structures?"
-      "Which is the best description of the area indicated?"
-      "How would you summarize the features seen in this slide?"
-      "Explain the significance of the staining pattern observed."
-      "Identify and describe the location of specialized cells in this tissue."
-    - Application: Visual identification in new situations by applying acquired knowledge. Requires additional functional or structural knowledge about the cells or tissues.
-      "How would you use your knowledge of histology to identify abnormalities in this image?"
-      "What examples can you find that demonstrate pathological changes?"
-      "How would you solve a diagnostic problem using this tissue sample?"
-      "How would you organize the observed features to show disease progression?"
-      "What approach would you use to differentiate between these two cell types?"
-      "How would you apply what you've learned to explain the function of this structure?"
-      "What other scenarios can you predict based on these histological findings?"
-      "What would result if the highlighted area was damaged?"
-      "How can you make use of the staining techniques to identify specific cells?"
-      "What elements would you analyze to confirm a diagnosis?"
-    - Analysis: Visual identification and analysis requiring comprehensive additional knowledge. Connecting structure and function within a single cell type or structure, examining relationships critically.
-      "What are the key features of the cells shown, and how do they relate to their function?"
-      "How is the observed tissue architecture related to its physiological role?"
-      "Why do you think these structural changes have occurred?"
-      "What conclusions can you draw about the disease state from this image?"
-      "How would you classify the different cell populations present?"
-      "How can you identify the stages of the cell cycle depicted?"
-      "What evidence supports the presence of an infection in this tissue?"
-      "What is the relationship between the two highlighted structures?"
-      "How can you distinguish between benign and malignant features here?"
-      "What functions are impaired due to the alterations seen in this slide?"
-    - Synthesis/Evaluation: Interactions between different cell types or tissues to predict relationships; judging and critiquing knowledge of multiple elements simultaneously in new situations. Potential to use scientific or clinical judgment.
-      "What changes would you make to this experimental design to improve results?"
-      "How would you improve patient outcomes based on these histological findings?"
-      "What would happen to organ function if this cell type were depleted?"
-      "How can you elaborate on the mechanisms leading to the observed pathology?"
-      "What alternative diagnoses can you propose given the image data?"
-      "How can you invent a treatment strategy targeting the affected cells?"
-      "How would you adapt current therapies to address the abnormalities shown?"
-      "What could be done to minimize tissue damage in this condition?"
-      "What way would you design a follow-up study to test your hypothesis?"
-      "How would you evaluate the effectiveness of a new drug using these images?"
-      "Predict the outcome of the disease progression based on histological evidence."
-      "How can a model be constructed to change our understanding of this tissue?"
-      "What is an original approach to treat the disorder indicated by the slide?"
+#  blooms_question_stems: |
+#    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
+#    - Recall: Basic definitions, facts, and terms, as well as image classification or object identification. Students recall facts and basic concepts, such as memorizing and defining elements seen in images.
+#      "What is the cellular structure shown in this image?"
+#      "Where is this type of tissue commonly found?"
+#      "When does this stage of cell division occur?"
+#      "How would you describe the features observed in this image?"
+#      "Which organ is represented in this histological slide?"
+#      "What are the main components visible in this image?"
+#      "Define the term associated with the highlighted area."
+#      "Identify the cell type shown in the micrograph."
+#      "List three characteristics of this tissue type."
+#      "What is the function of the structure labeled 'A'?"
+#    - Comprehension: Basic understanding of architectural and subcellular organization of cells and tissues. Interpretation of subcellular structures, cell types, and organs from images without relating them to broader concepts.
+#      "How would you classify this tissue based on its structure?"
+#      "How does this image compare to normal anatomy?"
+#      "What is the main idea illustrated by this histological section?"
+#      "Which statements support the identification of this cell type?"
+#      "How can you explain the organization of cells in this image?"
+#      "What can you say about the relationship between these two structures?"
+#      "Which is the best description of the area indicated?"
+#      "How would you summarize the features seen in this slide?"
+#      "Explain the significance of the staining pattern observed."
+#      "Identify and describe the location of specialized cells in this tissue."
+#    - Application: Visual identification in new situations by applying acquired knowledge. Requires additional functional or structural knowledge about the cells or tissues.
+#      "How would you use your knowledge of histology to identify abnormalities in this image?"
+#      "What examples can you find that demonstrate pathological changes?"
+#      "How would you solve a diagnostic problem using this tissue sample?"
+#      "How would you organize the observed features to show disease progression?"
+#      "What approach would you use to differentiate between these two cell types?"
+#      "How would you apply what you've learned to explain the function of this structure?"
+#      "What other scenarios can you predict based on these histological findings?"
+#      "What would result if the highlighted area was damaged?"
+#      "How can you make use of the staining techniques to identify specific cells?"
+#      "What elements would you analyze to confirm a diagnosis?"
+#    - Analysis: Visual identification and analysis requiring comprehensive additional knowledge. Connecting structure and function within a single cell type or structure, examining relationships critically.
+#      "What are the key features of the cells shown, and how do they relate to their function?"
+#      "How is the observed tissue architecture related to its physiological role?"
+#      "Why do you think these structural changes have occurred?"
+#      "What conclusions can you draw about the disease state from this image?"
+#      "How would you classify the different cell populations present?"
+#      "How can you identify the stages of the cell cycle depicted?"
+#      "What evidence supports the presence of an infection in this tissue?"
+#      "What is the relationship between the two highlighted structures?"
+#      "How can you distinguish between benign and malignant features here?"
+#      "What functions are impaired due to the alterations seen in this slide?"
+#    - Synthesis/Evaluation: Interactions between different cell types or tissues to predict relationships; judging and critiquing knowledge of multiple elements simultaneously in new situations. Potential to use scientific or clinical judgment.
+#      "What changes would you make to this experimental design to improve results?"
+#      "How would you improve patient outcomes based on these histological findings?"
+#      "What would happen to organ function if this cell type were depleted?"
+#      "How can you elaborate on the mechanisms leading to the observed pathology?"
+#      "What alternative diagnoses can you propose given the image data?"
+#      "How can you invent a treatment strategy targeting the affected cells?"
+#      "How would you adapt current therapies to address the abnormalities shown?"
+#      "What could be done to minimize tissue damage in this condition?"
+#      "What way would you design a follow-up study to test your hypothesis?"
+#      "How would you evaluate the effectiveness of a new drug using these images?"
+#      "Predict the outcome of the disease progression based on histological evidence."
+#      "How can a model be constructed to change our understanding of this tissue?"
+#      "What is an original approach to treat the disorder indicated by the slide?"
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
     Level 1: Recall
-        Focus: Remembering basic definitions, facts, terms, and simple identification of objects in images.
+        Focus: Recall or identification of objects in images. Remembering basic definitions, facts, and terms.
         Skills Assessed: Recall, Memorization.
         Common Question Stems: "What is...?",  "Where is...?", "When does... occur?", "Identify the...", "List the characteristics of...", "Define the term associated with..."
     
@@ -210,7 +210,7 @@ blooms:
         Common Question Stems: "How would you classify...?", "How does this image compare to...?", "What is the main idea illustrated by...?", "Explain the significance of...", "Summarize the features seen in..."
     
     Level 3: Application
-        Focus: Applying knowledge to new situations; visual identification requiring additional functional or structural understanding.
+        Focus: Applying knowledge to new situations; advanced visual identification that requires deep understanding and application to a new setting.
         Skills Assessed: Apply, Connect.
         Common Question Stems: "How would you use your knowledge to...?", "What examples can you find that demonstrate...?", "How would you solve...?", "What approach would you use to differentiate...?", "How would you apply what you've learned to explain...?"
     
