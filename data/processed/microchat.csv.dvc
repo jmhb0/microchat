@@ -1,6 +1,0 @@
-outs:
-- md5: c05ca6ccd13f52387f35952a8e9a3b7a
-  size: 2869872
-  isexec: true
-  hash: md5
-  path: microchat.csv
