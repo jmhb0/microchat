@@ -157,6 +157,13 @@ class CSVDataset(Dataset):
         df["revised_question_answer"] = (
             "Question:\n```"
             + df["revised_question"]
+            + "```\n\nAnswer:\n```"
+            + df["answer_correct"]
+            + "```"
+        )
+        df["revised_question_answer_mc"] = (
+            "Question:\n```"
+            + df["revised_question"]
             + "\n\nAnswer:\n```"
             + df["answer_correct"]
             + "\n\nOptions:\n```"
@@ -248,7 +255,13 @@ class CSVDataset(Dataset):
 
         # initialize the dspy dataset
         dataset: List[Dict[str, Any]] = []
-        keys: List[str] = [question_key, answer_key]
+        keys: List[str] = [
+            question_key,
+            answer_key,
+            "key_image",
+            "key_question",
+            "blooms_reasoning",
+        ]
 
         # iterate over HuggingFace dataset and convert to DSPy dataset
         for idx, raw_example in tqdm(
@@ -270,6 +283,8 @@ class CSVDataset(Dataset):
                 elif k == answer_key:
                     answer = raw_example.pop(k)
                     example["answer"] = answer.strip()
+                elif k in {"key_image", "key_question", "blooms_reasoning"}:
+                    example[k] = raw_example[k]
                 else:
                     continue
                     # example[k] = example[k].strip()

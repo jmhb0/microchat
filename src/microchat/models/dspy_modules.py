@@ -7,14 +7,27 @@ from typing import List, Optional
 from loguru import logger
 
 import dspy
-
+import re
+from pprint import pprint
 
 from microchat import MODULE_ROOT
 
 from microchat.fileio.text.readers import yaml_loader
-from microchat.models.base_signatures import ReviseQuestion, ReviseQuestionContext, ClassifyBlooms, GenerateSearchQuery
+from microchat.models.base_signatures import (
+    ReviseQuestion,
+    ReviseQuestionContext,
+    ClassifyBlooms,
+    GenerateSearchQuery,
+    SelfAssessBlooms,
+)
 
 context = yaml_loader(Path(MODULE_ROOT, "conf", "question_context.yaml"))
+blooms_dict = yaml_loader(Path(MODULE_ROOT, "conf", "blooms.yaml"))["taxonomy"].get(
+    "revised"
+)
+blooms_list = [item for sublist in blooms_dict.values() for item in sublist]
+re_blooms_compiled = re.compile(r"|".join(blooms_list), re.IGNORECASE)
+
 
 # Base class for RAG Modules
 class BaseRAG(dspy.Module):
@@ -37,23 +50,29 @@ class BaseRAG(dspy.Module):
             self.signature = ClassifyBlooms
             self.context = self._format_context(context["blooms"])
         else:
+            self.signature = None
             self.retrieve = dspy.Retrieve(k=self.num_passages)
-
 
     @staticmethod
     def _format_context(raw_context: dict) -> List[str]:
         """Format context into list of strings with capitalized keys and stripped values."""
         return [
-            f"{k.strip().replace('_', ' ').capitalize()}: {v.strip()}"
+            f"{k.strip().replace('_', ' ').capitalize()}| {v.strip()}"
             for k, v in raw_context.items()
         ]
 
     def generate_answer(self, question: str, context: Optional[List[str]] = None):
         """Generate an answer using the given context and question."""
         if context is None:
-            context = self.retrieve(question).passages if self.retrieve else self.context
-        prediction = dspy.ChainOfThought(self.signature)(context=context, question=question)
-        return dspy.Prediction(context=context, answer=prediction.answer)
+            context = (
+                self.retrieve(question).passages if self.retrieve else self.context
+            )
+        prediction = dspy.ChainOfThought(self.signature)(
+            context=context, question=question
+        )
+        prediction.context = context  # add context to prediction
+        return prediction
+        # dspy.Prediction(context=context, answer=prediction.answer)
 
 
 # Define the module
@@ -72,11 +91,20 @@ class CoTRAG(BaseRAG):
 
 class CoTMultiHopRAG(BaseRAG):
     """Module for multi-hop reasoning with multiple query hops."""
-    def __init__(self, num_passages: int = 5, passages_per_hop: int = 3, max_hops: int = 3, **kwargs):
+
+    def __init__(
+        self,
+        num_passages: int = 5,
+        passages_per_hop: int = 3,
+        max_hops: int = 3,
+        **kwargs,
+    ):
         super().__init__(num_passages=num_passages, **kwargs)
         self.passages_per_hop = passages_per_hop
         self.max_hops = max_hops
-        self.generate_query = [dspy.ChainOfThought(GenerateSearchQuery) for _ in range(max_hops)]
+        self.generate_query = [
+            dspy.ChainOfThought(GenerateSearchQuery) for _ in range(max_hops)
+        ]
         if not self.signature:
             self.signature = ReviseQuestion  # Default signature if none is specified
 
@@ -84,7 +112,48 @@ class CoTMultiHopRAG(BaseRAG):
         """Multi-hop forward method for iterative retrieval and answering."""
         if self.context is None:
             for hop in range(self.max_hops):
-                query = self.generate_query[hop](context=self.context, question=question).query
+                query = self.generate_query[hop](
+                    context=self.context, question=question
+                ).query
                 passages = self.retrieve(query).passages
                 self.context = dspy.deduplicate(self.context + passages)
+
         return self.generate_answer(question)
+
+
+class CoTSelfCorrectRAG(BaseRAG):
+    """Module for classifying Bloom's Taxonomy level with self-assessment."""
+
+    def __init__(self, num_passages: int = 5, **kwargs):
+        super().__init__(num_passages=num_passages, **kwargs)
+        self.self_assess = dspy.ChainOfThought(SelfAssessBlooms)
+        if not self.signature:
+            self.signature = ClassifyBlooms  # Default signature if none is specified
+
+    def forward(self, question: str):
+        """Forward method for processing the question through the RAG pipeline."""
+
+        initial_prediction = self.generate_answer(question, context=self.context)
+        # format for self assessment
+        self_check_question = (
+            f"An LLM model evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
+            f"{question}\n"
+            f" The model predicted the question is at the Bloom's level of:\n"
+            f"Bloom's:```{initial_prediction.answer}```\n"
+            f"Please evaluate the Bloom's Taxonomy level of the question and provide your independent assessment:"
+        )
+
+        # Perform self-assessment on the initial prediction
+        assess_response = self.self_assess(question=self_check_question, context=None)
+
+        # compare the initial prediction with the self-assessment
+        assess_response.context = self.context
+        return assess_response
+        # return dspy.Prediction(context=self.context, answer=assess_response.answer)
+
+    # def generate_answer(self, question: str, context: Optional[List[str]] = None):
+    #     """Generate an answer using the given context and question."""
+    #     if context is None:
+    #         context = self.retrieve(question).passages if self.retrieve else self.context
+    #     prediction = dspy.ChainOfThought(self.signature)(context=context, question=question)
+    #     return dspy.Prediction(context=context, answer=prediction.answer)

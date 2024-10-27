@@ -59,7 +59,7 @@ def create_model(    model_name: str, config: Optional[dict] = None, kwargs: Opt
     temperature = config.pop("temperature", 1.0)
     max_tokens = config.pop("max_tokens", 2048)
     match model_type:
-        case ModelType.gpt_4_turbo:
+        case ModelType.gpt_4o: # ModelType.gpt_4_turbo
             dspy_model = dspy.LM("/".join(model_type.value),
                                  temperature=temperature,
                                  max_tokens=max_tokens,
