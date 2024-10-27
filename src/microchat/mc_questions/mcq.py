@@ -341,14 +341,17 @@ class Blooms(BaseModel):
         """
         Post-initialization hook for the MCQ model.
         """
-        # process GT example
+        # process GT example to get the ground truth blooms name and level
         gt_model = "CustomGPT"
         gt_level, gt_bloom = self._process_answer(self.example.answer, blooms_dict)
-        # process the example
+        # predict blooms the example
         response = self.predict()
         if response is None:
             logger.error(f"Prediction failed for question: {self.example.question}")
 
+        # set the context for the response
+        # note that the context is manually set to be a curated list of Bloom's
+        # or NBME reference information.
         self.context = response.context
 
         # process the response
