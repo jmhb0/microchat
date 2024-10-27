@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """run_dspy.py in src/microchat."""
+
 from pathlib import Path
 from typing import Optional
 import click
@@ -144,7 +145,134 @@ def main(
     logger.info(f"Train answer: {train_example.answer}")
 
     # Set up a basic teleprompter, which will compile our RAG program.
-    teleprompter = BootstrapFewShot(metric=validate_context_and_answer)
+    optimizer = create_optimizer(optimizer, teacher_model=teacher_model)
+
+    # create module
+    module = CoTSelfCorrectRAG(context=task)
+
+    ## hack:  temp code to loop over all examples to get consensus Bloom's category
+    # loop over trainset and save response.answer to output_list, which will be new
+    # consensus label
+    teacher_model = create_model(teacher_model).lm
+    output_list = []
+    for idx, example in tqdm(enumerate(trainset + devset)):
+        # get consensus blooms
+        # the initial label was from MicroChat-MC
+        # this loop will use predict using o1-mini and self-assess
+        # or correct with gpt-4o. any examples without 100% agreement
+        # among MicroChat-MC, o1-mini, and, gpt-4o will get human review
+        try:
+            response = Blooms(
+                example=example, module=module, teacher_model=teacher_model
+            )
+            output_list.append(
+                {
+                    "key_image": response.example.key_image,
+                    "key_question": response.example.key_question,
+                    "revised_question_answer": response.example.question,
+                    "context": response.context,
+                    "self_check_question": response.self_check_question,
+                    "blooms_question_category": response.blooms_name.capitalize(),
+                    "blooms_confidence": response.blooms_confidence,
+                    "blooms_level": response.blooms_level,
+                    "blooms_source": response.blooms_source,
+                    "blooms_reasoning": response.blooms_reasoning,
+                }
+            )
+        except Exception as e:
+            logger.error(
+                f"Error with example {example.key_image} {example.key_question}: {e}"
+            )
+
+    # convert to df
+    output_df = pd.DataFrame(output_list)
+
+    # load orig df
+    orig_df = df_loader(Path(PROJECT_ROOT).joinpath("data", "processed", dataset_name))
+
+    # merge on key_image and key_question
+    output_df = pd.merge(
+        orig_df,
+        output_df,
+        on=["key_image", "key_question"],
+        how="left",
+        suffixes=("", "_pred"),
+    )
+
+    # print rows with non null for both blooms_question_category and blooms_question_category_pred
+    idx = output_df.loc[
+        (output_df["blooms_question_category"].notnull())
+        & (output_df["blooms_question_category_pred"].notnull())
+    ].index
+    print(
+        output_df.loc[
+            idx,
+            [
+                "blooms_question_category",
+                "blooms_question_category_pred",
+                "blooms_source",
+            ],
+        ]
+    )
+
+    # rename values in blooms_question_category_pred
+    rename_map = {
+        "Recall": "Recall",
+        "Remember": "Recall",
+        "Memorize": "Recall",
+        "Knowledge": "Recall",
+        "Comprehension": "Comprehension",
+        "Comprehend": "Comprehension",
+        "Understand": "Comprehension",
+        "Understanding": "Comprehension",
+        "Apply": "Application",
+        "Applying": "Application",
+        "Analyze": "Analysis",
+        "Analyzing": "Analysis",
+        "Evaluate": "Evaluation",
+        "Evaluating": "Evaluation",
+        "Synthesis": "Synthesis",
+        "Synthesizing": "Synthesis",
+    }
+    output_df["blooms_question_category_pred"] = output_df[
+        "blooms_question_category_pred"
+    ].map(rename_map)
+
+    # save to csv
+    output_df.to_csv(
+        output_dir.joinpath(f"{model.model_name}_update_blooms.csv"), index=False
+    )
+
+    output_df_2 = pd.read_csv(
+        output_dir.joinpath(f"{model.model_name}_update_blooms.csv"), index_col=None
+    )
+    # drop dups
+    total_len = len(output_df_2)
+    output_df_2 = output_df_2.drop_duplicates(
+        subset=["key_question", "key_image", "revised_question"], keep="first"
+    )
+
+    # groupby key_question, and find most common blooms_question_category
+    temp = (
+        output_df.copy()
+        .groupby("key_question")[
+            ["blooms_question_category_pred", "blooms_source", "blooms_level"]
+        ]
+        .agg(
+            blooms_question_category=(
+                "blooms_question_category_pred",
+                lambda x: x.mode(),
+            ),
+            blooms_level=("blooms_level", lambda x: x.mode()),
+            blooms_source=("blooms_source", lambda x: x.mode()),
+            # fraction of blooms_level that are in the majority class
+            blooms_confidence=(
+                "blooms_level",
+                lambda x: x.value_counts().max() / len(x),
+            ),
+        )
+        .reset_index()
+    )
 
     # get rows with non null and non empty list
     idx_temp = temp.loc[
