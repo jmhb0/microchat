@@ -10,6 +10,7 @@ data/*
 !data/*.py
 !data/**/*.dvc
 !data/**/*.csv.dvc
+!data/processed/*
 results
 tmp*
 *.DS_Store*
