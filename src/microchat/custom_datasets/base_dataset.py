@@ -289,6 +289,6 @@ class CSVDataset(Dataset):
                     continue
                     # example[k] = example[k].strip()
 
-                dataset.append(example)
+            dataset.append(example)
 
         return dataset
