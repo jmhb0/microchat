@@ -14,8 +14,8 @@ from microchat import MODULE_ROOT
 
 from microchat.fileio.text.readers import yaml_loader
 from microchat.models.base_signatures import (
-    ReviseQuestion,
-    ReviseQuestionContext,
+    ReviseInput,
+    ReviseInputContext,
     ClassifyBlooms,
     GenerateSearchQuery,
     SelfAssessBlooms,
@@ -82,7 +82,7 @@ class CoTRAG(BaseRAG):
         """Initialize the CoTRAG module with specified context and passages."""
         super().__init__(num_passages=num_passages, **kwargs)
         if not self.signature:
-            self.signature = ReviseQuestion  # Default signature if none is specified
+            self.signature = ReviseInput  # Default signature if none is specified
 
     def forward(self, question: str):
         """Forward method for processing the question through the RAG pipeline."""
@@ -106,7 +106,7 @@ class CoTMultiHopRAG(BaseRAG):
             dspy.ChainOfThought(GenerateSearchQuery) for _ in range(max_hops)
         ]
         if not self.signature:
-            self.signature = ReviseQuestion  # Default signature if none is specified
+            self.signature = ReviseInput  # Default signature if none is specified
 
     def forward(self, question: str):
         """Multi-hop forward method for iterative retrieval and answering."""

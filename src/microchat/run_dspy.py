@@ -117,12 +117,8 @@ def main(
     # set task with question_key and answer_key
     # TODO: load config from yaml
     if task == "blooms":
-        question_key = (
-            "revised_question_answer"  # "question" #"original_question_answer"
-        )
-        answer_key = (
-            "blooms_question_category"  # "revised_question" #"revised_question_answer"
-        )
+        question_key = "question_answer"  # "revised_question_answer"  # "question" #"original_question_answer"
+        answer_key = "blooms_question_category"  # "blooms_question_category"  # "revised_question" #"revised_question_answer"
     else:
         logger.error(f"Task {task} not implemented.")
         raise NotImplementedError(f"Task {task} not implemented.")
@@ -155,7 +151,9 @@ def main(
     # consensus label
     teacher_model = create_model(teacher_model).lm
     output_list = []
-    for idx, example in tqdm(enumerate(trainset + devset)):
+    for idx, example in tqdm(
+        enumerate(trainset + devset), total=len(trainset + devset)
+    ):
         # get consensus blooms
         # the initial label was from MicroChat-MC
         # this loop will use predict using o1-mini and self-assess
@@ -225,10 +223,13 @@ def main(
         "Comprehend": "Comprehension",
         "Understand": "Comprehension",
         "Understanding": "Comprehension",
+        "Application": "Application",
         "Apply": "Application",
         "Applying": "Application",
+        "Analysis": "Analysis",
         "Analyze": "Analysis",
         "Analyzing": "Analysis",
+        "Evaluation": "Evaluation",
         "Evaluate": "Evaluation",
         "Evaluating": "Evaluation",
         "Synthesis": "Synthesis",

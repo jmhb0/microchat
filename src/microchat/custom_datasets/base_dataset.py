@@ -144,31 +144,40 @@ class CSVDataset(Dataset):
         df = df_loader(filepath)
 
         # HACK create new column revised question-answer
-        # strip ending newline
-        df["description"] = (
-            df["question"].copy().apply(lambda x: x.split(r"Question:")[0].strip())
-        )
-        df["original_answer"] = "Answer:\n" + df["question_and_answer"].copy().apply(
-            lambda x: x.split(r"Answer:")[1].strip()
-        )
-        df["original_question_answer"] = (
-            df["question"] + "\n\nAnswer:\n```" + df["answer_correct"] + "```"
-        )
-        df["revised_question_answer"] = (
-            "Question:\n```"
-            + df["revised_question"]
-            + "```\n\nAnswer:\n```"
-            + df["answer_correct"]
-            + "```"
-        )
-        df["revised_question_answer_mc"] = (
-            "Question:\n```"
-            + df["revised_question"]
-            + "\n\nAnswer:\n```"
-            + df["answer_correct"]
-            + "\n\nOptions:\n```"
-            + df["multiple_choice"]
-        )
+        if Path(filepath).stem == "microchat":
+            # strip ending newline
+            df["description"] = (
+                df["question"].copy().apply(lambda x: x.split(r"Question:")[0].strip())
+            )
+            df["original_answer"] = "Answer:\n" + df[
+                "question_and_answer"
+            ].copy().apply(lambda x: x.split(r"Answer:")[1].strip())
+            df["original_question_answer"] = (
+                df["question"] + "\n\nAnswer:\n```" + df["answer_correct"] + "```"
+            )
+            df["revised_question_answer"] = (
+                "Question:\n```"
+                + df["revised_question"]
+                + "```\n\nAnswer:\n```"
+                + df["answer_correct"]
+                + "```"
+            )
+            df["revised_question_answer_mc"] = (
+                "Question:\n```"
+                + df["revised_question"]
+                + "\n\nAnswer:\n```"
+                + df["answer_correct"]
+                + "\n\nOptions:\n```"
+                + df["multiple_choice"]
+            )
+        elif Path(filepath).stem in {"mol_bio_cell", "microbench"}:
+            df["question_answer"] = (
+                "Question:\n```"
+                + df["question_stem"]
+                + "```\n\nAnswer:\n```"
+                + df["correct_answer"]
+                + "```"
+            )
 
         # strip ending newline or whitespace
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
@@ -250,8 +259,9 @@ class CSVDataset(Dataset):
             # get num missing in subset
             num_missing = df.loc[:, subset].isnull().sum(axis=1)
             df = df.dropna(subset=subset)
-            logger.info(f"Removed {num_missing.sum()} rows with missing values.")
-            logger.info(f"Remaining rows: {len(df)}")
+            if num_missing.sum() > 0:
+                logger.info(f"Removed {num_missing.sum()} rows with missing values.")
+                logger.info(f"Remaining rows: {len(df)}")
 
         # initialize the dspy dataset
         dataset: List[Dict[str, Any]] = []
@@ -261,6 +271,7 @@ class CSVDataset(Dataset):
             "key_image",
             "key_question",
             "blooms_reasoning",
+            "blooms_source",
         ]
 
         # iterate over HuggingFace dataset and convert to DSPy dataset
@@ -283,7 +294,7 @@ class CSVDataset(Dataset):
                 elif k == answer_key:
                     answer = raw_example.pop(k)
                     example["answer"] = answer.strip()
-                elif k in {"key_image", "key_question", "blooms_reasoning"}:
+                elif k in {"key_image", "key_question", "blooms_reasoning", "blooms_source"}:
                     example[k] = raw_example[k]
                 else:
                     continue

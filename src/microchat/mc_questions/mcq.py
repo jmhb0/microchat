@@ -342,7 +342,8 @@ class Blooms(BaseModel):
         Post-initialization hook for the MCQ model.
         """
         # process GT example to get the ground truth blooms name and level
-        gt_model = "CustomGPT"
+        gt_model = self.example.blooms_source.split("&") #"CustomGPT"
+        gt_model = [elem.strip() for elem in gt_model]
         gt_level, gt_bloom = self._process_answer(self.example.answer, blooms_dict)
         # predict blooms the example
         response = self.predict()
@@ -396,28 +397,28 @@ class Blooms(BaseModel):
             self.blooms_level = gt_level
             self.blooms_name = gt_bloom
             self.blooms_confidence = 1.0
-            self.blooms_source = f"{gt_model} & {init_model} & {rev_model}"
+            self.blooms_source = ' & '.join(gt_model + [init_model, rev_model])
             self.blooms_reasoning = assess_response.reasoning
         elif gt_level == init_level:
             # if the ground truth and initial levels match, use the ground truth level
             self.blooms_level = gt_level
             self.blooms_name = gt_bloom
             self.blooms_confidence = 2 / 3
-            self.blooms_source = f"{gt_model} & {init_model}"
+            self.blooms_source = ' & '.join(gt_model + [init_model])
             self.blooms_reasoning = response.reasoning
         elif gt_level == rev_level:
             # if the ground truth and self-assessment levels match, use the ground truth level
             self.blooms_level = gt_level
             self.blooms_name = gt_bloom
             self.blooms_confidence = 2 / 3
-            self.blooms_source = f"{gt_model} & {rev_model}"
+            self.blooms_source = ' & '.join(gt_model + [rev_model])
             self.blooms_reasoning = assess_response.reasoning
         elif rev_level == init_level:
             # if the self-assessment and initial levels match, use the self-assessment level
             self.blooms_level = init_level
             self.blooms_name = init_bloom
             self.blooms_confidence = 2 / 3
-            self.blooms_source = f"{init_model} & {rev_model}"
+            self.blooms_source = ' & '.join([init_model, rev_model])
             self.blooms_reasoning = assess_response.reasoning
         else:
             # if none of the levels match, use the ground truth level
