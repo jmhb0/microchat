@@ -9,6 +9,8 @@ __all__ = [
     "HotPotQAWrapper",
     "SciEvalWrapper",
     "MicroChatWrapper",
+    "Mol_Bio_CellWrapper",
+    "MicroBenchWrapper",
 ]
 
 import os
@@ -120,6 +122,70 @@ class MicroChatWrapper(BaseDataWrapper):
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
         subset: Optional[list] = ["original_question", "revised_question"],
+        **kwargs: Optional[dict],
+    ) -> dspy.datasets.Dataset:
+        """Create a MicroChat dataset object."""
+        root = root or Path(os.getenv("DATA_ROOT"))
+        filepath = self.filepath
+        if not Path(filepath).exists():
+            if root:
+                filepath = root.joinpath(filepath)
+            else:
+                logger.error(f"File not found: {filepath}")
+                raise FileNotFoundError(f"File not found: {filepath}")
+
+        return CSVDataset(
+            filepath=filepath,
+            train_seed=random_seed,
+            subset=subset,
+            **kwargs,
+        )
+
+
+class Mol_Bio_CellWrapper(BaseDataWrapper):
+
+    def __init__(self, root: Optional[str] = None, **kwargs: Optional[dict]):
+        super().__init__(root, **kwargs)
+
+    # @staticmethod
+    def __call__(
+        self,
+        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        random_seed: Optional[int] = RANDOM_SEED,
+        root: Optional[str] = None,
+        subset: Optional[list] = ["question_stem", "correct_answer"],
+        **kwargs: Optional[dict],
+    ) -> dspy.datasets.Dataset:
+        """Create a MicroChat dataset object."""
+        root = root or Path(os.getenv("DATA_ROOT"))
+        filepath = self.filepath
+        if not Path(filepath).exists():
+            if root:
+                filepath = root.joinpath(filepath)
+            else:
+                logger.error(f"File not found: {filepath}")
+                raise FileNotFoundError(f"File not found: {filepath}")
+
+        return CSVDataset(
+            filepath=filepath,
+            train_seed=random_seed,
+            subset=subset,
+            **kwargs,
+        )
+
+
+class MicroBenchWrapper(BaseDataWrapper):
+
+    def __init__(self, root: Optional[str] = None, **kwargs: Optional[dict]):
+        super().__init__(root, **kwargs)
+
+    # @staticmethod
+    def __call__(
+        self,
+        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        random_seed: Optional[int] = RANDOM_SEED,
+        root: Optional[str] = None,
+        subset: Optional[list] = ["question_stem", "correct_answer"],
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""

@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 """writers.py in src/microchat/fileio/text."""
 
-import os
 import pprint
 from pathlib import Path
 from pprint import pprint
 from typing import Dict
 from typing import Union
 
-import pandas as pd
+
 import ujson as json
 import yaml
 from loguru import logger
-from pyarrow import feather
 
-from microchat.custom_datasets.base_dataset import BaseDataset
-from microchat.custom_datasets.sa_json_dataclass import SADict
 from microchat.fileio.text import is_none_or_empty
 from microchat.fileio.text import make_dir
-from microchat.fileio.text import valid_file_ext
-from microchat.processing.data_utils import timestamp
 
 
 def yaml_writer(data: dict, file_path: Union[str, Path]) -> None:

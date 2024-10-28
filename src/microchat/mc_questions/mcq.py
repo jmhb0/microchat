@@ -359,15 +359,20 @@ class Blooms(BaseModel):
         init_level, init_bloom = self._process_answer(response.answer, blooms_dict)
         #
         self.self_check_question = (
-            f"Multiple LLM models evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
+            "Multiple LLM models evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
             f"{self.example.question}\n"
-            f"One model predicted '{gt_bloom.capitalize()}' (Level {gt_level}) with the following reasoning: {self.example.blooms_reasoning}."
+            f"One model predicted '{gt_bloom.capitalize()}' (Level {gt_level}) with the following reasoning: {self.example.blooms_reasoning}\n"
             f"A second model predicted '{init_bloom.capitalize()}' (Level {init_level}) with the following reasoning: {response.reasoning}\n\n"
-            f"# Independent Assessment of Bloom's Taxonomy Level\n"
-            f"Your task is to provide an independent assessment of the most appropriate Bloom's Taxonomy level for the question below."
-            f"Explain why you agree or disagree with the previous predictions.\n"
+            "# Independent Assessment of Bloom's Taxonomy Level\n"
+            "Provide an independent assessment of the most appropriate Bloom's Taxonomy level for the question below. Explain whether you agree or disagree with previous predictions, and why."
+            "When evaluating between Comprehension (Level 2) and Application (Level 3) or higher levels, consider:"
+            "  - Does the question involve straightforward identification without broader context?"
+            "  - Does it require advanced or non-obvious identification?"
+            "  - Does it involve application or connection to a broader context?"
+            "  - Is it applied to a new or challenging setting?"
+            "  - Does it require deep understanding or drawing conclusions that are not obvious?\n"
             f"{self.example.question}\n"
-            f"Bloom's: "
+            f"Bloom's:"
         )
         if self.teacher_model is None:
             # model is LLModel class with dspy.LM in model.lm

@@ -19,25 +19,49 @@ class DefaultQA(dspy.Signature):
     answer = dspy.OutputField()
 
 
-class ReviseQuestion(dspy.Signature):
-    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions into high-quality multiple-choice question stems. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
+class ReviseInput(dspy.Signature):
+    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions and long-form answers into a high-quality question stem and corresponding correct answer. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
 
-    # v1 You are an expert in BioMedical AI specializing in creating high-quality, one-best-answer multiple-choice question stems. Your task is to take user-submitted questions and revise them into well-crafted multiple-choice question stems. Drawing on your deep familiarity with Bloom's taxonomy and your training from the National Board of Medical Examiners, you aim to assess content knowledge and reasoning effectively. You always note if you are uncertain about how to write a question stem and are committed to improving question stem quality by applying principles of "stem-equity."
-    question = dspy.InputField(desc="The original question submitted by the user.")
+    question = dspy.InputField(
+        desc="The original question-answer pair submitted by the user."
+    )
     answer = dspy.OutputField(
-        desc="An improved question stem according to NBME guidelines."
+        desc="An improved question stem and answer according to NBME guidelines."
     )
 
 
-class ReviseQuestionContext(dspy.Signature):
-    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions into high-quality multiple-choice question stems. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
+class ReviseInputContext(dspy.Signature):
+    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions and long-form answers into a high-quality question stem and corresponding correct answer. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
 
     context = dspy.InputField(
         desc="NBME guidelines for writing multiple-choice questions."
     )
-    question = dspy.InputField(desc="The original question submitted by the user.")
+    question = dspy.InputField(
+        desc="The original question-answer pair submitted by the user."
+    )
     answer = dspy.OutputField(
-        desc="An improved question stem according to NBME guidelines."
+        desc="An improved question stem and answer according to NBME guidelines."
+    )
+
+
+class SelfAssessRevisedInput(dspy.Signature):
+    """You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' perception and reasoning capabilities by converting user-submitted questions and long-form answers into a high-quality question stem and correct answer according to NBME guidelines.
+    You focus on content knowledge, reasoning, and stem equity, always seeking ways to improve question quality and stating if you are uncertain about how to write a question stem or revise a given answer.
+    When revising a question and answer pair, perform a self-check to ensure the revised question stem and answer are accurate. Review the following guidelines for writing multiple-choice questions:
+
+    ## TODO: Add guidelines for writing multiple-choice questions.
+
+    After reviewing these guidelines, ask yourself: "Does the revised question stem and answer accurately reflect the original question and answer?" Double-check your revision and make adjustments if necessary to ensure the revised question stem and answer accurately reflect the original topic but have been correctly reformatted to NBME guidelines.
+    """
+
+    context = dspy.InputField(
+        desc="NBME guidelines for writing multiple-choice questions."
+    )
+    question = dspy.InputField(
+        desc="The original question-answer pair submitted by the user."
+    )
+    answer = dspy.OutputField(
+        desc="An improved question stem and answer according to NBME guidelines."
     )
 
 
@@ -56,7 +80,7 @@ class ClassifyBlooms(dspy.Signature):
 
 
 class SelfAssessBlooms(dspy.Signature):
-    """You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' perception and reasoning capabilities by converting user-submitted questions into high-quality multiple-choice question stems.
+    """You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' perception and reasoning capabilities by converting user-submitted questions and long-form answers into a high-quality question stem and correct answer according to NBME guidelines.
     You focus on content knowledge, reasoning, and stem equity, always seeking ways to improve question quality and stating if you are uncertain about how to write a question stem.
     When classifying a question according to Bloom's taxonomy, perform a self-check to ensure the classification is accurate. Review the following definitions for each Bloom's taxonomy level:
 
