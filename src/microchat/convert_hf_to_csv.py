@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from loguru import logger
 from tqdm import tqdm
 
-from microchat import MODULE_ROOT, DATA_ROOT
+from microchat import DATA_ROOT, PROJECT_ROOT
 
 import datasets  # HF datasets
 
@@ -67,7 +67,7 @@ def main(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.add(
-        MODULE_ROOT.joinpath(f"{Path(__file__).stem}.log"),
+        PROJECT_ROOT.joinpath("logs",f"{Path(__file__).stem}.log"),
         rotation="10 MB",
         level="INFO",
     )
