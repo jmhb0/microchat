@@ -65,6 +65,7 @@ def main(
     dataset_name = dataset.split("/")[-1].lower()
     output_dir = output_dir or Path(DATA_ROOT).joinpath(dataset_name)
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir.joinpath(f"{dataset.replace('/', '-')}_{split}.csv")
 
     logger.add(
         PROJECT_ROOT.joinpath("logs",f"{Path(__file__).stem}.log"),
@@ -74,6 +75,11 @@ def main(
 
     logger.info(f"Dataset: {dataset}")
     logger.info(f"Output directory: {output_dir}")
+    logger.info(f"Output file: {output_file}")
+
+    if output_file.exists():
+        logger.warning(f"Output file already exists: {output_file}")
+        click.confirm("Do you want to overwrite?", abort=True)
 
     # load hf dataset
     try:
@@ -108,7 +114,6 @@ def main(
     if dry_run:
         logger.info("Dry run: no changes will be made.")
     else:
-        output_file = output_dir.joinpath(f"{dataset.replace('/','-')}_{split}.csv")
         output_df.to_csv(output_file, index=False)
         logger.info(f"Questions saved to {output_file}")
 

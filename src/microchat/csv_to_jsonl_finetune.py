@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""csv_to_openai_finetune.py in src/microchat."""
+"""csv_to_jsonl_finetune.py in src/microchat."""
 from pathlib import Path
 import random
 from typing import Optional
