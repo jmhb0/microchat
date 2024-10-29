@@ -106,7 +106,7 @@ def main(
     if dry_run:
         logger.info("Dry run: no changes will be made.")
     else:
-        output_file = output_dir.joinpath("questions.csv")
+        output_file = output_dir.joinpath(f"{dataset.replace('/','-')}_{split}.csv")
         output_df.to_csv(output_file, index=False)
         logger.info(f"Questions saved to {output_file}")
 
