@@ -9,13 +9,14 @@ import pandas as pd
 from dotenv import find_dotenv
 from dotenv import load_dotenv
 from loguru import logger
+from tqdm import tqdm
 
 from microchat import MODULE_ROOT, DATA_ROOT
 
 import datasets # HF datasets
 
 
-def extract_questions(row):
+def extract_questions(row, idx: Optional[int] = None):
     """Extract questions from row for microbench dataset.
 
     Will need to be customized for other HF datasets"""
@@ -24,17 +25,17 @@ def extract_questions(row):
     for q_type in row["questions"].keys():
         elem = row["questions"][q_type]
         if elem is None:
-            logger.warning(f"Skipping {q_type} for {row}")
             continue
 
         question_id = elem["id"] # 'question_id' is col 'id' for ubench (UUID)
-        question_stem = elem["question"] # 'question_stem' is col 'question' for ubench
-        correct_answer = elem["answer"] # 'correct_answer' is col 'answer' for ubench
-        multiple_choice = elem["options"] # MC col is "options" for ubench
+        question_stem = elem["question"]   # 'question_stem' is col 'question' for ubench
+        correct_answer = elem["answer"]    # 'correct_answer' is col 'answer' for ubench
+        multiple_choice = elem["options"]  # MC col is "options" for ubench
         all_question.append(
             {
-                "source": row["source"], # dataset
+                "source": row["source"],   # dataset name
                 "chapter": row["chapter"], # dummy (not needed for HF datasets, used for textbook questions)
+                "idx": idx,                # index of row in dataset
                 "question_id": question_id,
                 "question_stem": question_stem,
                 "correct_answer": correct_answer,
@@ -47,19 +48,22 @@ def extract_questions(row):
 
 
 @click.command()
-@click.option("--dataset", type=click.STRING, default="jnirschl/uBench")
+@click.argument("dataset", type=click.STRING)
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, exists=False, path_type=Path)
 )
+@click.option("--split", type=click.STRING, default="test")
 @click.option("--dry-run", is_flag=True, help="Perform a trial run with no changes.")
 @click.version_option()
 def main(
     dataset: str,
     output_dir: Optional[Path] = None,
+    split: str = "test",
     dry_run: bool = False,
 ) -> None:
     """Extract questions from HF dataset and save to CSV."""
-    output_dir = output_dir or Path(DATA_ROOT).joinpath("dataset")
+    dataset_name = dataset.split("/")[-1].lower()
+    output_dir = output_dir or Path(DATA_ROOT).joinpath(dataset_name)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.add(
@@ -72,32 +76,29 @@ def main(
     logger.info(f"Output directory: {output_dir}")
 
     # load hf dataset
-    hf_dataset = datasets.load_dataset(dataset, split="test")
-    logger.info(f"Dataset loaded: {hf_dataset}")
-
-    # loop over dataset and save question_stem, correct_answer to CSV
-    # group by col datatset
-    unique_classes = hf_dataset.unique("label_name")
-    logger.info(f"Unique classes: {unique_classes}")
-
+    try:
+        hf_dataset = datasets.load_dataset(dataset, split=split)
+        logger.info(f"Dataset loaded: {hf_dataset}")
+    except Exception as e:
+        logger.error(f"Error loading dataset: {dataset}")
+        logger.error(e)
+        raise
 
     # convert to df
     df = hf_dataset.to_pandas()
-    df["source"] = dataset.split("/")[-1] # dataset name
+    df["source"] = dataset_name # dataset name
     df["chapter"] = None # dummy (not needed for HF datasets, used for textbook questions)
 
-    # get first example for each class (only need one label per class for training)
-    first_example = df.groupby("label_name").first()
-    logger.info(f"First example: {first_example}")
-
     #
-    if dataset.split("/")[-1].lower() != "uBench":
+    if dataset.split("/")[-1].lower() != "ubench":
         logger.warning(f"Please customize 'extract_questions' function for dataset: {dataset}")
 
     # for each example, save question_stem, correct_answer to CSV
     output_list = []
-    for idx, row in first_example.iterrows():
-        output_list.extend(extract_questions(row))
+    for idx, row in tqdm(df.iterrows(), total=len(df)):
+        output_list.extend(extract_questions(row, idx = idx))
+        if dry_run and idx > 10:
+            break
 
     # combine all data
     output_df = pd.DataFrame(output_list)
