@@ -95,7 +95,14 @@ def revise_mcq(cfg: OmegaConf,
         reflections_.append(result_reflection)
         _log_reflections(iteration, result_reflection)
 
-        result_rewrite_qa(reflections=reflections_, prompt_key=cfg.rewrite.key)
+        # rewrite the question+distractors based on past reflections
+        results_rewrite_qa = rewrite_qa(
+            reflections=reflections_,
+            prompt_key=cfg.rewrite.key,
+            strucured_output_key=cfg.rewrite.strucured_output_key,
+            question_stem=question_stem,
+            choices=choices,
+            correct_index=correct_index)
         ipdb.set_trace()
 
         if not is_similar:
@@ -172,9 +179,14 @@ def reflect_on_mcqnoimage_pass(conversation,
     return dict(conversation=response[3], response_text=response[0], cost=cost)
 
 
-def result_rewrite_qa(reflections: list[dict], prompt_key):
+def rewrite_qa(reflections: list[dict], prompt_key, strucured_output_key,
+               question_stem, choices, correct_index):
     """
 	Each element of 'conversation' is a question + some
+
+	strucured_output_key:
+		0: structured output in prompt text. Then use llm to parse it. Used for o1 because they don't support it
+
 	"""
     conversations = [r['conversation'] for r in reflections]
     n_conversations = len(conversations)
@@ -190,11 +202,12 @@ def result_rewrite_qa(reflections: list[dict], prompt_key):
     prompt = prompt.replace("{{conversations}}", str_convs)
 
     # response_format = prompts.McqQA
-
-    ipdb.set_trace()
     response = call_gpt(prompt, model=model, json_mode=False)
     msg = response[0]
     cost = response[1]['cost'] if response[1] is not None else None
+
+    ipdb.set_trace()
+    raise "add correct letter to the prompt "
 
     ipdb.set_trace()
 
@@ -277,13 +290,14 @@ def _log_eval(iteration, result_eval_mcq_noimage):
 def _log_reflections(iteration, result_reflection):
     print("Warning have not implemented _log_reflections")
 
+
 def _log_rewrites(iteration, result_rewrite):
     print("Warning have not implemented _log_reflections")
+
 
 def _remove_first_last_lines(text):
     lines = text.splitlines()  # Split text into lines
     return '\n'.join(lines[1:-1])  # Join all lines except the first and last
-
 
 
 def main():
@@ -293,7 +307,7 @@ def main():
     cfg = dict(
         eval=dict(model=model, key=0),
         reflect=dict(model=model, key=0),
-        rewrite=dict(model=model, key=0),
+        rewrite=dict(model=model, key=0, strucured_output_key=0),
     )
     cfg = OmegaConf.create(cfg)
     idx_test = 207

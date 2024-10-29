@@ -39,14 +39,16 @@ Here are the conversations:
 
 
 Your task is to rewrite the question_stem and choices so that a different LLM 'assistant' cannot use the language-only strategies that were identified in this question without the image. 
-You are free to change the distractors a lot to achieve this task. Include an 'explanation' about why your new set of distractors are better.
+Include an 'explanation' about why your new set of distractors are better.
 Your revised choices should leave the correct answer at the same same index in the choices list, called 'correct_index'.
 
 Your revised question_stem and choices should not significantly change the meaning of the question and correct answer.
+You are free to change the distractors a lot to achieve this task. 
+The choices should not be made too different in length and detail to the original question stem and choices.
 Note that the question stem may contain important cues that cannot be removed. E.g. if a question asks about the "green stain" in an image, you cannot change it to "stain" because it introduces ambiguity.
 
 
-Return a json with the following schem
+Return a json with the following schema
 
 class McqQA(BaseModel):
 	question_stem: str
