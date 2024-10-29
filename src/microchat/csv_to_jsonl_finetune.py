@@ -20,11 +20,11 @@ from microchat.fileio.text.writers import json_writer
 
 # TODO: move PROMPT, CONTEXT and SUFFIX to a conf.yaml file
 PREFIX = [
+    "You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist in designing multiple-choice benchmarks that test vision-language models' perception and reasoning capabilities by classifying questions or question-answer pairs into the most appropriate Bloom's taxonomy level according to the Revised Bloom's taxonomy and NBME guidelines.",
     "You have expertise in biomedical teaching and education with a deep understanding of Bloom's taxonomy.",
     "You are an expert in biomedical teaching and education with a deep knowledge of Bloom's taxonomy."
     "You are a Biology and Biomedical AI expert assisting in designing multiple-choice questions to test vision-language models' perception and reasoning. Your task is to assign the most appropriate level in Bloom's Revised Taxonomy to user-submitted questions or question-answer pairs. Trained by the National Board of Medical Examiners, you are deeply familiar with Bloom's taxonomy and assessing cognitive levels. You always state any uncertainties and strive to improve the accuracy of your assessments.",
     "You are an expert in Biology and BioMedical AI assisting in designing multiple-choice questions to test vision-language models' perception and reasoning. Your task is to take user-submitted questions or question-answer pairs and assign the most appropriate level in Bloom's Revised Taxonomy to each pair. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on assessing the cognitive levels of multiple-choice questions. You always state if you are uncertain about the classification and continually seek to improve the accuracy of your assessments.",
-    "You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist in designing multiple-choice benchmarks that test vision-language models' perception and reasoning capabilities by classifying questions or question-answer pairs into the most appropriate Bloom's taxonomy level according to the Revised Bloom's taxonomy and NBME guidelines."
     "You are a factual chatbot with expertise in Bloom's taxonomy and biomedical education. Your task is to classify user-submitted questions or question-answer pairs into the most appropriate Bloom's taxonomy level according to the Revised Bloom's taxonomy and NBME guidelines. You always strive to improve the accuracy of your assessments and are transparent about any uncertainties in your classifications.",
     "As an AI assistant with expertise in Bloom's taxonomy and biomedical education, your role is to classify user-submitted questions or question-answer pairs into the most appropriate Bloom's taxonomy level according to the Revised Bloom's taxonomy and NBME guidelines. You always strive to improve the accuracy of your assessments and are transparent about any uncertainties in your classifications.",
     "You know Bloom's taxonomy and biomedical education well. Your task is to classify user-submitted questions or question-answer pairs into the most appropriate Bloom's taxonomy level according to the Revised Bloom's taxonomy and NBME guidelines. You always strive to improve the accuracy of your assessments and are transparent about any uncertainties in your classifications.",
@@ -83,10 +83,34 @@ SUFFIX = [
     "What is the most appropriate Bloom's Taxonomy level for the provided question?",
     "Assign the most appropriate Bloom's Taxonomy level for the provided question. Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy.",
     "What is the most appropriate Bloom's Taxonomy level for the provided question? After the initial evaluation, ask yourself: 'Are you sure about the Bloom's taxonomy category?' Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy."
-    "Review the question and assign the most appropriate Bloom's Taxonomy level. After making an initial assessment of the Bloom's classification, ask yourself: 'Are you sure about the Bloom's taxonomy category?' Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy."
+    "Review the question and assign the most appropriate Bloom's Taxonomy level. After making an initial assessment of the Bloom's classification, ask yourself: 'Are you sure about the Bloom's taxonomy category?' Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy.",
 ]
 
-def format_data(row):
+
+def format_data_inference(
+    row,
+    url: str = "/v1/chat/completions",
+    model: str = "ft:gpt-4o-mini-2024-07-18:marvl-lab:gpt-4o-mini-2024-07-18-blooms:ANR07kPO",
+    system_context: str = PREFIX[0],
+):
+    custom_id = row["question_id"]
+    user = row["user"]
+    return {
+        "custom_id": custom_id,
+        "method": "POST",
+        "url": url,
+        "body": {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_context},
+                {"role": "user", "content": user},
+            ],
+            "max_tokens": 1000,
+        },
+    }
+
+
+def format_data_train(row):
     return {
         "messages": [
             {"role": "system", "content": row["system_context"]},
@@ -95,17 +119,16 @@ def format_data(row):
         ]
     }
 
+
 def create_system_context(row, PREFIX, CONTEXT):
     prefix = random.choice(PREFIX)
     context = random.choice(CONTEXT)
 
-    # random 0/1
-    if random.randint(0,1):
-        return f"{prefix}"
-    else:
-        return f"{prefix}\n{context}\n"
+    # randomly include more detailed context in system_context
+    return f"{prefix}" if random.randint(0, 1) else f"{prefix}\n{context}\n"
 
-def create_user(row, user_columns:list, suffix=SUFFIX):
+
+def create_user(row, user_columns: list, suffix=SUFFIX):
     user = random.choice(suffix) + "\n"
     for col in user_columns:
         user += f"{col.replace('_',' ').capitalize()}: {row[col]}\n"
@@ -113,7 +136,8 @@ def create_user(row, user_columns:list, suffix=SUFFIX):
     user = user.strip()
     return user
 
-def create_assistant(row, assistant_columns:list):
+
+def create_assistant(row, assistant_columns: list):
     assistant = ""
     for col in assistant_columns:
         if col == "blooms_question_category":
@@ -129,6 +153,7 @@ def create_assistant(row, assistant_columns:list):
     assistant = assistant.strip()
     return assistant
 
+
 @click.command()
 @click.argument("input-file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path))
@@ -138,7 +163,10 @@ def create_assistant(row, assistant_columns:list):
     help="Column name for system context or static text to use for all rows.",
 )
 @click.option(
-    "--user", type=click.STRING, default="question_stem", help="Column name for user input."
+    "--user",
+    type=click.STRING,
+    default="question_stem",
+    help="Column name for user input.",
 )
 @click.option(
     "--assistant",
@@ -157,6 +185,7 @@ def main(
     assistant: Optional[str] = "correct_answer",
     upload: bool = False,
     random_seed: int = 8675309,
+    train: bool = False,
     dry_run: bool = False,
 ) -> None:
     """Docstring."""
@@ -170,6 +199,16 @@ def main(
     # set vars
     output_file = output_file or input_file.with_suffix(".jsonl")
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    required_cols = ["question_stem", "correct_answer"]
+    if train:
+        logger.info("Training mode enabled. Formatting data for openai fine-tuning.")
+        required_cols = [
+            "question_stem",
+            "correct_answer",
+            "blooms_question_category",
+            "blooms_level",
+            "blooms_reasoning",
+        ]
 
     logger.add(
         MODULE_ROOT.joinpath("logs", "csv_to_openai_finetune.log"),
@@ -180,6 +219,9 @@ def main(
     client = OpenAI()
     logger.info(f"Input file: {input_file}")
     logger.info(f"Output file: {output_file}")
+    logger.warning(
+        "The system currently only supports Bloom's taxonomy classification."
+    )
 
     # load df
     df = df_loader(input_file)
@@ -193,13 +235,19 @@ def main(
 
     # drop rows with missing values
     df_size = len(df)
-    df.dropna(subset=["question_stem","correct_answer","blooms_question_category","blooms_level","blooms_reasoning"], inplace=True)
+    df.dropna(subset=required_cols, inplace=True)
     if df_size != len(df):
         logger.info(f"Dropped {df_size - len(df)} rows with missing values.")
 
+    if df.empty or len(df) < 2:
+        logger.error("No data to process.")
+        raise ValueError("No data to process.")
+
     # format
     if system_context is None:
-        df["system_context"] = df.apply(create_system_context, axis=1, args=(PREFIX, CONTEXT))
+        df["system_context"] = df.apply(
+            create_system_context, axis=1, args=(PREFIX, CONTEXT)
+        )
     elif system_context not in df.columns:
         logger.error(f"Column not found: {system_context}")
         raise ValueError(f"Column not found: {system_context}")
@@ -209,48 +257,103 @@ def main(
         logger.error(f"Column not found: {user}")
         raise ValueError(f"Column not found: {user}")
 
-    df["user"] = df.apply(create_user, axis=1, user_columns=["question_stem","correct_answer"])
+    df["user"] = df.apply(
+        create_user, axis=1, user_columns=["question_stem", "correct_answer"]
+    )
 
-    # create assistant response
-    if assistant is None or assistant not in df.columns:
-        logger.error(f"Column not found: {assistant}")
-        raise ValueError(f"Column not found: {assistant}")
+    if train:
+        # create assistant response
+        if assistant is None or assistant not in df.columns:
+            logger.error(f"Column not found: {assistant}")
+            raise ValueError(f"Column not found: {assistant}")
 
-    df["assistant"] = df.apply(create_assistant, axis=1, assistant_columns=["blooms_question_category","blooms_level","blooms_reasoning"])
+        df["assistant"] = df.apply(
+            create_assistant,
+            axis=1,
+            assistant_columns=[
+                "blooms_question_category",
+                "blooms_level",
+                "blooms_reasoning",
+            ],
+        )
 
-    # format data in the dataframe
-    df["template"] = df.apply(format_data, axis=1)
+        # format data in the dataframe
+        df["template"] = df.apply(format_data_train, axis=1)
 
-    # shuffle
-    df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
+        # shuffle
+        df = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
 
-    # train test split, stratified
-    idx = range(len(df))
-    labels = df["blooms_question_category"].astype("category").cat.codes.to_numpy()
-    # df["blooms_question_category"].value_counts()
-    train, test = train_test_split(idx, stratify=labels, test_size=0.2, random_state=random_seed)
+        # train test split, stratified
+        idx = range(len(df))
+        labels = df["blooms_question_category"].astype("category").cat.codes.to_numpy()
+        # df["blooms_question_category"].value_counts()
+        train, test = train_test_split(
+            idx, stratify=labels, test_size=0.2, random_state=random_seed
+        )
 
-    # save jsonl train and test
-    train_df = df.loc[train]
-    test_df = df.loc[test]
+        # save jsonl train and test
+        train_df = df.loc[train]
+        test_df = df.loc[test]
 
-    # save jsonl
-    if not dry_run:
-        train_list = train_df["template"].tolist()
-        train_file = output_file.parent.joinpath(f"{output_file.stem}_train.jsonl")
-        test_list = test_df["template"].tolist()
-        test_file = output_file.parent.joinpath(f"{output_file.stem}_test.jsonl")
-        save_jsonl(train_list, train_file)
-        save_jsonl(test_list, test_file)
+        # save jsonl
+        if not dry_run:
+            train_list = train_df["template"].tolist()
+            train_file = output_file.parent.joinpath(f"{output_file.stem}_train.jsonl")
+            test_list = test_df["template"].tolist()
+            test_file = output_file.parent.joinpath(f"{output_file.stem}_test.jsonl")
+            save_jsonl(train_list, train_file)
+            save_jsonl(test_list, test_file)
 
+            if upload and train_file.exists():
+                response = client.files.create(
+                    file=open(train_file, "rb"), purpose="fine-tune"
+                )
+                logger.info(f"Uploaded {train_file} to OpenAI: {response}")
 
-        if upload and train_file.exists():
-            response = client.files.create(file=open(train_file, "rb"), purpose="fine-tune")
-            logger.info(f"Uploaded {train_file} to OpenAI: {response}")
+            if upload and test_file.exists():
+                response = client.files.create(
+                    file=open(test_file, "rb"), purpose="fine-tune"
+                )
+                logger.info(f"Uploaded {test_file} to OpenAI: {response}")
+    else:
+        # format data for inference
+        df["template"] = df.apply(format_data_inference, axis=1)
+        if df["template"].isna().sum() > 0:
+            logger.error("Error formatting data.")
+            raise ValueError("Error formatting data.")
 
-        if upload and test_file.exists():
-            response = client.files.create(file=open(test_file, "rb"), purpose="fine-tune")
-            logger.info(f"Uploaded {test_file} to OpenAI: {response}")
+        # save jsonl
+        if not dry_run:
+            output_list = df["template"].tolist()
+
+            # save in batches of 50k (max for openai batch processing)
+            output_file_list = []
+            for i in range(0, len(output_list), 50000):
+                idx_start = i
+                idx_end = min(i + 50000, len(output_list))
+                temp_output_file = output_file.parent.joinpath(
+                    f"{output_file.stem}_{idx_start}-{idx_end}.jsonl"
+                )
+                output_file_list.append(temp_output_file)
+                save_jsonl(output_list[idx_start:idx_end], temp_output_file)
+
+            for temp_output_file in output_file_list:
+                if upload and temp_output_file.exists():
+                    batch_input_file = client.files.create(
+                        file=open(temp_output_file, "rb"), purpose="batch"
+                    )
+                    logger.info(
+                        f"Uploaded {temp_output_file} to OpenAI: {batch_input_file}"
+                    )
+
+                    client.batches.create(
+                        input_file_id=batch_input_file.id,
+                        endpoint="/v1/chat/completions",
+                        completion_window="24h",
+                        metadata={
+                            "description": "Bloom's taxonomy classification",
+                        },
+                    )
 
 
 if __name__ == "__main__":
