@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from microchat import MODULE_ROOT, DATA_ROOT
 
-import datasets # HF datasets
+import datasets  # HF datasets
 
 
 def extract_questions(row, idx: Optional[int] = None):
@@ -27,15 +27,15 @@ def extract_questions(row, idx: Optional[int] = None):
         if elem is None:
             continue
 
-        question_id = elem["id"] # 'question_id' is col 'id' for ubench (UUID)
-        question_stem = elem["question"]   # 'question_stem' is col 'question' for ubench
-        correct_answer = elem["answer"]    # 'correct_answer' is col 'answer' for ubench
+        question_id = elem["id"]  # 'question_id' is col 'id' for ubench (UUID)
+        question_stem = elem["question"]  # 'question_stem' is col 'question' for ubench
+        correct_answer = elem["answer"]  # 'correct_answer' is col 'answer' for ubench
         multiple_choice = elem["options"]  # MC col is "options" for ubench
         all_question.append(
             {
-                "source": row["source"],   # dataset name
-                "chapter": row["chapter"], # dummy (not needed for HF datasets, used for textbook questions)
-                "idx": idx,                # index of row in dataset
+                "source": row["source"],  # dataset name
+                "chapter": row["chapter"],  # dummy
+                "idx": idx,  # index of row in dataset
                 "question_id": question_id,
                 "question_stem": question_stem,
                 "correct_answer": correct_answer,
@@ -86,17 +86,19 @@ def main(
 
     # convert to df
     df = hf_dataset.to_pandas()
-    df["source"] = dataset_name # dataset name
-    df["chapter"] = None # dummy (not needed for HF datasets, used for textbook questions)
+    df["source"] = dataset_name  # dataset name
+    df["chapter"] = None  # dummy
 
     #
     if dataset.split("/")[-1].lower() != "ubench":
-        logger.warning(f"Please customize 'extract_questions' function for dataset: {dataset}")
+        logger.warning(
+            f"Please customize 'extract_questions' function for dataset: {dataset}"
+        )
 
     # for each example, save question_stem, correct_answer to CSV
     output_list = []
     for idx, row in tqdm(df.iterrows(), total=len(df)):
-        output_list.extend(extract_questions(row, idx = idx))
+        output_list.extend(extract_questions(row, idx=idx))
         if dry_run and idx > 10:
             break
 

@@ -105,7 +105,6 @@ def main(
     # define retrieval model
     colbertv2_model = None
 
-
     # configure DSPy settings
     dspy.settings.configure(lm=model.lm, rm=colbertv2_model)
 
@@ -238,7 +237,6 @@ def main(
     output_df.to_csv(
         output_dir.joinpath(f"{model.model_name}_update_blooms.csv"), index=False
     )
-
 
     # # convert col blooms_source_pred to set
     # output_df["blooms_source_pred"] = output_df["blooms_source_pred"].apply(

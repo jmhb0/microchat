@@ -294,7 +294,12 @@ class CSVDataset(Dataset):
                 elif k == answer_key:
                     answer = raw_example.pop(k)
                     example["answer"] = answer.strip()
-                elif k in {"key_image", "key_question", "blooms_reasoning", "blooms_source"}:
+                elif k in {
+                    "key_image",
+                    "key_question",
+                    "blooms_reasoning",
+                    "blooms_source",
+                }:
                     example[k] = raw_example[k]
                 else:
                     continue
