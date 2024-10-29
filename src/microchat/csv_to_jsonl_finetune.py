@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""csv_to_openai_finetune.py in src/microchat/processing."""
+"""csv_to_openai_finetune.py in src/microchat."""
 from pathlib import Path
 import random
 from typing import Optional
@@ -18,6 +18,7 @@ from openai import OpenAI
 from microchat.fileio.text.readers import yaml_loader, save_jsonl
 from microchat.fileio.text.writers import json_writer
 
+# TODO: move PROMPT, CONTEXT and SUFFIX to a conf.yaml file
 PREFIX = [
     "You have expertise in biomedical teaching and education with a deep understanding of Bloom's taxonomy.",
     "You are an expert in biomedical teaching and education with a deep knowledge of Bloom's taxonomy."
@@ -97,7 +98,6 @@ def format_data(row):
 def create_system_context(row, PREFIX, CONTEXT):
     prefix = random.choice(PREFIX)
     context = random.choice(CONTEXT)
-    # suffix = random.choice(SUFFIX)
 
     # random 0/1
     if random.randint(0,1):
