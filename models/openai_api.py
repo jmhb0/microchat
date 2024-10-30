@@ -70,9 +70,8 @@ def call_gpt(
     cache: bool = True,
     overwrite_cache: bool = False,
     debug=None,
-    num_retries:
     # if json_mode=True, and not json decodable, retry this many time
-    int = 3):
+    num_retries: int = 3):
     """ 
     Call GPT LLM or VLM synchronously with caching.
     To call this in a batch efficiently, see func `call_gpt_batch`.
@@ -87,7 +86,7 @@ def call_gpt(
         cache key, so changing it will force the API to be called again
     """
     global HITS, MISSES
-    print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+    # print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
     # response format
     if response_format:
         assert not json_mode
@@ -144,7 +143,7 @@ def call_gpt(
         with cache_lock:
             msg = cache_utils.get_from_cache(cache_key, cache_openai)
         if msg is not None and not overwrite_cache:
-            if json_mode:
+            if json_mode or response_format:
                 msg = json.loads(msg)
             with cache_lock:
                 HITS += 1
