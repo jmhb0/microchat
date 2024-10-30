@@ -10,7 +10,7 @@ from loguru import logger
 from rich.console import Console
 from rich.logging import RichHandler
 
-
+# set env vars from .env file
 load_dotenv(find_dotenv())
 
 __version__ = metadata.version(__package__)

@@ -165,19 +165,19 @@ for i in range(len(df)):
 
     str_log = ""
 
-    str_log += f"MCQ standard question index {idxs_question[i]}, correct option {gts[i]}:"
+    str_log += f"MCQ standard question index {idxs_question[i]}, gt:{gts[i]}, pred:{preds[i]}:"
     str_log += "\n" + "-" * 80
-    str_log += "\nPrompt:" + "-" * 80 + "\n"
-    str_log += "\n" + batch_prompts_text[i]
+    str_log += "\nPrompt:\n" 
+    str_log += batch_prompts_text[i]
     str_log += "\n" + "-" * 80 + "\nResponse:\n"
     str_log += msgs[i]
 
     str_log += "\n\n" + "-" * 80 + "\n\n"
 
-    str_log += f"MCQ no image question index {idxs_question[i]}, correct option {gts[i]}:"
+    str_log += f"MCQ no image question index {idxs_question[i]}, , gt:{gts[i]}, pred:{preds[i]}:"
     str_log += "\n" + "-" * 80
-    str_log += "\nPrompt:" + "-" * 80 + "\n"
-    str_log += "\n" + batch_prompts_text_no_image[i]
+    str_log += "\nPrompt:\n"
+    str_log += "\n\n" + batch_prompts_text_no_image[i]
     str_log += "\n" + "-" * 80 + "\nResponse:\n"
     str_log += msgs_no_image[i]
 
@@ -185,8 +185,8 @@ for i in range(len(df)):
 
     str_log += f"Open with image {idxs_question[i]}:"
     str_log += "\n" + "-" * 80
-    str_log += "\nPrompt:" + "-" * 80 + "\n"
-    str_log += "\n" + batch_prompts_text_open[i]
+    str_log += "\nPrompt:\n"
+    str_log += "\n\n" + batch_prompts_text_open[i]
     str_log += "\n" + "-" * 80 + "\nResponse:\n"
     str_log += msgs_open[i]
 
@@ -197,7 +197,9 @@ df_res = pd.DataFrame(
     {
         'gt': gts,
         'pred': preds,
-        'pred_no_image': preds_no_image
+        'pred_no_image': preds_no_image,
+        'key_question' : idxs_question,
+        'key_image' : df['key_image']
     },
     index=idxs_question)
 df_res['1'] = (df_res['gt'] == df_res['pred'])

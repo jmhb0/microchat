@@ -24,6 +24,7 @@ import time
 from tqdm import tqdm
 
 import sys
+
 httpx_logger = logging.getLogger("httpx")
 httpx_logger.setLevel(logging.WARNING)
 
@@ -39,18 +40,21 @@ cache_lock = Lock()
 # logging.getLogger("openai").setLevel(logging.ERROR)
 # logging.getLogger("_client").setLevel(logging.ERROR)
 
-HITS = 0 
+HITS = 0
 MISSES = 0
 
 # cache_openai = redis.Redis(host="localhost", port=6379, db=0)
 # cache_openai.config_set("save", "60 1")
+
 
 def call_gpt(
     # args for setting the `messages` param
     text: str,
     imgs: List[np.ndarray] = None,
     system_prompt: str = None,
-    json_mode: bool = True,
+    conversation: List = None,  # fails if there's images right now
+    json_mode: bool = False,
+    response_format: str = None,
     # kwargs for client.chat.completions.create
     detail: str = "high",
     model: str = "gpt-4o-2024-08-06",
@@ -66,9 +70,8 @@ def call_gpt(
     cache: bool = True,
     overwrite_cache: bool = False,
     debug=None,
-    num_retries:
     # if json_mode=True, and not json decodable, retry this many time
-    int = 3):
+    num_retries: int = 3):
     """ 
     Call GPT LLM or VLM synchronously with caching.
     To call this in a batch efficiently, see func `call_gpt_batch`.
@@ -83,18 +86,24 @@ def call_gpt(
         cache key, so changing it will force the API to be called again
     """
     global HITS, MISSES
-    print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+    # print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
     # response format
-    if json_mode:
-        response_format = {"type": "json_object"}
+    if response_format:
+        assert not json_mode
+        response_format_kwargs = response_format.schema()
     else:
-        response_format = {"type": "text"}
+        if json_mode:
+            response_format_kwargs = {"type": "json_object"}
+        else:
+            response_format_kwargs = {"type": "text"}
 
-    # system prompt
-    messages = [{
-        "role": "system",
-        "content": system_prompt,
-    }] if system_prompt is not None else []
+    if conversation:
+        messages = conversation
+    else:
+        messages = [{
+            "role": "system",
+            "content": system_prompt,
+        }] if system_prompt is not None else []
 
     # text prompt
     content = [
@@ -116,7 +125,7 @@ def call_gpt(
     # arguments to the call for client.chat.completions.create
     kwargs = dict(
         messages=messages,
-        response_format=response_format,
+        response_format=response_format_kwargs,
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
@@ -126,17 +135,23 @@ def call_gpt(
         seed=seed,
         n=n,
     )
+    if "o1" in model:
+        del kwargs['max_tokens']
 
     if cache:
         cache_key = json.dumps(kwargs, sort_keys=True)
         with cache_lock:
             msg = cache_utils.get_from_cache(cache_key, cache_openai)
         if msg is not None and not overwrite_cache:
-            if json_mode:
+            if json_mode or response_format:
                 msg = json.loads(msg)
             with cache_lock:
                 HITS += 1
-            return msg, None
+                conversation = messages + [{
+                    "role": "assistant",
+                    "content": msg
+                }]
+            return msg, None, messages, conversation
     with cache_lock:
         MISSES += 1
         # print("Debug: ", debug)
@@ -155,29 +170,35 @@ def call_gpt(
                     "detail": detail,
                 },
             })
+    # not caching, so make the response format pydantic class again, not stringified version of it
+    if response_format:
+        kwargs['response_format'] = response_format
 
     # call gpt if not cached. If json_mode=True, check that it's json and retry if not
     for i in range(num_retries):
 
-        response = client.chat.completions.create(**kwargs)
+        response = client.beta.chat.completions.parse(**kwargs)
         prompt_tokens = response.usage.prompt_tokens
         completion_tokens = response.usage.completion_tokens
         msg = response.choices[0].message.content
-
 
     # save to cache if enabled
     if cache:
         with cache_lock:
             cache_utils.save_to_cache(cache_key, msg, cache_openai)
 
-    if json_mode:
+    if json_mode or response_format:
         msg = json.loads(msg)
 
     response = dict(prompt_tokens=prompt_tokens,
                     completion_tokens=completion_tokens)
-    price = compute_api_call_cost(prompt_tokens, completion_tokens, model=model)
+    response['cost'] = compute_api_call_cost(prompt_tokens,
+                                              completion_tokens,
+                                              model=model)
 
-    return msg, response
+    conversation = messages + [{"role": "assistant", "content": msg}]
+
+    return msg, response, messages, conversation
 
 
 def _encode_image_np(image_np: np.array):
@@ -217,7 +238,6 @@ def call_gpt_batch(texts,
             if debug is not None:
                 all_kwargs[i]['debug'] = debug[i]
 
-
     with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
         futures = []
 
@@ -228,18 +248,18 @@ def call_gpt_batch(texts,
         # run
         results = [list(future.result()) for future in futures]
 
-    # reset the cache logging 
+    # reset the cache logging
     global HITS, MISSES
-    HITS, MISSES = 0, 0 
+    HITS, MISSES = 0, 0
     print()
 
     if get_meta:
         for i, (msg, tokens) in enumerate(results):
 
             if tokens is not None:
-                price = compute_api_call_cost(
-                    tokens['prompt_tokens'], tokens['completion_tokens'],
-                    kwargs.get("model", "gpt-4o"))
+                price = compute_api_call_cost(tokens['prompt_tokens'],
+                                              tokens['completion_tokens'],
+                                              kwargs.get("model", "gpt-4o"))
             else:
                 price = 0
 
@@ -256,6 +276,8 @@ def compute_api_call_cost(prompt_tokens: int,
     https://openai.com/api/pricing/
     """
     prices_per_million_input = {
+        "o1": 15,
+        "o1-mini": 3,
         "gpt-4o-mini": 0.15,
         "gpt-4o": 5,
         "gpt-4-turbo": 10,
@@ -263,13 +285,19 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-3.5-turbo": 0.5
     }
     prices_per_million_output = {
+        "o1": 60,
+        "o1-mini": 12,
         "gpt-4o-mini": 0.075,
         "gpt-4o": 15,
         "gpt-4-turbo": 30,
         "gpt-4": 60,
         "gpt-3.5-turbo": 1.5
     }
-    if "gpt-4o-mini" in model:
+    if "o1-preview" in model:
+        key = "o1"
+    elif "o1-mini" in model:
+        key = "o1-mini"
+    elif "gpt-4o-mini" in model:
         key = "gpt-4o-mini"
     elif "gpt-4o" in model:
         key = "gpt-4o"
@@ -279,12 +307,60 @@ def compute_api_call_cost(prompt_tokens: int,
         key = "gpt-4"
     elif 'gpt-3.5-turbo' in model:
         key = "gpt-3.5-turbo"
+    else:
+        raise NotImplementedError()
 
     price = prompt_tokens * prices_per_million_input[
         key] + completion_tokens * prices_per_million_output[key]
     price = price / 1e6
 
     return price
+
+
+def test_conversation():
+    model = "gpt-4o-mini"
+    text0 = "How did Steve Irwin die? "
+    cache = True
+    res0 = call_gpt(text0, model=model, cache=cache, json_mode=False)
+    msg0 = res0[0]
+
+    print()
+    print(msg0)
+    print()
+    conversation = res0[3]
+    text_refined = "What are the last 5 words in your previous response?"
+
+    res1 = call_gpt(text_refined,
+                    conversation=conversation,
+                    model=model,
+                    cache=cache,
+                    json_mode=False)
+    msg1 = res1[0]
+    print()
+    print(msg1)
+    print()
+    pass
+
+
+def test_response_format():
+    from pydantic import BaseModel
+    model = "gpt-4o-mini"
+    model = "o1-mini"
+    text0 = "Give 3 conspiracy theories about how Steve Irwin died. Describe briefly."
+    cache = False
+
+    class Theories(BaseModel):
+        theories: list[str]
+        probabilities: list[float]
+
+    res0 = call_gpt(text0,
+                    model=model,
+                    cache=cache,
+                    json_mode=False,
+                    response_format=Theories)
+    msg0 = res0[0]
+    print()
+    print(msg0)
 
 
 # basic testing
@@ -294,13 +370,8 @@ if __name__ == "__main__":
     sys.path.insert(0, "..")
     sys.path.insert(0, ".")
 
-    text0 = "How did Steve Irwin die? "
-    # text1 = "how many chucks could a wood chuck chuck?"
-    # text2 = "who has the best llm?"
+    #
+    test_conversation()
+    test_response_format()
 
-    model = "gpt-4o-mini"
-    print(model)
-    # msg, res = call_gpt(text0, model=model, cache=False, json_mode=False)
-    res = call_gpt_batch([text0]*10, cache=False, json_mode=False)
-    ipdb.set_trace()
-    pass
+
