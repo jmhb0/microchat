@@ -22,12 +22,16 @@ import logging
 from datetime import datetime
 import glob
 import csv
+import threading
+import concurrent.futures
 
 # results dir
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 from benchmark.build_raw_dataset.download_data import download_csv
 import prompts_20241028_v1_mcq_refiner_bot as prompts
+
+file_lock = threading.Lock()
 
 
 # maine revise loop thing
@@ -37,7 +41,8 @@ def revise_mcq(cfg: OmegaConf,
                correct_index: int,
                dir_log: str,
                max_iters: int = 5,
-               seed: int = 0):
+               seed: int = 0,
+               log_str: str = ""):
     """
     Orhcestrator thread
     """
@@ -50,11 +55,17 @@ def revise_mcq(cfg: OmegaConf,
     costs = []
     explanation = ""
 
+    # save the starting options
+    question_stem_original = question_stem
+    choices_original = choices
+    correct_index_original = correct_index
+
+    # logging dir
     Path(dir_log).mkdir(exist_ok=True)
 
     # loop to improve things
     for iteration in range(max_iters):
-        logging.info(f"Running iteration {iteration}")
+        logging.info(f"[{log_str}] Running iteration {iteration}")
 
         # log the current queastion and choices
         choices_.append(choices)
@@ -72,24 +83,25 @@ def revise_mcq(cfg: OmegaConf,
         # if eval is incorrect, then stop
         if not result_eval_mcq_noimage['is_correct']:
             if iteration == 0:
-                logging.info(
-                    f"SUCCESS_NO_CHANGE MCQ already failed the image-free eval. Exiting"
-                )
                 code = "SUCCESS_NO_CHANGE"
-            else:
                 logging.info(
-                    f"SUCCESS_REWRITE successfully failed MCQ eval after {iteration} iterations. Exiting"
+                    f"[{log_str}] {code} MCQ already failed the image-free eval. Exiting"
                 )
+            else:
                 code = "SUCCESS_REWRITE"
+                logging.info(
+                    f"[{log_str}] {code}  successfully failed MCQ eval after {iteration} iterations. Exiting"
+                )
             return (code, iteration, question_stem, choices,
                     result_eval_mcq_noimage, evals_, reflections_, rewrites_,
                     check_rewrites_)
 
         # if max evals, then quit
         if iteration == max_iters - 1:
+            code = "FAIL_ITERATIONS"
             logging.info(
-                f"FAIL_ITERATIONS Quitting after {max_iters} iterations")
-            return ("FAIL_ITERATIONS", iteration, question_stem, choices,
+                f"[{log_str}] {code} Quitting after {max_iters} iterations")
+            return (code, iteration, question_stem, choices,
                     result_eval_mcq_noimage, evals_, reflections_, rewrites_,
                     check_rewrites_)
 
@@ -118,8 +130,8 @@ def revise_mcq(cfg: OmegaConf,
         correct_index_new = results_rewrite_qa['mcq_qa_new']['correct_index']
         explanation_new = results_rewrite_qa['mcq_qa_new']['explanation']
         results_check_rewrite_issame = check_rewrite_issame(
-            question_stem,
-            choices[correct_index],
+            question_stem_original,
+            choices_original[correct_index_original],
             question_stem_new,
             choices_new[correct_index_new],
             cfg_check_rewrite=cfg.check_rewrite)
@@ -128,10 +140,11 @@ def revise_mcq(cfg: OmegaConf,
 
         if not results_check_rewrite_issame['response']['is_equivalent']:
             # log and then return that it's changed, rather than try to fix it.
+            code = "FAIL_REWRITE"
             logging.info(
-                f"FAIL_REWRITE. The rewrite prompt at iter {iteration} broke something. Exiting"
+                f"[{log_str}] {code} The rewrite prompt at iter {iteration} broke something. Exiting"
             )
-            return ("FAIL_REWRITE", iteration, question_stem, choices,
+            return (code, iteration, question_stem, choices,
                     result_eval_mcq_noimage, evals_, reflections_, rewrites_,
                     check_rewrites_)
 
@@ -406,8 +419,7 @@ def _process_choices_from_jeffs_sheet(choices: str):
 
 
 def _shuffle_choices(choices, correct_index, seed_shuffle=0):
-    # np.random.seed(seed_shuffle)
-    np.random.seed(0)
+    np.random.seed(seed_shuffle)
     idxs = np.arange(len(choices))
     idxs = np.random.permutation(idxs)
     choices_shuffled = [choices[idx] for idx in idxs]
@@ -488,8 +500,15 @@ def _log_rewrites(dir_log, iteration, results_check_rewrite_issame):
 
 
 def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
-    str_log = _stringify_conversation_pretty(
-        results_check_rewrite_issame['messages'])
+    # str_log = _stringify_conversation_pretty(
+    #     results_check_rewrite_issame['messages'])
+    messages = results_check_rewrite_issame['messages']
+    ipdb.set_trace()
+    str_log = ""
+    str_log += f"Prompt\n{80*'*'}\n"
+    str_log += messages[0]['content'][0]['text']
+    str_log += f"\n{80*'*'}\n"
+
     with open(dir_log / f"4_checkrewrite_iter_{iteration}.txt", 'w') as fp:
         fp.write(str_log)
 
@@ -504,29 +523,43 @@ def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_):
     cost_check_rewrites = sum([c['cost'] for c in check_rewrites_])
     cost_total = cost_eval + cost_reflect + cost_rewrites + cost_check_rewrites
 
-    logging.info("Cost:")
-    logging.info(f"\t${cost_eval:.3f} on {cfg.eval.model} for eval")
-    logging.info(f"\t${cost_reflect:.3f} on {cfg.reflect.model} for reflect")
-    logging.info(f"\t${cost_rewrites:.3f} on {cfg.rewrite.model} for rewrite")
-    logging.info(
-        f"\t${cost_check_rewrites:.3f} on {cfg.check_rewrite.model} for check rewrite"
-    )
+    # logging.info("Cost:")
+    # logging.info(f"\t${cost_eval:.3f} on {cfg.eval.model} for eval")
+    # logging.info(f"\t${cost_reflect:.3f} on {cfg.reflect.model} for reflect")
+    # logging.info(f"\t${cost_rewrites:.3f} on {cfg.rewrite.model} for rewrite")
+    # logging.info(
+    #     f"\t${cost_check_rewrites:.3f} on {cfg.check_rewrite.model} for check rewrite"
+    # )
 
     return cost_total
 
 
-# some misc global vars - remove later
-idxs_question = [136, 137, 138, 139, 140, 142, 145]
-idxs_question = [
-    136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187, 188,
-    189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541, 542, 543
-]
-models = [
-    "o1-preview-2024-09-12",
-    "o1-mini-2024-09-12",
-    "gpt-4o-2024-08-06",
-    "gpt-4o-mini-2024-07-18",
-]
+def _save_final_results(f_summary):
+    """ 
+    Final results saving. 
+    In multiprocessing, the logging will be out of order, so reorder the rows.
+    Also write some summary stats
+    """
+    df = pd.read_csv(f_summary)
+    df_ordered = df.sort_values("log_str")
+
+    # reordering
+    f_summary_ordered = f"{str(f_summary)[:-23]}_ordered.csv"
+    df_ordered.to_csv(f_summary_ordered, index=False)
+
+    # summarise
+    str_log = ""
+    str_log += f"API calls cost ${float(df['cost'].sum()):.2f}\n\n"
+    str_log += str(df.groupby('code')['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['use_case', 'code'])['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['iterations'])['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['code', 'iterations'])['code'].count())
+    f_summary_stats = f"{str(f_summary)[:-23]}_stats.txt"
+    with open(f_summary_stats, 'w') as fp:
+        fp.write(str_log)
 
 
 def config_logger(dir_results_parent, cfg):
@@ -563,21 +596,63 @@ def config_logger(dir_results_parent, cfg):
     logging.info(json.dumps(OmegaConf.to_container(cfg), indent=4))
 
     # set up the results csv
-    f_summary = dir_results_parent / f"sum_{log_str}.csv"
-    with open(f_summary, mode='a', newline="") as fp:
-        writer = csv.writer(fp)
-        writer.writerow(["log_str", "iterations", "use_case", "code", "cost"])
+    f_summary = dir_results_parent / f"sum_{log_str}_unordered.csv"
+    with file_lock:
+        with open(f_summary, mode='a', newline="") as fp:
+            writer = csv.writer(fp)
+            writer.writerow(
+                ["log_str", "iterations", "use_case", "code", "cost"])
 
     return dir_results, f_summary
 
 
-def main(dir_results_parent):
+def process_single_question(dir_log, cfg, question_stem, choices,
+                            correct_index, f_summary, log_str, use_case):
+    """
+    Processes a single question with the MCQ refiner and do the basic logging
+    """
+    result = revise_mcq(
+        cfg,
+        question_stem,
+        choices,
+        correct_index,
+        dir_log,
+        max_iters=cfg.max_iters,
+        seed=cfg.seed,
+        log_str=log_str,
+    )
+
+    # unpack results
+    (return_code, iteration, question_stem, choices, result_eval_mcq_noimage,
+     evals_, reflections_, rewrites_, check_rewrites_) = result
+
+    cost_total = _log_costs(cfg, evals_, reflections_, rewrites_,
+                            check_rewrites_)
+
+    # save results
+    with open(f_summary, mode='a', newline="") as fp:
+        writer = csv.writer(fp)
+        writer.writerow(
+            [log_str, iteration, use_case, return_code, f"{cost_total:.2f}"])
+
+    return log_str, iteration, use_case, return_code, cost_total
+
+
+def main(dir_results_parent, do_multiprocessing=False):
     # config #
     do_shuffle = True
     model_o1 = "o1-preview-2024-09-12"
-    model = model_o1
     model_o1mini = "o1-mini-2024-09-12"
     model_gpt4o = "gpt-4o-2024-08-06"
+
+    model = model_o1
+    # target questions
+    idxs_question = [136, 137, 138, 139, 140, 142, 145]
+    idxs_question = [
+        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
+        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
+        542, 543
+    ]
 
     # yapf: disable
     cfg = dict(
@@ -602,64 +677,65 @@ def main(dir_results_parent):
     cfg = OmegaConf.create(cfg)
     dir_results, f_summary = config_logger(dir_results_parent, cfg)
 
-
-    #  get the quesitons from Jeff's thing
     url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
     f_csv = dir_results_parent / "jeffs_choices.csv"
     if not f_csv.exists():
         download_csv(url_csv, f_csv)
     df = pd.read_csv(f_csv)
-    
 
-    # loop over that 
+    # Prepare function args for all the questions
+    func_args = []
     for idx_test in idxs_question:
         row = df.loc[idx_test]
-        log_str = f"question_{idx_test}"        
+        log_str = f"question_{idx_test}"
 
-        # get the QAs 
+        # get the QAs
         question_stem = row['revised_question']
         choices_jeff_fmt = row['multiple_choice']
         use_case = row['_use_case']
         choices, correct_index = _process_choices_from_jeffs_sheet(
             choices_jeff_fmt)
+
         if do_shuffle:
             seed_shuffle = idx_test + cfg['seed']
             choices, correct_index = _shuffle_choices(choices, correct_index,
                                                       seed_shuffle)
 
-        # run the revision bot
-        logging.info(80 * '*')
         dir_log = dir_results / log_str
-        logging.info(f"Running revision for {dir_log}")
-        logging.info(80 * '*')
-        result = revise_mcq(
-            cfg,
-            question_stem,
-            choices,
-            correct_index,
-            dir_log,
-            max_iters=cfg.max_iters,
-            seed=cfg.seed,
+
+        # Collect arguments for this question
+        args = (dir_log, cfg, question_stem, choices, correct_index, f_summary,
+                log_str, use_case)
+        func_args.append(args)
+
+    # Run either in parallel or sequence based on flag
+    if do_multiprocessing:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
+            futures = []
+            for args in func_args:
+                future = executor.submit(process_single_question, *args)
+                futures.append(future)
+            results = [future.result() for future in futures]
+
+    else:
+        results = []
+        for args in func_args:
+            result = process_single_question(*args)
+            results.append(result)
+
+    # Log summary of all results
+    for log_str, iteration, use_case, return_code, cost_total in results:
+        logging.info(
+            f"Question {log_str}: {return_code} after {iteration} iterations. Cost: ${cost_total:.2f}"
         )
 
-        # do some logging 
-        (return_code, iteration, question_stem, choices,
-         result_eval_mcq_noimage, evals_, reflections_, rewrites_,
-         check_rewrites_) = result
-        cost_total = _log_costs(cfg, evals_, reflections_, rewrites_,
-                                check_rewrites_)
-
-        # save results
-        with open(f_summary, mode='a', newline="") as fp:
-            writer = csv.writer(fp)
-            writer.writerow(
-                [log_str, iteration, use_case, return_code, f"${cost_total:.2f}"])
+    _save_final_results(f_summary)
 
 
 if __name__ == "__main__":
+    do_multiprocessing = False
     dir_results_parent = Path(__file__).parent / "results" / Path(
         __file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
-    main(dir_results_parent)
 
-
+    main(dir_results_parent, do_multiprocessing=do_multiprocessing)
