@@ -251,10 +251,11 @@ def call_gpt_batch(texts,
     # reset the cache logging
     global HITS, MISSES
     HITS, MISSES = 0, 0
-    print()
+    # print()
 
     if get_meta:
-        for i, (msg, tokens) in enumerate(results):
+        for i in range(len(results)):
+            msg, tokens = results[i][:2]
 
             if tokens is not None:
                 price = compute_api_call_cost(tokens['prompt_tokens'],
