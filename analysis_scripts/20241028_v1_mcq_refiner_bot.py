@@ -19,10 +19,26 @@ import re
 from pydantic import BaseModel
 from omegaconf import OmegaConf
 import logging
+from datetime import datetime
+import glob
 
-logging.basicConfig(stream=sys.stdout,
-                    level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# results dir
+dir_results = Path(__file__).parent / "results" / Path(__file__).stem
+dir_results.mkdir(exist_ok=True, parents=True)
+
+# logging object
+timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+log_filename = dir_results / f"log_{timestamp}.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(log_filename),  # Logs everything to the file
+        logging.StreamHandler(sys.stdout),  # Logs info and above to stdout
+        logging.StreamHandler(sys.stderr)  # Logs errors and above to stderr
+    ])
+logging.getLogger().handlers[2].setLevel(logging.ERROR)
 
 seed = 0  # controling the MCQ order
 do_shuffle = True
@@ -39,8 +55,6 @@ idxs_question = [
 ]
 idxs_target = []
 
-dir_results = Path(__file__).parent / "results" / Path(__file__).stem
-dir_results.mkdir(exist_ok=True, parents=True)
 data_dir = Path("benchmark/data/formdata_0")
 verbose = 0
 
@@ -76,6 +90,7 @@ def revise_mcq(cfg: OmegaConf,
     rewrites_ = []
     check_rewrites_ = []
     costs = []
+    explanation = ""
 
     # loop to improve things
     for iteration in range(max_iters):
@@ -96,10 +111,16 @@ def revise_mcq(cfg: OmegaConf,
 
         # if eval is incorrect, then stop
         if not result_eval_mcq_noimage['is_correct']:
-            logging.info(f"Successfully failed MCQ eval. Exiting")
+            logging.info(
+                f"SUCCESS successfully failed MCQ eval after {iteration} iterations. Exiting"
+            )
             return question_stem, choices, result_eval_mcq_noimage
+
+        # if max evals, then quit
         if iteration == max_iters - 1:
-            logging.info(f"Quitting after {max_iters} iterations")
+            logging.info(
+                f"FAIL_ITERATIONS Quitting after {max_iters} iterations")
+            return question_stem, choices, result_eval_mcq_noimage
 
         # reflect on how that was possible
         result_reflection = reflect_on_mcqnoimage_pass(
@@ -126,6 +147,7 @@ def revise_mcq(cfg: OmegaConf,
         question_stem_new = results_rewrite_qa['mcq_qa_new']['question_stem']
         choices_new = results_rewrite_qa['mcq_qa_new']['choices']
         correct_index_new = results_rewrite_qa['mcq_qa_new']['correct_index']
+        explanation_new = results_rewrite_qa['mcq_qa_new']['explanation']
         results_check_rewrite_issame = check_rewrite_issame(
             question_stem,
             choices[correct_index],
@@ -139,13 +161,16 @@ def revise_mcq(cfg: OmegaConf,
 
         if not results_check_rewrite_issame['response']['is_equivalent']:
             # log and then return that it's changed, rather than try to fix it.
-            raise ValueError(
-                f"The rewrite prompt at iter {iteration} broke something")
+            logging.info(
+                f"FAIL_REWRITE. The rewrite prompt at iter {iteration} broke something. Exiting"
+            )
+            return
 
         # update the current estimate
         question_stem = question_stem_new
         choices = choices_new
         correct_index = correct_index_new
+        explanation = explanation_new
 
 
 def evaluate_mcq_noimage(question_stem,
@@ -178,7 +203,9 @@ def evaluate_mcq_noimage(question_stem,
     pred_letter, pred_index = _extract_mc_answer(response_text, regex_pattern)
     is_correct = (correct_index == pred_index)
 
-    cost = response[1]['cost'] if response[1] is not None else None
+    cost = response[1]['cost'] if response[1] is not None else 0
+    logging.info(
+        f"Cost ${cost:.2f} with model {model} for evaluating current QA")
 
     return dict(messages=response[3],
                 response_text=response_text,
@@ -197,7 +224,9 @@ def reflect_on_mcqnoimage_pass(conversation,
         # overwrite_cache=True,
         json_mode=False)
 
-    cost = response[1]['cost'] if response[1] is not None else None
+    cost = response[1]['cost'] if response[1] is not None else 0
+    logging.info(
+        f"Cost ${cost:.2f} with model {model} for relecting on past QA eval")
 
     return dict(conversation=response[3], response_text=response[0], cost=cost)
 
@@ -447,12 +476,27 @@ def _log_config(dir_log, cfg):
         json.dump(OmegaConf.to_container(cfg), fp, indent=4)
 
 
-def _log_qa(dir_log, iteration, question_stem, choices, correct_index):
+def _log_qa(dir_log,
+            iteration,
+            question_stem,
+            choices,
+            correct_index,
+            explanation=""):
     """ """
+    # log as string
     f_save = dir_log / f"0_qa_iter_{iteration}.txt"
     str_log = _stringify_mcq_for_logging(question_stem, choices, correct_index)
     with open(f_save, "w") as fp:
         fp.write(str_log)
+
+    # log as json for easier reading
+    f_save = dir_log / f"0_5_qa_iter_{iteration}.json"
+    mcq_object = prompts.McqQA(question_stem=question_stem,
+                               choices=choices,
+                               correct_index=correct_index,
+                               explanation=explanation)
+    with open(f_save, "w") as fp:
+        json.dump(dict(mcq_object), fp, indent=2)
 
 
 def _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index):
@@ -501,7 +545,7 @@ def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
         fp.write(str_log)
 
 
-def main():
+def main(dir_results):
     # config #
     model_o1 = "o1-preview-2024-09-12"
     model = model_o1
@@ -523,45 +567,54 @@ def main():
         rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=5),
         check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
     )
+
+    # get the run number based on the number of log files in dir_results
+    log_files = glob.glob(str(dir_results / "log_*.txt"))
+    run_key = len(log_files) 
+
     # yapf: enable
     cfg = OmegaConf.create(cfg)
     idx_test = 207
-    seed = 0
-    do_shuffle = True
-    seed_shuffle = idx_test + seed
-    model = "o1-preview-2024-09-12"
-    log_str = f"question_{idx_test}"
-    # end #
+    for idx_test in idxs_question:
+        seed = 0
+        do_shuffle = True
+        seed_shuffle = idx_test + seed
+        model = "o1-preview-2024-09-12"
+        log_str = f"question_{idx_test}"
+        # end #
 
-    # collect the questions
-    dir_log = dir_results / f"{log_str}_seed{seed}"
-    dir_log.mkdir(exist_ok=True)
-    url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
-    f_csv = dir_results / "jeffs_choices.csv"
-    if not f_csv.exists():
-        download_csv(url_csv, f_csv)
-    df = pd.read_csv(f_csv)
-    row = df.loc[idx_test]
-    question_stem = row['revised_question']
-    choices_jeff_fmt = row['multiple_choice']
-    choices, correct_index = _process_choices_from_jeffs_sheet(
-        choices_jeff_fmt)
-    if do_shuffle:
-        choices, correct_index = _shuffle_choices(choices, correct_index,
-                                                  seed_shuffle)
-    # str_log = _stringify_mcq_for_logging(question_stem, choices, correct_index)
-    # _log_start(dir_log, question_stem, choices, correct_index)
+        dir_log = dir_results / f"{log_str}_seed{seed}_{timestamp}"
 
-    # run the revision bot
-    revise_mcq(
-        cfg,
-        question_stem,
-        choices,
-        correct_index,
-        dir_log,
-        max_iters=5,
-        seed=0,
-    )
+        dir_log.mkdir(exist_ok=True)
+        url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
+        f_csv = dir_results / "jeffs_choices.csv"
+        if not f_csv.exists():
+            download_csv(url_csv, f_csv)
+        df = pd.read_csv(f_csv)
+        row = df.loc[idx_test]
+        question_stem = row['revised_question']
+        choices_jeff_fmt = row['multiple_choice']
+        choices, correct_index = _process_choices_from_jeffs_sheet(
+            choices_jeff_fmt)
+        if do_shuffle:
+            choices, correct_index = _shuffle_choices(choices, correct_index,
+                                                      seed_shuffle)
+        # str_log = _stringify_mcq_for_logging(question_stem, choices, correct_index)
+        # _log_start(dir_log, question_stem, choices, correct_index)
 
+        # run the revision bot
+        logging.info(80 * "*")
+        logging.info(f"Running revision for {dir_log}")
+        logging.info(80 * "*")
+        revise_mcq(
+            cfg,
+            question_stem,
+            choices,
+            correct_index,
+            dir_log,
+            max_iters=5,
+            seed=0,
+        )
 
-main()
+if __name__=="__main__":
+    main(dir_results)
