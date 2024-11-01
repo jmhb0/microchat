@@ -69,13 +69,7 @@ def main(dir_rewrite, run_number, dir_results_parent):
     df_questions = df.loc[idxs_question]
     assert len(df_questions) == len(idxs_question)
 
-    # get the actual MCQ
-    # class McqQA(BaseModel):
-    #     question_stem: str
-    #     choices: list[str]
-    #     correct_index: int
-    #     explanation: str
-
+    # get the question mcqs
     mcqs = []
     for idx_question in idxs_question:
         files = glob.glob(
@@ -171,7 +165,7 @@ def main(dir_rewrite, run_number, dir_results_parent):
     print(acc)
 
     # get the old csv, and add accuracy results to it 
-    f_results_ =  glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*")
+    f_results_ =  glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_ordered*")
     assert len(f_results_) == 1 
     f_results = f_results_[0]
     df_results = pd.read_csv(f_results)
@@ -188,10 +182,13 @@ def main(dir_rewrite, run_number, dir_results_parent):
 
 
 if __name__ == "__main__":
-    run_number = 1
+    run_number = 37
     dir_rewrite = "analysis_scripts/results/20241028_v1_mcq_refiner_bot"
 
     dir_results_parent = Path(__file__).parent / "results" / Path(__file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
 
     main(dir_rewrite, run_number, dir_results_parent)
+
+
+

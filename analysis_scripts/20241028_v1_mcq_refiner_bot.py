@@ -116,10 +116,10 @@ def revise_mcq(cfg: OmegaConf,
         # rewrite the question+distractors based on past reflections
         results_rewrite_qa = rewrite_qa(
             reflections=reflections_,
-            question_stem=question_stem,
-            choices=choices,
-            correct_index=correct_index,
             cfg_rewrite=cfg.rewrite,
+            question_stem_original=question_stem_original,
+            choices_original=choices_original,
+            correct_index_original=correct_index_original,
         )
         rewrites_.append(results_rewrite_qa)
         _log_rewrites(dir_log, iteration, results_rewrite_qa)
@@ -129,12 +129,20 @@ def revise_mcq(cfg: OmegaConf,
         choices_new = results_rewrite_qa['mcq_qa_new']['choices']
         correct_index_new = results_rewrite_qa['mcq_qa_new']['correct_index']
         explanation_new = results_rewrite_qa['mcq_qa_new']['explanation']
-        results_check_rewrite_issame = check_rewrite_issame(
-            question_stem_original,
-            choices_original[correct_index_original],
-            question_stem_new,
-            choices_new[correct_index_new],
-            cfg_check_rewrite=cfg.check_rewrite)
+        if 0:
+            results_check_rewrite_issame = check_rewrite_issame(
+                question_stem_original,
+                choices_original[correct_index_original],
+                question_stem_new,
+                choices_new[correct_index_new],
+                cfg_check_rewrite=cfg.check_rewrite)
+        else:
+            results_check_rewrite_issame = check_rewrite_issame(
+                question_stem,
+                choices[correct_index],
+                question_stem_new,
+                choices_new[correct_index_new],
+                cfg_check_rewrite=cfg.check_rewrite)
         check_rewrites_.append(results_check_rewrite_issame)
         _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame)
 
@@ -159,7 +167,7 @@ def evaluate_mcq_noimage(question_stem, choices, correct_index, cfg_eval):
     """
     Run 
     """
-    if cfg_eval.key != 0:
+    if cfg_eval.key not in (0, 1):
         raise NotImplementedError()
 
     # "no image" prefix guidance + the standard CoT prompt + regex from MMLU-pro
@@ -204,8 +212,9 @@ def reflect_on_mcqnoimage_pass(conversation, cfg_reflect: OmegaConf):
     return dict(conversation=response[3], response_text=response[0], cost=cost)
 
 
-def rewrite_qa(reflections: list[dict], cfg_rewrite, question_stem, choices,
-               correct_index):
+def rewrite_qa(reflections: list[dict], cfg_rewrite,
+               question_stem_original: str, choices_original: list[str],
+               correct_index_original: int):
     # , prompt_key, model,
     #            strucured_output_key, n_choices_target, ):
     """
@@ -221,6 +230,11 @@ def rewrite_qa(reflections: list[dict], cfg_rewrite, question_stem, choices,
     prompt = prompts.prompts_rewrite[cfg_rewrite.key]
     prompt = prompt.replace("{{n_chat}}", str(n_conversations))
     prompt = prompt.replace("{{n_choices}}", str(cfg_rewrite.n_choices_target))
+
+    prompt = prompt.replace("{{question_stem_original}}",
+                            question_stem_original)
+    prompt = prompt.replace("{{answer_original}}",
+                            choices_original[correct_index_original])
 
     str_conversations = _stringify_conversations_lst(conversations)
     prompt = prompt.replace("{{conversations}}", str_conversations)
@@ -500,14 +514,18 @@ def _log_rewrites(dir_log, iteration, results_check_rewrite_issame):
 
 
 def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
-    # str_log = _stringify_conversation_pretty(
-    #     results_check_rewrite_issame['messages'])
     messages = results_check_rewrite_issame['messages']
-    ipdb.set_trace()
     str_log = ""
+    # propmt
     str_log += f"Prompt\n{80*'*'}\n"
     str_log += messages[0]['content'][0]['text']
+
+    # response
+    res = messages[1]['content']
     str_log += f"\n{80*'*'}\n"
+    str_log += f"Response, is_equivalent: {res['is_equivalent']}"
+    str_log += f"\n{80*'*'}\n"
+    str_log += f"is_equivalent: {res['explanation']}\n\n"
 
     with open(dir_log / f"4_checkrewrite_iter_{iteration}.txt", 'w') as fp:
         fp.write(str_log)
@@ -560,6 +578,9 @@ def _save_final_results(f_summary):
     f_summary_stats = f"{str(f_summary)[:-23]}_stats.txt"
     with open(f_summary_stats, 'w') as fp:
         fp.write(str_log)
+
+    logging.info(
+        f"Final results in \n\t{f_summary_ordered}\n\t{f_summary_stats}")
 
 
 def config_logger(dir_results_parent, cfg):
@@ -673,6 +694,25 @@ def main(dir_results_parent, do_multiprocessing=False):
         rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=5),
         check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
     )
+    # key 1
+    cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
+        eval=dict(model=model_gpt4o, key=1),
+        reflect=dict(model=model_gpt4o, key=1),
+        rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=5),
+        check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
+    )
+    # cfg = dict(
+    #     name="key1-modelo1",
+    #     seed=0,
+    #     max_iters=5,
+    #     eval=dict(model=model_o1, key=1),
+    #     reflect=dict(model=model_o1, key=1),
+    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
+    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
+    # )
     # yapf: enable
     cfg = OmegaConf.create(cfg)
     dir_results, f_summary = config_logger(dir_results_parent, cfg)
@@ -710,7 +750,7 @@ def main(dir_results_parent, do_multiprocessing=False):
 
     # Run either in parallel or sequence based on flag
     if do_multiprocessing:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=48) as executor:
             futures = []
             for args in func_args:
                 future = executor.submit(process_single_question, *args)
@@ -734,8 +774,11 @@ def main(dir_results_parent, do_multiprocessing=False):
 
 if __name__ == "__main__":
     do_multiprocessing = False
+    do_multiprocessing = True
     dir_results_parent = Path(__file__).parent / "results" / Path(
         __file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
 
     main(dir_results_parent, do_multiprocessing=do_multiprocessing)
+
+
