@@ -19,56 +19,33 @@ import re
 from pydantic import BaseModel
 from omegaconf import OmegaConf
 import logging
+from datetime import datetime
+import glob
+import csv
+import threading
+import concurrent.futures
 
-logging.basicConfig(stream=sys.stdout,
-                    level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-seed = 0  # controling the MCQ order
-do_shuffle = True
-
+# results dir
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 from benchmark.build_raw_dataset.download_data import download_csv
 import prompts_20241028_v1_mcq_refiner_bot as prompts
 
-idxs_question = [136, 137, 138, 139, 140, 142, 145]
-idxs_question = [
-    136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187, 188,
-    189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541, 542, 543
-]
-idxs_target = []
-
-dir_results = Path(__file__).parent / "results" / Path(__file__).stem
-dir_results.mkdir(exist_ok=True, parents=True)
-data_dir = Path("benchmark/data/formdata_0")
-verbose = 0
-
-models = [
-    "o1-preview-2024-09-12",
-    "o1-mini-2024-09-12",
-    "gpt-4o-2024-08-06",
-    "gpt-4o-mini-2024-07-18",
-]
-
-model = "o1-preview-2024-09-12"
-letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
-letters_to_idx = dict(zip(letters, range(len(letters))))
-idx_to_letters = {v: k for k, v in letters_to_idx.items()}
+file_lock = threading.Lock()
 
 
+# maine revise loop thing
 def revise_mcq(cfg: OmegaConf,
                question_stem: str,
                choices: list[str],
                correct_index: int,
                dir_log: str,
                max_iters: int = 5,
-               seed: int = 0):
+               seed: int = 0,
+               log_str: str = ""):
     """
     Orhcestrator thread
     """
-    _log_config(dir_log, cfg)
-
     question_stems_ = []
     choices_ = []
     evals_ = []  # memory of past answer attempts
@@ -76,10 +53,19 @@ def revise_mcq(cfg: OmegaConf,
     rewrites_ = []
     check_rewrites_ = []
     costs = []
+    explanation = ""
+
+    # save the starting options
+    question_stem_original = question_stem
+    choices_original = choices
+    correct_index_original = correct_index
+
+    # logging dir
+    Path(dir_log).mkdir(exist_ok=True)
 
     # loop to improve things
     for iteration in range(max_iters):
-        logging.info(f"Running iteration {iteration}")
+        logging.info(f"[{log_str}] Running iteration {iteration}")
 
         # log the current queastion and choices
         choices_.append(choices)
@@ -90,35 +76,51 @@ def revise_mcq(cfg: OmegaConf,
         result_eval_mcq_noimage = evaluate_mcq_noimage(question_stem,
                                                        choices,
                                                        correct_index,
-                                                       model=cfg.eval.model)
+                                                       cfg_eval=cfg.eval)
         evals_.append(result_eval_mcq_noimage)
         _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index)
 
         # if eval is incorrect, then stop
         if not result_eval_mcq_noimage['is_correct']:
-            logging.info(f"Successfully failed MCQ eval. Exiting")
-            return question_stem, choices, result_eval_mcq_noimage
+            if iteration == 0:
+                code = "SUCCESS_NO_CHANGE"
+                logging.info(
+                    f"[{log_str}] {code} MCQ already failed the image-free eval. Exiting"
+                )
+            else:
+                code = "SUCCESS_REWRITE"
+                logging.info(
+                    f"[{log_str}] {code}  successfully failed MCQ eval after {iteration} iterations. Exiting"
+                )
+            return (code, iteration, question_stem, choices,
+                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
+                    check_rewrites_)
+
+        # if max evals, then quit
         if iteration == max_iters - 1:
-            logging.info(f"Quitting after {max_iters} iterations")
+            code = "FAIL_ITERATIONS"
+            logging.info(
+                f"[{log_str}] {code} Quitting after {max_iters} iterations")
+            return (code, iteration, question_stem, choices,
+                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
+                    check_rewrites_)
 
         # reflect on how that was possible
         result_reflection = reflect_on_mcqnoimage_pass(
             conversation=result_eval_mcq_noimage['messages'],
-            model=cfg.reflect.model,
-            prompt_key=cfg.reflect.key)
+            cfg_reflect=cfg.reflect,
+        )
         reflections_.append(result_reflection)
         _log_reflections(dir_log, iteration, result_reflection)
 
         # rewrite the question+distractors based on past reflections
         results_rewrite_qa = rewrite_qa(
             reflections=reflections_,
-            prompt_key=cfg.rewrite.key,
-            strucured_output_key=cfg.rewrite.strucured_output_key,
-            model=cfg.rewrite.model,
-            n_choices_target=cfg.rewrite.n_choices_target,
-            question_stem=question_stem,
-            choices=choices,
-            correct_index=correct_index)
+            cfg_rewrite=cfg.rewrite,
+            question_stem_original=question_stem_original,
+            choices_original=choices_original,
+            correct_index_original=correct_index_original,
+        )
         rewrites_.append(results_rewrite_qa)
         _log_rewrites(dir_log, iteration, results_rewrite_qa)
 
@@ -126,37 +128,46 @@ def revise_mcq(cfg: OmegaConf,
         question_stem_new = results_rewrite_qa['mcq_qa_new']['question_stem']
         choices_new = results_rewrite_qa['mcq_qa_new']['choices']
         correct_index_new = results_rewrite_qa['mcq_qa_new']['correct_index']
-        results_check_rewrite_issame = check_rewrite_issame(
-            question_stem,
-            choices[correct_index],
-            question_stem_new,
-            choices_new[correct_index_new],
-            model=cfg.check_rewrite.model,
-            key=cfg.check_rewrite.key,
-            strucured_output_key=cfg.check_rewrite.strucured_output_key)
+        explanation_new = results_rewrite_qa['mcq_qa_new']['explanation']
+        if 0:
+            results_check_rewrite_issame = check_rewrite_issame(
+                question_stem_original,
+                choices_original[correct_index_original],
+                question_stem_new,
+                choices_new[correct_index_new],
+                cfg_check_rewrite=cfg.check_rewrite)
+        else:
+            results_check_rewrite_issame = check_rewrite_issame(
+                question_stem,
+                choices[correct_index],
+                question_stem_new,
+                choices_new[correct_index_new],
+                cfg_check_rewrite=cfg.check_rewrite)
         check_rewrites_.append(results_check_rewrite_issame)
         _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame)
 
         if not results_check_rewrite_issame['response']['is_equivalent']:
             # log and then return that it's changed, rather than try to fix it.
-            raise ValueError(
-                f"The rewrite prompt at iter {iteration} broke something")
+            code = "FAIL_REWRITE"
+            logging.info(
+                f"[{log_str}] {code} The rewrite prompt at iter {iteration} broke something. Exiting"
+            )
+            return (code, iteration, question_stem, choices,
+                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
+                    check_rewrites_)
 
         # update the current estimate
         question_stem = question_stem_new
         choices = choices_new
         correct_index = correct_index_new
+        explanation = explanation_new
 
 
-def evaluate_mcq_noimage(question_stem,
-                         choices,
-                         correct_index,
-                         model="o1-preview-2024-09-12",
-                         key=0):
+def evaluate_mcq_noimage(question_stem, choices, correct_index, cfg_eval):
     """
     Run 
     """
-    if key != 0:
+    if cfg_eval.key not in (0, 1):
         raise NotImplementedError()
 
     # "no image" prefix guidance + the standard CoT prompt + regex from MMLU-pro
@@ -166,6 +177,7 @@ def evaluate_mcq_noimage(question_stem,
 
     # make choices string
     choices_str = ""
+    letters = list("abcdefghijk")
     for letter, choice in zip(letters, choices):
         choices_str += f"({letter}) {choice}\n"
 
@@ -173,12 +185,12 @@ def evaluate_mcq_noimage(question_stem,
     prompt_text = f"{prompt_prefix}\n{question_stem}\n{prompt_suffix}\n\n{choices_str}"
 
     # run gpt, extract prediction
-    response = call_gpt(prompt_text, model=model, json_mode=False)
+    response = call_gpt(prompt_text, model=cfg_eval.model, json_mode=False)
     response_text = response[0]
     pred_letter, pred_index = _extract_mc_answer(response_text, regex_pattern)
     is_correct = (correct_index == pred_index)
 
-    cost = response[1]['cost'] if response[1] is not None else None
+    cost = response[1]['cost'] if response[1] is not None else 0
 
     return dict(messages=response[3],
                 response_text=response_text,
@@ -187,24 +199,24 @@ def evaluate_mcq_noimage(question_stem,
                 cost=cost)
 
 
-def reflect_on_mcqnoimage_pass(conversation,
-                               model='o1-preview-2024-09-12',
-                               prompt_key=0):
-    prompt_text = prompts.prompts_reflect[prompt_key]
+def reflect_on_mcqnoimage_pass(conversation, cfg_reflect: OmegaConf):
+    prompt_text = prompts.prompts_reflect[cfg_reflect.key]
     response = call_gpt(
         prompt_text,
+        model=cfg_reflect.model,
         conversation=conversation,
         # overwrite_cache=True,
         json_mode=False)
 
-    cost = response[1]['cost'] if response[1] is not None else None
-
+    cost = response[1]['cost'] if response[1] is not None else 0
     return dict(conversation=response[3], response_text=response[0], cost=cost)
 
 
-def rewrite_qa(reflections: list[dict], prompt_key, model,
-               strucured_output_key, n_choices_target, question_stem, choices,
-               correct_index):
+def rewrite_qa(reflections: list[dict], cfg_rewrite,
+               question_stem_original: str, choices_original: list[str],
+               correct_index_original: int):
+    # , prompt_key, model,
+    #            strucured_output_key, n_choices_target, ):
     """
     Each element of 'conversation' is a question + some
 
@@ -215,17 +227,22 @@ def rewrite_qa(reflections: list[dict], prompt_key, model,
     conversations = [r['conversation'] for r in reflections]
     n_conversations = len(conversations)
 
-    prompt = prompts.prompts_rewrite[prompt_key]
+    prompt = prompts.prompts_rewrite[cfg_rewrite.key]
     prompt = prompt.replace("{{n_chat}}", str(n_conversations))
-    prompt = prompt.replace("{{n_choices}}", str(n_choices_target))
+    prompt = prompt.replace("{{n_choices}}", str(cfg_rewrite.n_choices_target))
+
+    prompt = prompt.replace("{{question_stem_original}}",
+                            question_stem_original)
+    prompt = prompt.replace("{{answer_original}}",
+                            choices_original[correct_index_original])
 
     str_conversations = _stringify_conversations_lst(conversations)
     prompt = prompt.replace("{{conversations}}", str_conversations)
 
     # GPT call, enforcing the structured output optionally
     response_format = prompts.McqQA
-    if strucured_output_key == 0:
-        response_unstructured = call_gpt(prompt, model=model, json_mode=False)
+    if cfg_rewrite.strucured_output_key == 0:
+        response_unstructured = call_gpt(prompt, model=cfg_rewrite.model)
         response = _enforce_llm_response_structure(response_unstructured,
                                                    response_format)
         cost = response_unstructured[1]['cost'] if response_unstructured[
@@ -233,10 +250,9 @@ def rewrite_qa(reflections: list[dict], prompt_key, model,
         msg = response[0]
         messages = response_unstructured[0]
 
-    elif strucured_output_key == 1:
+    elif cfg_rewrite.strucured_output_key == 1:
         response = call_gpt(prompt,
-                            model=model,
-                            json_mode=False,
+                            model=cfg_rewrite.model,
                             response_format=response_format)
         cost = response[1]['cost'] if response[1] is not None else 0
         msg = response[0]
@@ -245,27 +261,25 @@ def rewrite_qa(reflections: list[dict], prompt_key, model,
     else:
         raise NotImplementedError()
 
-    logging.info(
-        f"Cost ${cost:.2f} with model {model} for rewriting distractor")
-
-    return dict(mcq_qa_new=msg, messages=messages)
+    return dict(mcq_qa_new=msg, messages=messages, cost=cost)
 
 
-def check_rewrite_issame(question_stem_1, answer_1, question_stem_2, answer_2,
-                         key, model, strucured_output_key):
+def check_rewrite_issame(question_stem_original: str, answer_original: str,
+                         question_stem_new: str, answer_new: str,
+                         cfg_check_rewrite: OmegaConf):
     """
     After revising question, run a check that the underlying content hasn't changed
     (Doing 1-indexing and not 0-indexing bc I thought the prompt might prefer it)
     """
-    prompt = prompts.prompt_check_rewrite[key]
-    prompt = prompt.replace("{{question_stem_1}}", question_stem_1)
-    prompt = prompt.replace("{{answer_1}}", answer_1)
-    prompt = prompt.replace("{{question_stem_2}}", question_stem_2)
-    prompt = prompt.replace("{{answer_2}}", answer_2)
+    prompt = prompts.prompt_check_rewrite[cfg_check_rewrite.key]
+    prompt = prompt.replace("{{question_stem_1}}", question_stem_original)
+    prompt = prompt.replace("{{answer_1}}", answer_original)
+    prompt = prompt.replace("{{question_stem_2}}", question_stem_new)
+    prompt = prompt.replace("{{answer_2}}", answer_new)
 
     response_format = prompts.PromptCheck
-    if strucured_output_key == 0:
-        response_unstructured = call_gpt(prompt, model=model, json_mode=False)
+    if cfg_check_rewrite.strucured_output_key == 0:
+        response_unstructured = call_gpt(prompt, model=cfg_check_rewrite.model)
         response = _enforce_llm_response_structure(response_unstructured,
                                                    response_format)
         cost = response_unstructured[1]['cost'] if response_unstructured[
@@ -273,19 +287,15 @@ def check_rewrite_issame(question_stem_1, answer_1, question_stem_2, answer_2,
         msg = response[0]
         messages = response_unstructured[3]
 
-    elif strucured_output_key == 1:
+    elif cfg_check_rewrite.strucured_output_key == 1:
         response = call_gpt(prompt,
-                            model=model,
-                            json_mode=False,
+                            model=cfg_check_rewrite.model,
                             response_format=response_format)
         cost = response[1]['cost'] if response[1] is not None else 0
         msg = response[0]
         messages = response[3]
 
-    logging.info(
-        f"Cost ${cost:.2f} with model {model} for checking distractor issame")
-
-    return dict(response=msg, messages=messages)
+    return dict(response=msg, messages=messages, cost=cost)
 
 
 def check_choices_have_no_simple_issues():
@@ -294,14 +304,14 @@ def check_choices_have_no_simple_issues():
 
 
 def _extract_mc_answer(text_response, regex_pattern):
-    match = re.search(regex_pattern, text_response)
+    matches = re.findall(regex_pattern, text_response)
 
-    if match is not None:
-        pred_letter = match.group(1)
+    if len(matches) > 0:
+        pred_letter = matches[-1]
     else:
         pred_letter = 'None'
 
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    letters = list("abcdefghijk")
     letters_to_idx = dict(zip(letters, range(len(letters))))
     idx_to_letters = {v: k for k, v in letters_to_idx.items()}
     index = letters_to_idx.get(pred_letter, None)
@@ -317,7 +327,7 @@ def _stringify_mcq_for_logging(question_stem, choices, correct_index):
           (c)   ... <wrong_answer>
     """
     str_log = question_stem + "\n"
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    letters = list("abcdefghijk")
     letters_lookup = dict(zip(range(len(letters)), letters))
     letter = zip()
     for i, choice in enumerate(choices):
@@ -423,7 +433,7 @@ def _process_choices_from_jeffs_sheet(choices: str):
 
 
 def _shuffle_choices(choices, correct_index, seed_shuffle=0):
-    np.random.seed(seed)
+    np.random.seed(seed_shuffle)
     idxs = np.arange(len(choices))
     idxs = np.random.permutation(idxs)
     choices_shuffled = [choices[idx] for idx in idxs]
@@ -441,18 +451,27 @@ def _enforce_llm_response_structure(response_unstructured,
     return response
 
 
-def _log_config(dir_log, cfg):
-    f_save = f"{dir_log}/cfg.json"
-    with open(f_save, 'w') as fp:
-        json.dump(OmegaConf.to_container(cfg), fp, indent=4)
-
-
-def _log_qa(dir_log, iteration, question_stem, choices, correct_index):
+def _log_qa(dir_log,
+            iteration,
+            question_stem,
+            choices,
+            correct_index,
+            explanation=""):
     """ """
+    # log as string
     f_save = dir_log / f"0_qa_iter_{iteration}.txt"
     str_log = _stringify_mcq_for_logging(question_stem, choices, correct_index)
     with open(f_save, "w") as fp:
         fp.write(str_log)
+
+    # log as json for easier reading
+    f_save = dir_log / f"0_5_qa_iter_{iteration}.json"
+    mcq_object = prompts.McqQA(question_stem=question_stem,
+                               choices=choices,
+                               correct_index=correct_index,
+                               explanation=explanation)
+    with open(f_save, "w") as fp:
+        json.dump(dict(mcq_object), fp, indent=2)
 
 
 def _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index):
@@ -460,7 +479,7 @@ def _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index):
     By turning it into a string, we use newline, which makes logging more 
     readable.
     """
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    letters = list("abcdefghijk")
     idx_to_letter = dict(zip(range(len(letters)), letters))
 
     msgs = result_eval_mcq_noimage['messages']
@@ -495,73 +514,271 @@ def _log_rewrites(dir_log, iteration, results_check_rewrite_issame):
 
 
 def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
-    str_log = _stringify_conversation_pretty(
-        results_check_rewrite_issame['messages'])
+    messages = results_check_rewrite_issame['messages']
+    str_log = ""
+    # propmt
+    str_log += f"Prompt\n{80*'*'}\n"
+    str_log += messages[0]['content'][0]['text']
+
+    # response
+    res = messages[1]['content']
+    str_log += f"\n{80*'*'}\n"
+    str_log += f"Response, is_equivalent: {res['is_equivalent']}"
+    str_log += f"\n{80*'*'}\n"
+    str_log += f"is_equivalent: {res['explanation']}\n\n"
+
     with open(dir_log / f"4_checkrewrite_iter_{iteration}.txt", 'w') as fp:
         fp.write(str_log)
 
 
-def main():
+def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_):
+    """
+    For revising a single question, compute the final cost per stage. 
+    """
+    cost_eval = sum([c['cost'] for c in evals_])
+    cost_reflect = sum([c['cost'] for c in reflections_])
+    cost_rewrites = sum([c['cost'] for c in rewrites_])
+    cost_check_rewrites = sum([c['cost'] for c in check_rewrites_])
+    cost_total = cost_eval + cost_reflect + cost_rewrites + cost_check_rewrites
+
+    # logging.info("Cost:")
+    # logging.info(f"\t${cost_eval:.3f} on {cfg.eval.model} for eval")
+    # logging.info(f"\t${cost_reflect:.3f} on {cfg.reflect.model} for reflect")
+    # logging.info(f"\t${cost_rewrites:.3f} on {cfg.rewrite.model} for rewrite")
+    # logging.info(
+    #     f"\t${cost_check_rewrites:.3f} on {cfg.check_rewrite.model} for check rewrite"
+    # )
+
+    return cost_total
+
+
+def _save_final_results(f_summary):
+    """ 
+    Final results saving. 
+    In multiprocessing, the logging will be out of order, so reorder the rows.
+    Also write some summary stats
+    """
+    df = pd.read_csv(f_summary)
+    df_ordered = df.sort_values("log_str")
+
+    # reordering
+    f_summary_ordered = f"{str(f_summary)[:-23]}_ordered.csv"
+    df_ordered.to_csv(f_summary_ordered, index=False)
+
+    # summarise
+    str_log = ""
+    str_log += f"API calls cost ${float(df['cost'].sum()):.2f}\n\n"
+    str_log += str(df.groupby('code')['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['use_case', 'code'])['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['iterations'])['code'].count())
+    str_log += "\n\n"
+    str_log += str(df.groupby(['code', 'iterations'])['code'].count())
+    f_summary_stats = f"{str(f_summary)[:-23]}_stats.txt"
+    with open(f_summary_stats, 'w') as fp:
+        fp.write(str_log)
+
+    logging.info(
+        f"Final results in \n\t{f_summary_ordered}\n\t{f_summary_stats}")
+
+
+def config_logger(dir_results_parent, cfg):
+    # the run number is the highest run number in existing log files plus 1
+    log_files = glob.glob(str(dir_results_parent / "run_*.log"))
+    run_nums = [0] + [int(Path(f).stem.split("_")[1]) for f in log_files]
+    run_num = max(run_nums) + 1
+
+    # logging filename and folder name has run number and timestamp
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    log_str = f"run_{run_num:04d}_{timestamp}_{cfg.name}"
+    log_filename = dir_results_parent / f"{log_str}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(log_filename),  # Logs everything to the file
+            logging.StreamHandler(sys.stdout),  # Logs info and above to stdout
+            logging.StreamHandler(
+                sys.stderr)  # Logs errors and above to stderr
+        ])
+    logging.getLogger().handlers[2].setLevel(logging.ERROR)
+
+    # experiment-level results directory
+    dir_results = dir_results_parent / f"res_{log_str}"
+    dir_results.mkdir(exist_ok=True)
+
+    # save the config and dump to the logger
+    f_save = dir_results / f"cfg.json"
+    with open(f_save, 'w') as fp:
+        json.dump(OmegaConf.to_container(cfg), fp, indent=4)
+    logging.info("Config:")
+    logging.info(json.dumps(OmegaConf.to_container(cfg), indent=4))
+
+    # set up the results csv
+    f_summary = dir_results_parent / f"sum_{log_str}_unordered.csv"
+    with file_lock:
+        with open(f_summary, mode='a', newline="") as fp:
+            writer = csv.writer(fp)
+            writer.writerow(
+                ["log_str", "iterations", "use_case", "code", "cost"])
+
+    return dir_results, f_summary
+
+
+def process_single_question(dir_log, cfg, question_stem, choices,
+                            correct_index, f_summary, log_str, use_case):
+    """
+    Processes a single question with the MCQ refiner and do the basic logging
+    """
+    result = revise_mcq(
+        cfg,
+        question_stem,
+        choices,
+        correct_index,
+        dir_log,
+        max_iters=cfg.max_iters,
+        seed=cfg.seed,
+        log_str=log_str,
+    )
+
+    # unpack results
+    (return_code, iteration, question_stem, choices, result_eval_mcq_noimage,
+     evals_, reflections_, rewrites_, check_rewrites_) = result
+
+    cost_total = _log_costs(cfg, evals_, reflections_, rewrites_,
+                            check_rewrites_)
+
+    # save results
+    with open(f_summary, mode='a', newline="") as fp:
+        writer = csv.writer(fp)
+        writer.writerow(
+            [log_str, iteration, use_case, return_code, f"{cost_total:.2f}"])
+
+    return log_str, iteration, use_case, return_code, cost_total
+
+
+def main(dir_results_parent, do_multiprocessing=False):
     # config #
+    do_shuffle = True
     model_o1 = "o1-preview-2024-09-12"
-    model = model_o1
     model_o1mini = "o1-mini-2024-09-12"
     model_gpt4o = "gpt-4o-2024-08-06"
 
-    n_choices_target = 5
+    model = model_o1
+    # target questions
+    idxs_question = [136, 137, 138, 139, 140, 142, 145]
+    idxs_question = [
+        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
+        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
+        542, 543
+    ]
+
     # yapf: disable
     cfg = dict(
-        n_choices_target=5,
+        name="standard",
+        seed=0,
+        max_iters=5,
         eval=dict(model=model_o1, key=0),
         reflect=dict(model=model_o1, key=0),
         rewrite=dict(model=model_o1, key=0, strucured_output_key=0, n_choices_target=5),
         check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
     )
     cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
         eval=dict(model=model_gpt4o, key=0),
         reflect=dict(model=model_gpt4o, key=0),
         rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=5),
         check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
     )
+    # key 1
+    cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
+        eval=dict(model=model_gpt4o, key=1),
+        reflect=dict(model=model_gpt4o, key=1),
+        rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=5),
+        check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
+    )
+    # cfg = dict(
+    #     name="key1-modelo1",
+    #     seed=0,
+    #     max_iters=5,
+    #     eval=dict(model=model_o1, key=1),
+    #     reflect=dict(model=model_o1, key=1),
+    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
+    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
+    # )
     # yapf: enable
     cfg = OmegaConf.create(cfg)
-    idx_test = 207
-    seed = 0
-    do_shuffle = True
-    seed_shuffle = idx_test + seed
-    model = "o1-preview-2024-09-12"
-    log_str = f"question_{idx_test}"
-    # end #
+    dir_results, f_summary = config_logger(dir_results_parent, cfg)
 
-    # collect the questions
-    dir_log = dir_results / f"{log_str}_seed{seed}"
-    dir_log.mkdir(exist_ok=True)
     url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
-    f_csv = dir_results / "jeffs_choices.csv"
+    f_csv = dir_results_parent / "jeffs_choices.csv"
     if not f_csv.exists():
         download_csv(url_csv, f_csv)
     df = pd.read_csv(f_csv)
-    row = df.loc[idx_test]
-    question_stem = row['revised_question']
-    choices_jeff_fmt = row['multiple_choice']
-    choices, correct_index = _process_choices_from_jeffs_sheet(
-        choices_jeff_fmt)
-    if do_shuffle:
-        choices, correct_index = _shuffle_choices(choices, correct_index,
-                                                  seed_shuffle)
-    # str_log = _stringify_mcq_for_logging(question_stem, choices, correct_index)
-    # _log_start(dir_log, question_stem, choices, correct_index)
 
-    # run the revision bot
-    revise_mcq(
-        cfg,
-        question_stem,
-        choices,
-        correct_index,
-        dir_log,
-        max_iters=5,
-        seed=0,
-    )
+    # Prepare function args for all the questions
+    func_args = []
+    for idx_test in idxs_question:
+        row = df.loc[idx_test]
+        log_str = f"question_{idx_test}"
+
+        # get the QAs
+        question_stem = row['revised_question']
+        choices_jeff_fmt = row['multiple_choice']
+        use_case = row['_use_case']
+        choices, correct_index = _process_choices_from_jeffs_sheet(
+            choices_jeff_fmt)
+
+        if do_shuffle:
+            seed_shuffle = idx_test + cfg['seed']
+            choices, correct_index = _shuffle_choices(choices, correct_index,
+                                                      seed_shuffle)
+
+        dir_log = dir_results / log_str
+
+        # Collect arguments for this question
+        args = (dir_log, cfg, question_stem, choices, correct_index, f_summary,
+                log_str, use_case)
+        func_args.append(args)
+
+    # Run either in parallel or sequence based on flag
+    if do_multiprocessing:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=48) as executor:
+            futures = []
+            for args in func_args:
+                future = executor.submit(process_single_question, *args)
+                futures.append(future)
+            results = [future.result() for future in futures]
+
+    else:
+        results = []
+        for args in func_args:
+            result = process_single_question(*args)
+            results.append(result)
+
+    # Log summary of all results
+    for log_str, iteration, use_case, return_code, cost_total in results:
+        logging.info(
+            f"Question {log_str}: {return_code} after {iteration} iterations. Cost: ${cost_total:.2f}"
+        )
+
+    _save_final_results(f_summary)
 
 
-main()
+if __name__ == "__main__":
+    do_multiprocessing = False
+    do_multiprocessing = True
+    dir_results_parent = Path(__file__).parent / "results" / Path(
+        __file__).stem
+    dir_results_parent.mkdir(exist_ok=True, parents=True)
+
+    main(dir_results_parent, do_multiprocessing=do_multiprocessing)
+
+
