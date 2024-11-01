@@ -45,7 +45,12 @@ question_prompts = {
     Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy.
 
     Return a json with the following format:
-    """ + json.dumps(BloomsOutput.schema(), indent=2),
+    {
+    blooms_name: str
+    blooms_level: int
+    blooms_reasoning: str
+    }
+    """ ,
     1: """\
     Provide an assessment of the most appropriate Bloom's Taxonomy level for the provided question and correct answer pair.
     Question stem:
@@ -73,8 +78,7 @@ def main(args):
     # 2. call gpt for batch dataset processing
     gpt_output = blooms_tagging(ds_save_dir, jsonl_path,
                                 send_batch=args.send_batch,
-                                batch_id=args.batch_id,
-                                file_id=args.file_id)
+                                batch_id=args.batch_id)
     if gpt_output is not None:
         # 4. parse output tags and save to dataset
         # new cols: blooms_question_category, blooms_confidence, blooms_level, blooms_source, blooms_reasoning
@@ -126,7 +130,6 @@ def organize_microbench():
             all_qs.append(q_info)
 
     # TODO: add cognition dataset
-    # query_qs = pd.DataFrame(query_qs)
     return query_qs, all_qs
 
 def parse_dataset(dataset_name, save_path):
@@ -148,7 +151,6 @@ def update_prompt(prompt, q_info):
 
 def convert_to_jsonl(query_qs, save_jsonl, prompt_key=0, system_key=0):
     all_gpt = []
-    example_output = BloomsOutput(blooms_name="example name", blooms_level=1, blooms_reasoning="example reason").dict()
     for q_info in query_qs:
         q_gpt = {"custom_id": q_info['id'],
                 "method": "POST",
@@ -190,7 +192,7 @@ def call_offline_gpt(jsonl_path, save_dir):
 
 
 def blooms_tagging(save_dir, jsonl_path,
-                   send_batch=False, batch_id=None, file_id=None):
+                   send_batch=False, batch_id=None):
     save_path = os.path.join(save_dir, 'gpt_output.jsonl')
     if os.path.exists(save_path):
         print(f"Loading gpt output from {save_path}")
@@ -202,13 +204,16 @@ def blooms_tagging(save_dir, jsonl_path,
         # 2. call the gpt for blooms tagging
         call_offline_gpt(jsonl_path, save_dir)
     else:
-        if batch_id is None or file_id is None:
+        if batch_id is None:
             raise ValueError("Need to provide a batch_id and file_id to retrieve the output")
         # check if the batch is finished
-        status = client.batches.retrieve(batch_id)
+        retreival_info = client.batches.retrieve(batch_id)
+        status = retreival_info.status
+        output_file_id=retreival_info.output_file_id
         if status == 'completed':
+            print(f"Batch job is completed on input_file {retreival_info.metadata['input_file']}")
             # 3. retrieve the output
-            gpt_output = client.files.content(file_id)
+            gpt_output = client.files.content(output_file_id)
             # 4. save the output
             with open(save_path, 'w') as f:
                 json.dump(gpt_output, f)
@@ -264,16 +269,16 @@ def save_tags(gpt_output, save_dir, all_qs=None):
     save_path = os.path.join(save_dir, 'tagged_dataset.csv')
     if os.path.exists():
         print(f"Loading tagged dataset from {save_path}")
-        tagged_ds = pd.read_csv(save_path)
-    
-    gpt_df = pd.DataFrame(gpt_output)
-    # make a histogram of the blooms levels in the dataset
-    if all_qs is not None:
-        blooms_qs = pd.merge(all_qs, gpt_df, on='template_type', how='left')
+        blooms_qs = pd.read_csv(save_path)
     else:
-        blooms_qs = gpt_df
-    # save the tagged dataset
-    blooms_qs.to_csv(save_path, index=False)
+        gpt_df = pd.DataFrame(gpt_output)
+        # make a histogram of the blooms levels in the dataset
+        if all_qs is not None:
+            blooms_qs = pd.merge(all_qs, gpt_df, on='template_type', how='left')
+        else:
+            blooms_qs = gpt_df
+        # save the tagged dataset
+        blooms_qs.to_csv(save_path, index=False)
     # plot the histogram of the blooms levels
     plot_histograms(blooms_qs, 'blooms_level', save_dir)
 
@@ -286,7 +291,6 @@ if __name__ == '__main__':
     parser.add_argument('--system_key', type=int, help='system prompt key to use', default=0)
     parser.add_argument('--send_batch', action='store_true', help='send batch to gpt')
     parser.add_argument('--batch_id', type=str, help='batch id to retrieve the output')
-    parser.add_argument('--file_id', type=str, help='file id to retrieve the output')
 
     args = parser.parse_args()
     main(args)
