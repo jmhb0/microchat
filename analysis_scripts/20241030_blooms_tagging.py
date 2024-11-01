@@ -215,8 +215,8 @@ def blooms_tagging(save_dir, jsonl_path,
             # 3. retrieve the output
             gpt_output = client.files.content(output_file_id)
             # 4. save the output
-            with open(save_path, 'w') as f:
-                json.dump(gpt_output, f)
+            # TODO: fix writing so we have only the response or clean the response in the next function
+            gpt_output.write_to_file(save_path)
             return gpt_output
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
