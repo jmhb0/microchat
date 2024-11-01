@@ -2,6 +2,7 @@
 python -m ipdb analysis_scripts/20241028_v1_mcq_refiner_bot.py
 """
 
+from types import SimpleNamespace
 import ipdb
 import sys
 import json
@@ -46,19 +47,20 @@ def revise_mcq(cfg: OmegaConf,
     """
     Orhcestrator thread
     """
-    question_stems_ = []
-    choices_ = []
-    evals_ = []  # memory of past answer attempts
-    reflections_ = []  # memory of how past responses where successful
-    rewrites_ = []
-    check_rewrites_ = []
-    costs = []
-    explanation = ""
+    # object to hold everything
+    data = SimpleNamespace(question_stems_=[],
+                           choices_=[],
+                           evals_=[],
+                           reflections_=[],
+                           rewrites_=[],
+                           check_rewrites_=[],
+                           costs=[])
 
     # save the starting options
     question_stem_original = question_stem
     choices_original = choices
     correct_index_original = correct_index
+    explanation = ""
 
     # logging dir
     Path(dir_log).mkdir(exist_ok=True)
@@ -68,8 +70,8 @@ def revise_mcq(cfg: OmegaConf,
         logging.info(f"[{log_str}] Running iteration {iteration}")
 
         # log the current queastion and choices
-        choices_.append(choices)
-        question_stems_.append(question_stem)
+        data.choices_.append(choices)
+        data.question_stems_.append(question_stem)
         _log_qa(dir_log, iteration, question_stem, choices, correct_index)
 
         # evaluate current question without an image
@@ -77,7 +79,7 @@ def revise_mcq(cfg: OmegaConf,
                                                        choices,
                                                        correct_index,
                                                        cfg_eval=cfg.eval)
-        evals_.append(result_eval_mcq_noimage)
+        data.evals_.append(result_eval_mcq_noimage)
         _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index)
 
         # if eval is incorrect, then stop
@@ -92,36 +94,32 @@ def revise_mcq(cfg: OmegaConf,
                 logging.info(
                     f"[{log_str}] {code}  successfully failed MCQ eval after {iteration} iterations. Exiting"
                 )
-            return (code, iteration, question_stem, choices,
-                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
-                    check_rewrites_)
+            return (code, iteration, question_stem, choices, data)
 
         # if max evals, then quit
         if iteration == max_iters - 1:
             code = "FAIL_ITERATIONS"
             logging.info(
                 f"[{log_str}] {code} Quitting after {max_iters} iterations")
-            return (code, iteration, question_stem, choices,
-                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
-                    check_rewrites_)
+            return (code, iteration, question_stem, choices, data)
 
         # reflect on how that was possible
         result_reflection = reflect_on_mcqnoimage_pass(
             conversation=result_eval_mcq_noimage['messages'],
             cfg_reflect=cfg.reflect,
         )
-        reflections_.append(result_reflection)
+        data.reflections_.append(result_reflection)
         _log_reflections(dir_log, iteration, result_reflection)
 
         # rewrite the question+distractors based on past reflections
         results_rewrite_qa = rewrite_qa(
-            reflections=reflections_,
+            reflections=data.reflections_,
             cfg_rewrite=cfg.rewrite,
             question_stem_original=question_stem_original,
             choices_original=choices_original,
             correct_index_original=correct_index_original,
         )
-        rewrites_.append(results_rewrite_qa)
+        data.rewrites_.append(results_rewrite_qa)
         _log_rewrites(dir_log, iteration, results_rewrite_qa)
 
         # check that the rewrite didn't change the meaning of the qa
@@ -129,21 +127,13 @@ def revise_mcq(cfg: OmegaConf,
         choices_new = results_rewrite_qa['mcq_qa_new']['choices']
         correct_index_new = results_rewrite_qa['mcq_qa_new']['correct_index']
         explanation_new = results_rewrite_qa['mcq_qa_new']['explanation']
-        if 0:
-            results_check_rewrite_issame = check_rewrite_issame(
-                question_stem_original,
-                choices_original[correct_index_original],
-                question_stem_new,
-                choices_new[correct_index_new],
-                cfg_check_rewrite=cfg.check_rewrite)
-        else:
-            results_check_rewrite_issame = check_rewrite_issame(
-                question_stem,
-                choices[correct_index],
-                question_stem_new,
-                choices_new[correct_index_new],
-                cfg_check_rewrite=cfg.check_rewrite)
-        check_rewrites_.append(results_check_rewrite_issame)
+        results_check_rewrite_issame = check_rewrite_issame(
+            question_stem_original,
+            choices_original[correct_index_original],
+            question_stem_new,
+            choices_new[correct_index_new],
+            cfg_check_rewrite=cfg.check_rewrite)
+        data.check_rewrites_.append(results_check_rewrite_issame)
         _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame)
 
         if not results_check_rewrite_issame['response']['is_equivalent']:
@@ -152,9 +142,7 @@ def revise_mcq(cfg: OmegaConf,
             logging.info(
                 f"[{log_str}] {code} The rewrite prompt at iter {iteration} broke something. Exiting"
             )
-            return (code, iteration, question_stem, choices,
-                    result_eval_mcq_noimage, evals_, reflections_, rewrites_,
-                    check_rewrites_)
+            return (code, iteration, question_stem, choices, data)
 
         # update the current estimate
         question_stem = question_stem_new
@@ -247,8 +235,8 @@ def rewrite_qa(reflections: list[dict], cfg_rewrite,
                                                    response_format)
         cost = response_unstructured[1]['cost'] if response_unstructured[
             1] is not None else 0
-        msg = response[0]
-        messages = response_unstructured[0]
+        msg = response[0]  # structured version of the OG response.
+        messages = response_unstructured[3]  # full convo from before
 
     elif cfg_rewrite.strucured_output_key == 1:
         response = call_gpt(prompt,
@@ -521,7 +509,7 @@ def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
     str_log += messages[0]['content'][0]['text']
 
     # response
-    res = messages[1]['content']
+    res = results_check_rewrite_issame['response']
     str_log += f"\n{80*'*'}\n"
     str_log += f"Response, is_equivalent: {res['is_equivalent']}"
     str_log += f"\n{80*'*'}\n"
@@ -531,7 +519,8 @@ def _log_check_rewrite(dir_log, iteration, results_check_rewrite_issame):
         fp.write(str_log)
 
 
-def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_):
+def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_,
+               **kwargs):
     """
     For revising a single question, compute the final cost per stage. 
     """
@@ -552,7 +541,7 @@ def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_):
     return cost_total
 
 
-def _save_final_results(f_summary):
+def _save_final_results(f_summary, log_str):
     """ 
     Final results saving. 
     In multiprocessing, the logging will be out of order, so reorder the rows.
@@ -562,7 +551,7 @@ def _save_final_results(f_summary):
     df_ordered = df.sort_values("log_str")
 
     # reordering
-    f_summary_ordered = f"{str(f_summary)[:-23]}_ordered.csv"
+    f_summary_ordered = Path(f_summary).parent / f"sum_{log_str}_samples_sorted.csv"
     df_ordered.to_csv(f_summary_ordered, index=False)
 
     # summarise
@@ -575,7 +564,7 @@ def _save_final_results(f_summary):
     str_log += str(df.groupby(['iterations'])['code'].count())
     str_log += "\n\n"
     str_log += str(df.groupby(['code', 'iterations'])['code'].count())
-    f_summary_stats = f"{str(f_summary)[:-23]}_stats.txt"
+    f_summary_stats = Path(f_summary).parent / f"sum_{log_str}_stats.txt"
     with open(f_summary_stats, 'w') as fp:
         fp.write(str_log)
 
@@ -617,14 +606,14 @@ def config_logger(dir_results_parent, cfg):
     logging.info(json.dumps(OmegaConf.to_container(cfg), indent=4))
 
     # set up the results csv
-    f_summary = dir_results_parent / f"sum_{log_str}_unordered.csv"
+    f_summary = dir_results_parent / f"sum_{log_str}_samples_async.csv"
     with file_lock:
         with open(f_summary, mode='a', newline="") as fp:
             writer = csv.writer(fp)
             writer.writerow(
                 ["log_str", "iterations", "use_case", "code", "cost"])
 
-    return dir_results, f_summary
+    return dir_results, f_summary, log_str
 
 
 def process_single_question(dir_log, cfg, question_stem, choices,
@@ -644,11 +633,10 @@ def process_single_question(dir_log, cfg, question_stem, choices,
     )
 
     # unpack results
-    (return_code, iteration, question_stem, choices, result_eval_mcq_noimage,
-     evals_, reflections_, rewrites_, check_rewrites_) = result
+    return_code, iteration, question_stem, choices, data = result
 
-    cost_total = _log_costs(cfg, evals_, reflections_, rewrites_,
-                            check_rewrites_)
+    # evals_, reflections_, rewrites_, check_rewrites_
+    cost_total = _log_costs(cfg, **vars(data))
 
     # save results
     with open(f_summary, mode='a', newline="") as fp:
@@ -659,63 +647,11 @@ def process_single_question(dir_log, cfg, question_stem, choices,
     return log_str, iteration, use_case, return_code, cost_total
 
 
-def main(dir_results_parent, do_multiprocessing=False):
+def main(dir_results_parent, cfg, do_multiprocessing=False):
     # config #
     do_shuffle = True
-    model_o1 = "o1-preview-2024-09-12"
-    model_o1mini = "o1-mini-2024-09-12"
-    model_gpt4o = "gpt-4o-2024-08-06"
-
-    model = model_o1
-    # target questions
-    idxs_question = [136, 137, 138, 139, 140, 142, 145]
-    idxs_question = [
-        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
-        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
-        542, 543
-    ]
-
-    # yapf: disable
-    cfg = dict(
-        name="standard",
-        seed=0,
-        max_iters=5,
-        eval=dict(model=model_o1, key=0),
-        reflect=dict(model=model_o1, key=0),
-        rewrite=dict(model=model_o1, key=0, strucured_output_key=0, n_choices_target=5),
-        check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
-    )
-    cfg = dict(
-        name="standard",
-        seed=0,
-        max_iters=5,
-        eval=dict(model=model_gpt4o, key=0),
-        reflect=dict(model=model_gpt4o, key=0),
-        rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=5),
-        check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
-    )
-    # key 1
-    cfg = dict(
-        name="standard",
-        seed=0,
-        max_iters=5,
-        eval=dict(model=model_gpt4o, key=1),
-        reflect=dict(model=model_gpt4o, key=1),
-        rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=5),
-        check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
-    )
-    # cfg = dict(
-    #     name="key1-modelo1",
-    #     seed=0,
-    #     max_iters=5,
-    #     eval=dict(model=model_o1, key=1),
-    #     reflect=dict(model=model_o1, key=1),
-    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
-    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
-    # )
-    # yapf: enable
     cfg = OmegaConf.create(cfg)
-    dir_results, f_summary = config_logger(dir_results_parent, cfg)
+    dir_results, f_summary, log_str_main = config_logger(dir_results_parent, cfg)
 
     url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
     f_csv = dir_results_parent / "jeffs_choices.csv"
@@ -769,16 +705,81 @@ def main(dir_results_parent, do_multiprocessing=False):
             f"Question {log_str}: {return_code} after {iteration} iterations. Cost: ${cost_total:.2f}"
         )
 
-    _save_final_results(f_summary)
+    _save_final_results(f_summary, log_str_main)
 
 
 if __name__ == "__main__":
-    do_multiprocessing = False
-    do_multiprocessing = True
+
+    model_o1 = "o1-preview-2024-09-12"
+    model_o1mini = "o1-mini-2024-09-12"
+    model_gpt4o = "gpt-4o-2024-08-06"
+    model_gpt4omini = "gpt-4o-mini-2024-07-18"
+
+    model = model_o1
+    # target questions
+    idxs_question = [136, 137, 138, 139, 140, 142, 145]
+    idxs_question = [
+        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
+        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
+        542, 543
+    ]
+
+    # yapf: disable
+    cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
+        eval=dict(model=model_o1, key=0),
+        reflect=dict(model=model_o1, key=0),
+        rewrite=dict(model=model_o1, key=0, strucured_output_key=0, n_choices_target=5),
+        check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
+    )
+    cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
+        eval=dict(model=model_gpt4o, key=0),
+        reflect=dict(model=model_gpt4o, key=0),
+        rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=5),
+        check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
+    )
+    # key 1 gpt 4o
+    cfg = dict(
+        name="standard",
+        seed=0,
+        max_iters=5,
+        eval=dict(model=model_gpt4o, key=1),
+        reflect=dict(model=model_gpt4o, key=1),
+        rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=5),
+        check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
+    )
+    # cfg = dict(
+    #     name="key1-modelo1",
+    #     seed=0,
+    #     max_iters=5,
+    #     eval=dict(model=model_o1, key=1),
+    #     reflect=dict(model=model_o1, key=1),
+    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
+    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
+    # )
+    # cfg = dict(
+    #     name="key1-modelo1mini",
+    #     seed=0,
+    #     max_iters=5,
+    #     eval=dict(model=model_o1mini, key=1),
+    #     reflect=dict(model=model_o1mini, key=1),
+    #     rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0, n_choices_target=5),
+    #     check_rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0),
+    # )
+    # yapf: enable
+
     dir_results_parent = Path(__file__).parent / "results" / Path(
         __file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
+    do_multiprocessing = False
+    do_multiprocessing = True
 
-    main(dir_results_parent, do_multiprocessing=do_multiprocessing)
+
+    main(dir_results_parent, cfg, do_multiprocessing=do_multiprocessing)
 
 
