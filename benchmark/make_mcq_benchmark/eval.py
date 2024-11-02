@@ -1,4 +1,5 @@
 """
+python -m ipdb benchmark/make_mcq_benchmark/eval.py
 """
 import ipdb
 import sys
@@ -22,7 +23,7 @@ prompt_eval_templates = {
         "based on prompt from MMLU-pro https://github.com/TIGER-AI-Lab/MMLU-Pro/blob/b7b9ffd84b2c21a5bfcf174fc65e5e6d74ca09a8/evaluate_from_api.py",
         "template": """\
 The following is a multiple choice question (with answers). 
-Think step by step and then output the answer in the format of \"The answer is (X)\" at the end." \
+Think step by step and then output the answer in the format of \"The answer is (X)\" at the end.
 
 
 {{QUESTION}}
@@ -73,7 +74,7 @@ def eval_qa(key_form,
         raise ValueError()
 
     df_questions = pd.read_csv(f_choices, index_col="key_question")
-    df_questions = df_questions[:240]
+    # df_questions = df_questions[:240]
 
 
     batch_prompts_text = []
@@ -125,6 +126,18 @@ def eval_qa(key_form,
     assert len(batch_prompts_text) == len(batch_prompts_imgs)
     assert len(batch_prompts_text) == len(idxs)
 
+    # a sense-check that the images are processed correctly
+    if 0:
+        batch_prompts_text = ["what is this image?"]
+        batch_prompts_imgs = [batch_prompts_imgs[0]]
+        responses = call_gpt_batch(texts=batch_prompts_text,
+                               imgs=batch_prompts_imgs,
+                               model=model,
+                               json_mode=False
+                               )
+        msg = responses[0][0]
+
+
     # call gpt
     seeds = [seed] * len(batch_prompts_text)
     # blind experiment change
@@ -171,11 +184,11 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 0
+    key_question_gen = 3
     # key for generating the choices
-    key_choices_gen = 7
+    key_choices_gen = 9
     # key for evaluation prompt
-    key_prompt_eval = 0 # 1 is blind 0 is default
+    key_prompt_eval = 1 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"
 
     eval_qa(key_form, key_question_gen, key_choices_gen,

@@ -1,5 +1,5 @@
 """
-make_questions.py
+python -m ipdb benchmark/make_mcq_benchmark/make_questions.py
 Generate the questions but not the distractors. 
 
 We can implement multiple strategies, marked by `key_question_gen`. 
