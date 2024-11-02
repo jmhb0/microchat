@@ -34,6 +34,7 @@ mcq_generation:
     ## Ensure Homogeneous and Plausible Options:
       - All answer choices should be consistent in content and format.
       - Distractors should be plausible and challenging to prevent easy elimination.
+      - Challenging distractor often represent common misconceptions on a concept.
       - The correct answer should be the most accurate among equally plausible options.
     
     ## Review for Technical Flaws:
