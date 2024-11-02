@@ -157,6 +157,9 @@ def create_assistant(row, assistant_columns: list):
 @click.command()
 @click.argument("input-file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--train", is_flag=True, help="Format data for openai fine-tuning.")
+@click.option('--n-sample', type=int, help='Number of samples to extract from the input file.')
+@click.option("--random-seed", type=int, default=8675309, help="Random seed for shuffling.")
 @click.option(
     "--system-context",
     type=str,
@@ -185,6 +188,7 @@ def main(
     assistant: Optional[str] = "correct_answer",
     upload: bool = False,
     random_seed: int = 8675309,
+    n_sample: Optional[int] = None,
     train: bool = False,
     dry_run: bool = False,
 ) -> None:
@@ -262,6 +266,13 @@ def main(
     )
 
     if train:
+        train_file = output_file.parent.joinpath(f"{output_file.stem}_train.jsonl")
+        test_file = output_file.parent.joinpath(f"{output_file.stem}_test.jsonl")
+
+        if train_file.exists() or test_file.exists():
+            logger.warning(f"Output file already exists: {train_file} or {test_file}")
+            click.confirm("Do you want to overwrite?", abort=True)
+
         # create assistant response
         if assistant is None or assistant not in df.columns:
             logger.error(f"Column not found: {assistant}")
@@ -298,9 +309,7 @@ def main(
         # save jsonl
         if not dry_run:
             train_list = train_df["template"].tolist()
-            train_file = output_file.parent.joinpath(f"{output_file.stem}_train.jsonl")
             test_list = test_df["template"].tolist()
-            test_file = output_file.parent.joinpath(f"{output_file.stem}_test.jsonl")
             save_jsonl(train_list, train_file)
             save_jsonl(test_list, test_file)
 
@@ -316,6 +325,16 @@ def main(
                 )
                 logger.info(f"Uploaded {test_file} to OpenAI: {response}")
     else:
+        temp_output = output_file.parent.joinpath(f"{output_file.stem}_*.jsonl")
+        output_file_list = list(temp_output.parent.glob(f"{temp_output.stem}"))
+        if any([f.exists() for f in output_file_list]):
+            logger.warning(f"Output file already exists: {temp_output}")
+            click.confirm("Do you want to overwrite?", abort=True)
+
+        # get random sample of 10k
+        if n_sample is not None:
+            df = df.sample(n=10000, random_state=random_seed).reset_index(drop=True)
+
         # format data for inference
         df["template"] = df.apply(format_data_inference, axis=1)
         if df["template"].isna().sum() > 0:
@@ -326,13 +345,13 @@ def main(
         if not dry_run:
             output_list = df["template"].tolist()
 
-            # save in batches of 50k (max for openai batch processing)
+            # save in batches of <50k (max for openai batch processing)
             output_file_list = []
-            for i in range(0, len(output_list), 50000):
+            for i in range(0, len(output_list), 1000):
                 idx_start = i
-                idx_end = min(i + 50000, len(output_list))
+                idx_end = min(i + 1000, len(output_list))
                 temp_output_file = output_file.parent.joinpath(
-                    f"{output_file.stem}_{idx_start}-{idx_end}.jsonl"
+                    f"{output_file.stem}_{idx_start}-{idx_end}_gpt4o-mini-base.jsonl"
                 )
                 output_file_list.append(temp_output_file)
                 save_jsonl(output_list[idx_start:idx_end], temp_output_file)

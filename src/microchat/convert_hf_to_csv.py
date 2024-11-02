@@ -68,7 +68,7 @@ def main(
     output_file = output_dir.joinpath(f"{dataset.replace('/', '-')}_{split}.csv")
 
     logger.add(
-        PROJECT_ROOT.joinpath("logs",f"{Path(__file__).stem}.log"),
+        PROJECT_ROOT.joinpath("logs", f"{Path(__file__).stem}.log"),
         rotation="10 MB",
         level="INFO",
     )

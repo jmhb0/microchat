@@ -1,0 +1,5 @@
+outs:
+- md5: 3073b315836460d1acf72ca3c2b75084
+  size: 244094
+  hash: md5
+  path: blooms_classification_finetuning.csv

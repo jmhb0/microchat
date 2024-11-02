@@ -20,6 +20,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
+from typing import List, Dict, Any
 from tqdm import tqdm
 
 from openai import OpenAI
@@ -98,6 +99,10 @@ def save_to_jsonl(data, filename):
             json_line = json.dumps(item)
             f.write(json_line + '\n')
 
+def read_jsonl(path: str) -> List[Dict[str, Any]]:
+    """Read JSONL file and return a list of dictionaries."""
+    with open(path, buffering=1024*1024) as f:
+        return [json.loads(line) for line in f if line.strip()]
 
 def organize_microbench():
     """
@@ -135,7 +140,7 @@ def organize_microbench():
 def parse_dataset(dataset_name, save_path):
     if os.path.exists(save_path):
         data = np.load(save_path, allow_pickle=True)
-        return data['query_qs'], data['all_qs']
+        return data['query_qs'].tolist(), data['all_qs'].tolist()
     
     if dataset_name == 'microbench':
         query_qs, all_qs = organize_microbench()
@@ -196,8 +201,7 @@ def blooms_tagging(save_dir, jsonl_path,
     save_path = os.path.join(save_dir, 'gpt_output.jsonl')
     if os.path.exists(save_path):
         print(f"Loading gpt output from {save_path}")
-        with open(save_path, 'r') as f:
-            gpt_output = json.load(f)
+        gpt_output = read_jsonl(save_path)
         return gpt_output
     
     if send_batch:
@@ -220,10 +224,21 @@ def blooms_tagging(save_dir, jsonl_path,
             return gpt_output
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
+        
+def clean_gpt_output(gpt_output):
+    final_output = []
+    for qs in gpt_output:
+        res = qs['response']['body']['choices'][0]['message']['content']
+        res = json.loads(res)
+        res.update({'id': qs['custom_id']})
+        final_output.append(res)
+    final_df = pd.DataFrame(final_output)
+    return final_df
 
-def plot_histograms(df, column_name, ds_save_dir, bins=20, figsize=(10, 6), title_prefix="Distribution of"):
+def plot_histograms(df, column_name, ds_save_dir, possible_values=None, figsize=(10, 6), title_prefix="Distribution of"):
     """
-    Create a histogram for a specified column in the DataFrame.
+    Create a histogram for a specified column in the DataFrame, with optional support for
+    showing specific possible values even if they don't appear in the data.
     
     Parameters:
     -----------
@@ -231,56 +246,114 @@ def plot_histograms(df, column_name, ds_save_dir, bins=20, figsize=(10, 6), titl
         The input DataFrame containing the data
     column_name : str
         Name of the column to create histogram for
-    bins : int, default=20
-        Number of bins in the histogram
+    ds_save_dir : str
+        Directory to save the plot
+    possible_values : list or None, default=None
+        List of possible values to include in plot even if not in data
+        If None, uses actual data values only
     figsize : tuple, default=(10, 6)
         Size of the figure (width, height)
     title_prefix : str, default="Distribution of"
         Prefix for the plot title
-    
+        
     Returns:
     --------
-    None (displays the plot)
+    None (saves the plot)
     """
-    # Set the style
-    sns.set_style("whitegrid")
+    # Set the style with improved aesthetics
+    plt.style.use('seaborn-v0_8')
     
-    # Create figure
-    plt.figure(figsize=figsize)
+    # Create figure with higher DPI for better quality
+    plt.figure(figsize=figsize, dpi=100)
     
-    # Create histogram
-    sns.histplot(data=df, x=column_name, bins=bins)
+    if possible_values is not None:
+        # Convert the column to categorical with specified categories
+        temp_series = pd.Categorical(df[column_name], categories=possible_values, ordered=True)
+        
+        # Create histogram with categorical data
+        ax = sns.histplot(
+            data=temp_series,
+            discrete=True,
+            stat='count',
+            color='skyblue',
+            edgecolor='navy',
+            alpha=0.7
+        )
+        
+        # Ensure all categories are shown
+        plt.xticks(range(len(possible_values)), possible_values)
+        
+    else:
+        # Standard histogram for any column type
+        ax = sns.histplot(
+            data=df,
+            x=column_name,
+            discrete=True if df[column_name].dtype in ['object', 'category'] else False,
+            stat='count',
+            color='skyblue',
+            edgecolor='navy',
+            alpha=0.7
+        )
+        
+        # Handle rotation for string values
+        if df[column_name].dtype in ['object', 'category']:
+            plt.xticks(rotation=45, ha='right')
+    
+    # Add grid for better readability
+    plt.grid(True, axis='y', alpha=0.3)
     
     # Customize the plot
-    plt.title(f"{title_prefix} {column_name}", pad=20)
-    plt.xlabel(column_name)
-    plt.ylabel("Count")
+    plt.title(f"{title_prefix} {column_name}", pad=20, fontsize=12, fontweight='bold')
+    plt.xlabel(column_name, fontsize=10)
+    plt.ylabel("Count", fontsize=10)
     
-    # Rotate x-axis labels if they're long
-    plt.xticks(rotation=45 if df[column_name].dtype == 'object' else 0)
+    # Add value labels on top of each bar
+    for i in ax.patches:
+        ax.text(
+            i.get_x() + i.get_width()/2,
+            i.get_height(),
+            int(i.get_height()),
+            ha='center',
+            va='bottom'
+        )
     
     # Adjust layout to prevent label cutoff
     plt.tight_layout()
     
-    plt.savefig(os.path.join(ds_save_dir, 'question_histogram.png'))
+    # Save the plot with high quality
+    plt.savefig(
+        os.path.join(ds_save_dir, f'histogram_{column_name}.png'),
+        dpi=300,
+        bbox_inches='tight'
+    )
+    
+    plt.close()
 
-def save_tags(gpt_output, save_dir, all_qs=None):
-    import ipdb; ipdb.set_trace()
+def save_tags(gpt_output, save_dir, query_qs, all_qs=None):
     save_path = os.path.join(save_dir, 'tagged_dataset.csv')
-    if os.path.exists():
+    if os.path.exists(save_path):
         print(f"Loading tagged dataset from {save_path}")
         blooms_qs = pd.read_csv(save_path)
     else:
-        gpt_df = pd.DataFrame(gpt_output)
+        gpt_df = clean_gpt_output(gpt_output)
+        query_df = pd.DataFrame(query_qs)
         # make a histogram of the blooms levels in the dataset
         if all_qs is not None:
-            blooms_qs = pd.merge(all_qs, gpt_df, on='template_type', how='left')
+            gpt_df = gpt_df.merge(query_df[['id', 'template_type']], on='id')
+            # if there's a template_id it means we used a template to fill in the blooms
+            gpt_df.rename(columns={'id': 'template_id'}, inplace=True)
+            all_qs_df = pd.DataFrame(all_qs)
+            blooms_qs = pd.merge(all_qs_df, gpt_df, on='template_type', how='left')
         else:
+            gpt_df = gpt_df.merge(query_df, on='id')
             blooms_qs = gpt_df
         # save the tagged dataset
         blooms_qs.to_csv(save_path, index=False)
     # plot the histogram of the blooms levels
-    plot_histograms(blooms_qs, 'blooms_level', save_dir)
+    # make the level a string variable
+    blooms_qs['blooms_level'] = blooms_qs['blooms_level'].astype(str)
+    plot_histograms(blooms_qs, 'blooms_level', save_dir, possible_values=['1', '2', '3', '4', '5', '6'])
+    plot_histograms(blooms_qs, 'blooms_name', save_dir)
 
 
 if __name__ == '__main__':
