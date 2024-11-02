@@ -162,7 +162,7 @@ def eval_qa(key_form,
     acc = (gts==preds).sum() / len(gts)
     print(acc)
     ipdb.set_trace()
-    pass
+pass
 
     # todo: free LLM response
 

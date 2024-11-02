@@ -1,5 +1,5 @@
 """
-python -m ipdb analysis_scripts/20241030_eval_after_v1_mcq_refiner_bot.py
+python -m ipdb analysis_scripts/20241030_eval_after_v1_mcq_refiner_bot_choose_best_qs.py
 """
 
 import ipdb
@@ -46,8 +46,56 @@ Think step by step and then output the answer in the format of \"The answer is (
     }
 }
 
+import pandas as pd
+import numpy as np
 
-def main(dir_rewrite, run_number, dir_results_parent):
+def select_mcqs_by_priority(dfs):
+    """
+    Select 'mcqs' values based on priority of 'code' values across multiple dataframes.
+    
+    Parameters:
+    dfs (list): List of pandas DataFrames, each containing 'code' and 'mcqs' columns
+    
+    Returns:
+    pandas.Series: Selected 'mcqs' values based on priority order
+    """
+    # Define priority order (highest to lowest)
+    priority_order = [
+        'SUCCESS_REWRITE',
+        'SUCCESS_NO_CHANGE',
+        'FAIL_ITERATIONS',
+        'FAIL_REWRITE'
+    ]
+    
+    # Create a dictionary to map codes to their priority (lower number = higher priority)
+    priority_map = {code: i for i, code in enumerate(priority_order)}
+    
+    # Number of rows (assuming all dataframes have same number of rows)
+    n_rows = len(dfs[0])
+    
+    # Initialize results with NaN
+    selected_mcqs = pd.Series([np.nan] * n_rows)
+    
+    # For each row
+    for row_idx in range(n_rows):
+        best_priority = float('inf')
+        best_mcq = np.nan
+        
+        # Check each dataframe
+        for df in dfs:
+            code = df.loc[row_idx, 'code']
+            if code in priority_map:
+                current_priority = priority_map[code]
+                # If this code has higher priority (lower number) than what we've seen
+                if current_priority < best_priority:
+                    best_priority = current_priority
+                    best_mcq = df.loc[row_idx, 'mcqs']
+        
+        selected_mcqs[row_idx] = best_mcq
+    
+    return selected_mcqs
+
+def main(dir_rewrite, run_numbers, dir_results_parent):
     key_prompt_eval = 0
     seed = 0
     model = "gpt-4o-2024-08-06"
@@ -55,30 +103,43 @@ def main(dir_rewrite, run_number, dir_results_parent):
     url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
     f_csv = Path(dir_rewrite) / "jeffs_choices.csv"
     assert f_csv.exists()
-    df = pd.read_csv(f_csv)
+    df_questions_all = pd.read_csv(f_csv)
 
     ## first get the rewritten questions
+    dfs = []
+    for run_number in run_numbers:
+        fs = glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}_*_samples_sorted.csv")
+        assert len(fs) == 1
+        df = pd.read_csv(fs[0])
+        dfs.append(df)
 
-    # question folders
-    dirs = glob.glob(f"{dir_rewrite}/res_run_{run_number:04d}_*")
-    assert len(dirs) == 1
-    dirs_rewrite_qs = dirs[0]
-    dirs_questions = glob.glob(f"{dirs_rewrite_qs}/question_*")
-    idxs_question = [int(Path(d).stem.split("_")[1]) for d in dirs_questions]
-    idxs_question = sorted(idxs_question)
-    df_questions = df.loc[idxs_question]
-    assert len(df_questions) == len(idxs_question)
+        # question folders
+        dirs = glob.glob(f"{dir_rewrite}/res_run_{run_number:04d}_*")
+        assert len(dirs) == 1
+        dirs_rewrite_qs = dirs[0]
+        dirs_questions = glob.glob(f"{dirs_rewrite_qs}/question_*")
+        idxs_question = [int(Path(d).stem.split("_")[1]) for d in dirs_questions]
+        idxs_question = sorted(idxs_question)
+        df_questions = df_questions_all.loc[idxs_question]
+        assert len(df_questions) == len(idxs_question)
+        
+        # get the question mcqs
+        mcqs = []
+        for idx_question in idxs_question:
+            files = glob.glob(
+                f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
+            nums = [int(Path(f).stem.split("_")[4]) for f in files]
+            file = files[np.argmax(nums)]
+            with open(file, 'r') as fp:
+                mcq = json.load(fp)
+            mcqs.append(mcq)
 
-    # get the question mcqs
-    mcqs = []
-    for idx_question in idxs_question:
-        files = glob.glob(
-            f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
-        nums = [int(Path(f).stem.split("_")[4]) for f in files]
-        file = files[np.argmax(nums)]
-        with open(file, 'r') as fp:
-            mcq = json.load(fp)
-        mcqs.append(mcq)
+        df['mcqs'] = mcqs
+        dfs.append(df)
+    
+    # pick the best one
+    df_choose_qs = select_mcqs_by_priority(dfs)
+    mcqs = df_choose_qs.values
 
     ## prepare all the prompt info
     cache_images = {}
@@ -136,6 +197,7 @@ def main(dir_rewrite, run_number, dir_results_parent):
     if key_prompt_eval == 1:
         batch_prompts_imgs = None
 
+    ipdb.set_trace()
     print("calling gpt")
     responses = call_gpt_batch(texts=batch_prompts_text,
                                imgs=batch_prompts_imgs,
@@ -182,13 +244,14 @@ def main(dir_rewrite, run_number, dir_results_parent):
 
 
 if __name__ == "__main__":
-    run_number = 93
+    run_numbers = [91, 92, 93]
+    run_numbers = [95,]
     dir_rewrite = "analysis_scripts/results/20241028_v1_mcq_refiner_bot"
 
     dir_results_parent = Path(__file__).parent / "results" / Path(__file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
 
-    main(dir_rewrite, run_number, dir_results_parent)
+    main(dir_rewrite, run_numbers, dir_results_parent)
 
 
 
