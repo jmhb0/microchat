@@ -12,6 +12,7 @@ python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /
 """
 
 import os
+import ast
 import argparse
 from datasets import load_dataset
 import pandas as pd
@@ -116,9 +117,21 @@ def organize_ours(file_path, dataset_name='ours'):
     df = pd.read_csv(file_path)
     query_qs = []
     all_qs = None # no need bc we don't have template qs
+    # if 'bot' in dataset_name:
+    #     # with bot the correct answer is inside the choices dict
+    #     # fancy no loop version only works if all choices have the same length
+    #     gt_idx = df['choices'].apply(lambda x: ast.literal_eval(x)['choices']['correct_index']).to_numpy()
+    #     choices = np.vstack(df['choices'].apply(lambda x: ast.literal_eval(x)['choices']['choices']))
+    #     df['correct_answer'] = choices[np.arange(len(choices)), gt_idx]
     for idx, row in df.iterrows():
+        if 'bot' in dataset_name:
+            choices = ast.literal_eval(row['choices'])['choices']['choices']
+            gt_idx = ast.literal_eval(row['choices'])['choices']['correct_index']
+            correct_answer = choices[gt_idx]
+        else:
+            correct_answer = row['answer']
         q_info = {'question_stem': row['question'],
-            'correct_answer': row['answer'],
+            'correct_answer': correct_answer,
             'dataset': dataset_name,
             'id': str(row['key_question']),
             'use_case': str(row['use_case'])}
