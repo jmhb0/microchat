@@ -51,7 +51,7 @@ nbme:
 #       - Preferable for medium- to high-stakes summative examinations.
 #       - Ideal for assessing higher-order thinking and practical application of knowledge.
   general_rules_for_one_best_answer_multiple_choice: |
-    Summary of General Rules for One-Best-Answer Items:
+    Summary of General Rules for One-Best-Answer Multiple-Choice Items:
       - Clarity and Precision: Ensure that item and option text is clear and unambiguous. Avoid imprecise phrases like "is associated with," cueing words such as "may" or "could be," and vague terms like "usually" or "frequently."
       - Focused Lead-in: The lead-in should be closed and focused, allowing test-takers to answer correctly without seeing the options ("cover-the-options" rule).
       - Homogeneous Options: All options should be similar in content and structure, enabling them to be judged as entirely true or false on a single dimension.
@@ -137,66 +137,74 @@ blooms:
      - Analyze: Understanding the underlying structure of knowledge to be able to distinguish between fact and opinion.
      - Synthesis/Evaluate: Making judgments about the value of ideas, theories, items and materials.
      - Create: Reorganizing concepts into new structures or patterns through generating, producing or planning.
-#  blooms_question_stems: |
-#    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
-#    - Recall: Basic definitions, facts, and terms, as well as image classification or object identification. Students recall facts and basic concepts, such as memorizing and defining elements seen in images.
-#      "What is the cellular structure shown in this image?"
-#      "Where is this type of tissue commonly found?"
-#      "When does this stage of cell division occur?"
-#      "How would you describe the features observed in this image?"
-#      "Which organ is represented in this histological slide?"
-#      "What are the main components visible in this image?"
-#      "Define the term associated with the highlighted area."
-#      "Identify the cell type shown in the micrograph."
-#      "List three characteristics of this tissue type."
-#      "What is the function of the structure labeled 'A'?"
-#    - Comprehension: Basic understanding of architectural and subcellular organization of cells and tissues. Interpretation of subcellular structures, cell types, and organs from images without relating them to broader concepts.
-#      "How would you classify this tissue based on its structure?"
-#      "How does this image compare to normal anatomy?"
-#      "What is the main idea illustrated by this histological section?"
-#      "Which statements support the identification of this cell type?"
-#      "How can you explain the organization of cells in this image?"
-#      "What can you say about the relationship between these two structures?"
-#      "Which is the best description of the area indicated?"
-#      "How would you summarize the features seen in this slide?"
-#      "Explain the significance of the staining pattern observed."
-#      "Identify and describe the location of specialized cells in this tissue."
-#    - Application: Visual identification in new situations by applying acquired knowledge. Requires additional functional or structural knowledge about the cells or tissues.
-#      "How would you use your knowledge of histology to identify abnormalities in this image?"
-#      "What examples can you find that demonstrate pathological changes?"
-#      "How would you solve a diagnostic problem using this tissue sample?"
-#      "How would you organize the observed features to show disease progression?"
-#      "What approach would you use to differentiate between these two cell types?"
-#      "How would you apply what you've learned to explain the function of this structure?"
-#      "What other scenarios can you predict based on these histological findings?"
-#      "What would result if the highlighted area was damaged?"
-#      "How can you make use of the staining techniques to identify specific cells?"
-#      "What elements would you analyze to confirm a diagnosis?"
-#    - Analysis: Visual identification and analysis requiring comprehensive additional knowledge. Connecting structure and function within a single cell type or structure, examining relationships critically.
-#      "What are the key features of the cells shown, and how do they relate to their function?"
-#      "How is the observed tissue architecture related to its physiological role?"
-#      "Why do you think these structural changes have occurred?"
-#      "What conclusions can you draw about the disease state from this image?"
-#      "How would you classify the different cell populations present?"
-#      "How can you identify the stages of the cell cycle depicted?"
-#      "What evidence supports the presence of an infection in this tissue?"
-#      "What is the relationship between the two highlighted structures?"
-#      "How can you distinguish between benign and malignant features here?"
-#      "What functions are impaired due to the alterations seen in this slide?"
-#    - Synthesis/Evaluation: Interactions between different cell types or tissues to predict relationships; judging and critiquing knowledge of multiple elements simultaneously in new situations. Potential to use scientific or clinical judgment.
-#      "What changes would you make to this experimental design to improve results?"
-#      "How would you improve patient outcomes based on these histological findings?"
-#      "What would happen to organ function if this cell type were depleted?"
-#      "How can you elaborate on the mechanisms leading to the observed pathology?"
-#      "What alternative diagnoses can you propose given the image data?"
-#      "How can you invent a treatment strategy targeting the affected cells?"
-#      "How would you adapt current therapies to address the abnormalities shown?"
-#      "What could be done to minimize tissue damage in this condition?"
-#      "What way would you design a follow-up study to test your hypothesis?"
-#      "How would you evaluate the effectiveness of a new drug using these images?"
-#      "Predict the outcome of the disease progression based on histological evidence."
-#      "How can a model be constructed to change our understanding of this tissue?"
-#      "What is an original approach to treat the disorder indicated by the slide?"
+  blooms_question_stems: |
+    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
+    - Recall: Remembering basic facts and identifying elements in images.
+    - Examples:
+      "What is the cellular structure shown in this image?"
+      "Where is this type of tissue commonly found?"
+      "Identify the cell type shown in the micrograph."
+      "List three characteristics of this tissue type."
+      "What is the function of the structure labeled 'A'?"
+    - Comprehension: Understanding and interpreting structures without relating them to broader concepts.
+    - Examples:
+      "How would you classify this tissue based on its structure?"
+      "Explain the significance of the staining pattern observed."
+      "Summarize the features seen in this slide."
+      "Identify and describe the location of specialized cells in this tissue."
+      "How can you explain the organization of cells in this image?"
+    - Application: Applying knowledge to new situations; requires additional functional or structural understanding.
+    - Examples:
+      "How would you use your knowledge to identify abnormalities in this image?"
+      "What approach would you use to differentiate between these two cell types?"
+      "How can you use staining techniques to identify specific cells?"
+      "What elements would you analyze to confirm a diagnosis?"
+      "What would result if the highlighted area was damaged?"
+    - Analysis: Examining and connecting structure and function; critically evaluating relationships.
+    - Examples:
+      "What are the key features of the cells, and how do they relate to their function?"
+      "How is the tissue architecture related to its physiological role?"
+      "What conclusions can you draw about the disease state from this image?"
+      "How can you distinguish between benign and malignant features here?"
+      "Why do you think these structural changes have occurred?"
+    - Synthesis/Evaluation: Predicting relationships and interactions; judging and critiquing knowledge in new situations.
+    - Examples:
+      "How would you improve patient outcomes based on these findings?"
+      "What alternative diagnoses can you propose given the image data?"
+      "How would you design a follow-up study to test your hypothesis?"
+      "Predict the outcome of disease progression based on the evidence."
+      "How can a model be constructed to change our understanding of this tissue?"
+  blooms_biology_exam: |
+    # Revised Bloom's classification applied to biology multiple-choice questions:
+    Level 1: Recall
+        Focus: Recall or identification of objects in images. Remembering basic definitions, facts, and terms.
+        Skills Assessed: Identify, recall, list, recognize, or label
+        Characteristics of MC questions: Question only requires information recall or simple image recognition.
+        Example biology exam question: "Identify the parts of a eukaryotic cell", "Identify the correct definition of osmosis"
+    
+    Level 2: Comprehension (Understand)
+        Focus: Understanding the organization of cells and tissues; interpreting images without broader context; describe or explain in your own words, re-tell, or summarize
+        Skills Assessed: Describe, Explain, Identify, Classify, Locate.
+        Characteristics of MC questions: Question requires understanding of concept or terms; understand image object in simple context 
+        Example biology exam question: "Describe nuclear transport to a lay person; provide an example of a cell signaling pathway"
+    
+    Level 3: Application
+        Focus: Applying knowledge to new situations; advanced visual identification that requires deep understanding and application to a new setting. PREDICT an outcome using several pieces of information or concepts; use information in a new context
+        Skills Assessed: Apply, Connect, Apply several pieces of information or concepts in a new context.
+        Characteristics of MC questions: Apply knowledge to distinguish between properly and improperly stated outcomes; Question requires application of knowledge to predict the most likely outcome given a new situation or perturbation to the system
+        Example biology exam question: Predict what happens to X if Y increases
+    
+    Level 4: Analysis
+        Focus: Analyzing comprehensive knowledge; connecting structure and function within a single cell type or structure.
+        Skills Assessed: Analyze, Infer, Advanced Classification
+        Characteristics of MC questions: Question requires interpretation of data and selection of best conclusion
+        Example biology exam question: Interpret data, graphs, or figures; make a diagnosis or analyze a case study; advanced compare/contrast information
+    
+    Level 5: Synthesis/Evaluation    
+        Focus: Predicting relationships between different cell types or tissues; judging and critiquing multiple elements in new situations; using scientific or clinical judgment.
+        Skills Assessed: Predict, Judge, Critique, Decide, Evaluate, Synthesize/Create
+        Characteristics of MC questions: Question requires assessment of information relative to its support of an argument
+        Example biology exam question: Develop a hypothesis, design an experiment, create or evaluate a model, or evaluate a new hypothesis to explain a phenomenon
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
     Level 1: Recall
