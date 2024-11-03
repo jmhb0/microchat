@@ -69,7 +69,7 @@ def create_model(    model_name: str, config: Optional[dict] = None, kwargs: Opt
                                  temperature=temperature,
                                  max_tokens=max_tokens,
                                  **config)
-        case ModelType.o1_mini:
+        case ModelType.o1_mini | ModelType.o1_preview:
             temperature = 1.0 # required for o1
             max_tokens = 5000 # required for o1
             dspy_model = dspy.LM("/".join(model_type.value),
