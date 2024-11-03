@@ -55,7 +55,7 @@ nbme:
       - Clarity and Precision: Ensure that item and option text is clear and unambiguous. Avoid imprecise phrases like "is associated with," cueing words such as "may" or "could be," and vague terms like "usually" or "frequently."
       - Focused Lead-in: The lead-in should be closed and focused, allowing test-takers to answer correctly without seeing the options ("cover-the-options" rule).
       - Homogeneous Options: All options should be similar in content and structure, enabling them to be judged as entirely true or false on a single dimension.
-      - Incorrect Options: Incorrect options can be either partially or wholly incorrect.
+      - Incorrect Options: Incorrect options can be either partially or wholly incorrect. They should be plausible and challenging to prevent easy elimination.
   guideline_writing_lead_in_for_one_best_answer_multiple_choice: |
     # Guideline for writing item lead-in
     The lead-in should consist of a single, clearly formulated question so that the test-taker can answer without looking at the options. As mentioned previously, satisfying the "cover-the-options" rule is an essential component of a good question.
