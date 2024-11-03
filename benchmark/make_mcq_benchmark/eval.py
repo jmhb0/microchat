@@ -76,6 +76,16 @@ def eval_qa(key_form,
     df_questions = pd.read_csv(f_choices, index_col="key_question")
     # df_questions = df_questions[:240]
 
+    # filtering for the set that we experimented with 
+    if 0: 
+        idxs_question = [
+        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
+        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
+        542, 543
+        ]
+        df_questions = df_questions.loc[idxs_question]
+        
+
 
     batch_prompts_text = []
     # batch_prompts_text_no_G = []

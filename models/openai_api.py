@@ -72,6 +72,7 @@ def call_gpt(
     cache: bool = True,
     overwrite_cache: bool = False,
     debug=None,
+    verbose=True,
     # if json_mode=True, and not json decodable, retry this many time
     num_retries: int = 3):
     """ 
@@ -88,7 +89,9 @@ def call_gpt(
         cache key, so changing it will force the API to be called again
     """
     global HITS, MISSES
-    print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+    if verbose:
+        print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+
 
     # response format
     if response_format:
@@ -184,13 +187,11 @@ def call_gpt(
     if response_format:
         kwargs['response_format'] = response_format
 
-    # call gpt if not cached. If json_mode=True, check that it's json and retry if not
-    for i in range(num_retries):
 
-        response = client.beta.chat.completions.parse(**kwargs)
-        prompt_tokens = response.usage.prompt_tokens
-        completion_tokens = response.usage.completion_tokens
-        msg = response.choices[0].message.content
+    response = client.beta.chat.completions.parse(**kwargs)
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+    msg = response.choices[0].message.content
 
     response_cache = dict(msg=msg,
                           prompt_tokens=prompt_tokens,
@@ -210,7 +211,7 @@ def call_gpt(
     if json_mode or response_format:
         msg = json.loads(msg)
 
-    return msg, response, messages, conversation 
+    return msg, response_cache, messages, conversation 
 
 
 def _encode_image_np(image_np: np.array):
@@ -263,7 +264,7 @@ def call_gpt_batch(texts,
     # reset the cache logging
     global HITS, MISSES
     HITS, MISSES = 0, 0
-    # print()
+    print()
 
 
     if get_meta:
@@ -331,7 +332,7 @@ def test_basic():
     model = "gpt-4o-mini"
     text = "How did Steve Irwin die? "
     overwrite_cache = True
-    overwrite_cache = False
+    # overwrite_cache = False
     cache = True
     res = call_gpt(text,
                     model=model,
@@ -414,6 +415,7 @@ if __name__ == "__main__":
     sys.path.insert(0, ".")
 
     test_basic()
+    ipdb.set_trace()
     test_batch()
     test_conversation()
     test_response_format()
