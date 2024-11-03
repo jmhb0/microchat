@@ -70,7 +70,6 @@ class BaseRAG(dspy.Module):
         prediction = dspy.ChainOfThought(self.signature)(
             context=context, question=question
         )
-        prediction.context = context  # add context to prediction
         return prediction
         # dspy.Prediction(context=context, answer=prediction.answer)
 

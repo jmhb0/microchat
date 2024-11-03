@@ -158,8 +158,12 @@ def create_assistant(row, assistant_columns: list):
 @click.argument("input-file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--train", is_flag=True, help="Format data for openai fine-tuning.")
-@click.option('--n-sample', type=int, help='Number of samples to extract from the input file.')
-@click.option("--random-seed", type=int, default=8675309, help="Random seed for shuffling.")
+@click.option(
+    "--n-sample", type=int, help="Number of samples to extract from the input file."
+)
+@click.option(
+    "--random-seed", type=int, default=8675309, help="Random seed for shuffling."
+)
 @click.option(
     "--system-context",
     type=str,

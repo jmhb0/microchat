@@ -110,9 +110,12 @@ def main(
 
     # set task with question_key and answer_key
     # TODO: load config from yaml
-    if task == "blooms":
+    if task == "blooms" or "blooms" in dataset_name:
         question_key = "question_answer"  # "revised_question_answer"  # "question" #"original_question_answer"
         answer_key = "blooms_question_category"  # "blooms_question_category"  # "revised_question" #"revised_question_answer"
+    elif task == "nbme":
+        question_key = "original_question_answer"
+        answer_key = "revised_question_answer"
     else:
         logger.error(f"Task {task} not implemented.")
         raise NotImplementedError(f"Task {task} not implemented.")
@@ -135,7 +138,7 @@ def main(
     logger.info(f"Train answer: {train_example.answer}")
 
     # Set up a basic teleprompter, which will compile our RAG program.
-    optimizer = create_optimizer(optimizer, teacher_model=teacher_model)
+    optimizer, metric = create_optimizer(optimizer, teacher_model=teacher_model)
 
     # create module
     module = CoTSelfCorrectRAG(context=task)
@@ -154,9 +157,15 @@ def main(
         # or correct with gpt-4o. any examples without 100% agreement
         # among MicroChat-MC, o1-mini, and, gpt-4o will get human review
         try:
-            response = Blooms(
-                example=example, module=module, teacher_model=teacher_model
-            )
+            if task == "blooms":
+                response = Blooms(
+                    example=example, module=module, teacher_model=teacher_model
+                )
+            elif task == "nbme":
+                response = MCQ(
+                    example=example, module=module, teacher_model=teacher_model
+                )
+
             output_list.append(
                 {
                     "key_image": response.example.key_image,

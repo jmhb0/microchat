@@ -3,7 +3,7 @@
 from microchat.models.model_factory import create_model
 from microchat.teleprompters.teleprompter_registry import OptimizerType
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any, Union
 import re
 
 from dotenv import find_dotenv
@@ -24,11 +24,11 @@ load_dotenv(find_dotenv())
 
 def create_optimizer(
         optimizer_name: str,
-        metric: Optional[dspy.Evaluate] = None,
+        metric: Optional[Union[dspy.Evaluate, Any]] = None,
         teacher_model: Optional[str] = "o1-mini",
         config: Optional[dict] = None,
         kwargs: Optional[dict] = None
-) -> dspy.teleprompt.Teleprompter:
+) -> Tuple[dspy.teleprompt.Teleprompter, dspy.Evaluate]:
     """Create an optimizer model name.
 
     Args:
@@ -48,16 +48,19 @@ def create_optimizer(
     if not metric:
         metric = dspy.evaluate.answer_exact_match
         logger.info(f"Using default metric: {metric.__name__}")
-    elif not isinstance(metric, dspy.Evaluate):
-        logger.error(f"Metric {metric} is not an instance of dspy.Evaluate.")
-        raise ValueError(f"Metric {metric} is not an instance of dspy.Evaluate.")
+    elif not isinstance(metric, dspy.Evaluate) and not callable(metric):
+        logger.error(f"Expected metric to be an instance of dspy.Evaluate but got {type(metric)}")
+        raise ValueError(f"Expected metric to be an instance of dspy.Evaluate but got {type(metric)}")
+    else:
+        logger.info(f"Using metric: {metric.__name__}")
 
     # update config
     config = config or {}
     config.update(kwargs or {})
     default_config = yaml_loader(MODULE_ROOT.joinpath("conf", "opt_config.yaml"))
     default_config = default_config.get(optimizer_type.name, {})
-    config.update(default_config)
+    if default_config:
+        config.update(default_config)
 
     # load model
     logger.info(f"Loading optimizer: {optimizer_type.name}")
@@ -87,4 +90,6 @@ def create_optimizer(
     optimizer.model_name = optimizer_type.value[-1]
     optimizer.config = dict(metric=metric, **config)
 
-    return optimizer
+    metric.teacher_model = teacher_model
+
+    return optimizer, metric
