@@ -136,6 +136,7 @@ def eval_qa(key_form,
     assert len(batch_prompts_text) == len(batch_prompts_imgs)
     assert len(batch_prompts_text) == len(idxs)
 
+
     # a sense-check that the images are processed correctly
     if 0:
         batch_prompts_text = ["what is this image?"]
@@ -147,7 +148,7 @@ def eval_qa(key_form,
                                )
         msg = responses[0][0]
 
-
+    # 
     # call gpt
     seeds = [seed] * len(batch_prompts_text)
     # blind experiment change
@@ -198,10 +199,9 @@ if __name__ == "__main__":
     # key for generating the choices
     key_choices_gen = 9
     # key for evaluation prompt
+    key_prompt_eval = 0 # 1 is blind 0 is default
     key_prompt_eval = 1 # 1 is blind 0 is default
     model = "gpt-4o-2024-08-06"
 
     eval_qa(key_form, key_question_gen, key_choices_gen,
             key_prompt_eval=key_prompt_eval, seed=0, model=model)
-    ipdb.set_trace()
-    pass

@@ -1,3 +1,6 @@
+"""
+python bench
+"""
 import ipdb
 import requests
 from pathlib import Path
@@ -50,7 +53,7 @@ def download_form_responses(idx, url, url_updates, download_imgs=True, verbose=0
     f_save = dir_data / "1_responses_after_edits0.csv"
     df.to_csv(f_save)
 
-    ipdb.set_trace()
+    # ipdb.set_trace()
 
     print("\nUnique emails: ", len(df["Email Address"].unique()))
     print("\nCounts ", df.groupby('Email Address')['Email Address'].count())
@@ -279,8 +282,10 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
     for row_index, drive_link in tqdm.tqdm(drive_links.items(),
                                            total=len(drive_links)):
-        if row_index <= 185:
+        # if row_index <= 220:
+        if row_index not in (207,):
             continue
+
         row_dir = dir_data_images / f"idx_{row_index:04d}"
         row_dir.mkdir(parents=True, exist_ok=True)
 
@@ -336,7 +341,7 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
 
 if __name__ == "__main__":
-    verbose = 0
+    verbose = 1
     key = '0'
     download_imgs = 1
     # download_imgs = 0
