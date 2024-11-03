@@ -35,6 +35,8 @@ from cache import cache_utils
 
 client = openai.OpenAI()
 cache_openai = lmdb.open("cache/cache_openai", map_size=int(1e12))
+cache_openai_full = lmdb.open("cache/cache_openai_full",
+                              map_size=int(1e12))  # workaround
 cache_lock = Lock()
 
 # logging.getLogger("openai").setLevel(logging.ERROR)
@@ -70,6 +72,7 @@ def call_gpt(
     cache: bool = True,
     overwrite_cache: bool = False,
     debug=None,
+    verbose=True,
     # if json_mode=True, and not json decodable, retry this many time
     num_retries: int = 3):
     """ 
@@ -86,7 +89,10 @@ def call_gpt(
         cache key, so changing it will force the API to be called again
     """
     global HITS, MISSES
-    # print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+    if verbose:
+        print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
+
+
     # response format
     if response_format:
         assert not json_mode
@@ -147,11 +153,18 @@ def call_gpt(
                 msg = json.loads(msg)
             with cache_lock:
                 HITS += 1
-                conversation = messages + [{
-                    "role": "assistant",
-                    "content": msg
-                }]
-            return msg, None, messages, conversation
+            conversation = messages + [{
+                "role": "assistant",
+                "content": msg
+            }]
+
+            # if the response object was also saved incache_openai_full, get it
+            with cache_lock:
+                response_cache = cache_utils.get_from_cache(cache_key, cache_openai_full)
+            if response_cache is not None: 
+                response_cache = json.loads(response_cache)
+
+            return msg, response_cache, messages, conversation
     with cache_lock:
         MISSES += 1
         # print("Debug: ", debug)
@@ -174,31 +187,31 @@ def call_gpt(
     if response_format:
         kwargs['response_format'] = response_format
 
-    # call gpt if not cached. If json_mode=True, check that it's json and retry if not
-    for i in range(num_retries):
 
-        response = client.beta.chat.completions.parse(**kwargs)
-        prompt_tokens = response.usage.prompt_tokens
-        completion_tokens = response.usage.completion_tokens
-        msg = response.choices[0].message.content
+    response = client.beta.chat.completions.parse(**kwargs)
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+    msg = response.choices[0].message.content
+
+    response_cache = dict(msg=msg,
+                          prompt_tokens=prompt_tokens,
+                          completion_tokens=completion_tokens)
+    response_cache['cost'] = compute_api_call_cost(prompt_tokens,
+                                                   completion_tokens,
+                                                   model=model)
+    conversation = messages + [{"role": "assistant", "content": msg}]
 
     # save to cache if enabled
     if cache:
         with cache_lock:
             cache_utils.save_to_cache(cache_key, msg, cache_openai)
+            cache_utils.save_to_cache(cache_key, json.dumps(response_cache),
+                                      cache_openai_full)
 
     if json_mode or response_format:
         msg = json.loads(msg)
 
-    response = dict(prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens)
-    response['cost'] = compute_api_call_cost(prompt_tokens,
-                                              completion_tokens,
-                                              model=model)
-
-    conversation = messages + [{"role": "assistant", "content": msg}]
-
-    return msg, response, messages, conversation
+    return msg, response_cache, messages, conversation 
 
 
 def _encode_image_np(image_np: np.array):
@@ -238,7 +251,7 @@ def call_gpt_batch(texts,
             if debug is not None:
                 all_kwargs[i]['debug'] = debug[i]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=64) as executor:
         futures = []
 
         for text, img, _kwargs in zip(texts, imgs, all_kwargs):
@@ -251,20 +264,17 @@ def call_gpt_batch(texts,
     # reset the cache logging
     global HITS, MISSES
     HITS, MISSES = 0, 0
-    # print()
+    print()
+
 
     if get_meta:
+        # compute cost in a way that handles the back-compatibility issue with old cache results
         for i in range(len(results)):
-            msg, tokens = results[i][:2]
-
-            if tokens is not None:
-                price = compute_api_call_cost(tokens['prompt_tokens'],
-                                              tokens['completion_tokens'],
-                                              kwargs.get("model", "gpt-4o"))
+            msg, response = results[i][:2]
+            if type(results[i][1]) is dict:
+                results[i][1] = response['cost']
             else:
-                price = 0
-
-            results[i][1] = price
+                results[i][1] = 0
 
     return results
 
@@ -318,6 +328,20 @@ def compute_api_call_cost(prompt_tokens: int,
     return price
 
 
+def test_basic():
+    model = "gpt-4o-mini"
+    text = "How did Steve Irwin die? "
+    overwrite_cache = True
+    # overwrite_cache = False
+    cache = True
+    res = call_gpt(text,
+                    model=model,
+                    cache=cache,
+                    overwrite_cache=overwrite_cache,
+                    json_mode=False)
+    msg = res[0]
+
+
 def test_conversation():
     model = "gpt-4o-mini"
     text0 = "How did Steve Irwin die? "
@@ -364,6 +388,25 @@ def test_response_format():
     print(msg0)
 
 
+def test_batch():
+    model = "gpt-4o-mini"
+    text = "How did Steve Irwin die? "
+    batch_texts = [text]*10
+    seeds = list(range(10)) # since the text is identical
+    overwrite_cache = True
+    overwrite_cache = False
+    cache = True
+    res = call_gpt_batch(batch_texts,
+                    model=model,
+                    cache=cache,
+                    seeds = seeds,
+                    overwrite_cache=overwrite_cache,
+                    json_mode=False)
+    msg = res[0]
+    cost = sum([r[1] for r in res])
+    print(f"Total cost ${cost:.3f}")
+
+
 # basic testing
 if __name__ == "__main__":
     import time
@@ -371,7 +414,9 @@ if __name__ == "__main__":
     sys.path.insert(0, "..")
     sys.path.insert(0, ".")
 
-    #
+    test_basic()
+    ipdb.set_trace()
+    test_batch()
     test_conversation()
     test_response_format()
 

@@ -1,5 +1,5 @@
 """
-make_questions.py
+python -m ipdb benchmark/make_mcq_benchmark/make_questions.py
 Generate the questions but not the distractors. 
 
 We can implement multiple strategies, marked by `key_question_gen`. 
@@ -100,7 +100,7 @@ def combine_questions_without_llm(df_questions, df_images, add_context=True):
     df_questions['fname_images'] = fname_images
     df_questions = df_questions[[
         'question', 'answer', 'key_image', 'fname_images', 'incorrect_answer',
-        'question_number'
+        'question_number', 'use_case'
     ]]
 
     return df_questions

@@ -1,5 +1,5 @@
 """
-    python -m ipdb analysis_scripts/20241030_eval_after_v1_mcq_refiner_bot.py
+python -m ipdb analysis_scripts/20241030_eval_after_v1_mcq_refiner_bot.py
 """
 
 import ipdb
@@ -35,8 +35,6 @@ prompt_eval_templates = {
         "about":
         "based on prompt from MMLU-pro https://github.com/TIGER-AI-Lab/MMLU-Pro/blob/b7b9ffd84b2c21a5bfcf174fc65e5e6d74ca09a8/evaluate_from_api.py modified to add image",
         "template": """\
-The following is a multiple choice question (with answers) and images. 
-
 {{QUESTION}}
 Think step by step and then output the answer in the format of \"The answer is (X)\" at the end." \
 
@@ -47,7 +45,28 @@ Think step by step and then output the answer in the format of \"The answer is (
 }
 
 
-def main(dir_rewrite, run_number, dir_results_parent):
+def get_data(questions_source):
+    if questions_source == 'jeffs_revised':
+        url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
+        f_csv = dir_results_parent / "jeffs_choices.csv"
+        if not f_csv.exists():
+            download_csv(url_csv, f_csv)
+        df = pd.read_csv(f_csv)
+        do_shuffle = True
+
+    elif questions_source == 'qkey3_ckey9':
+        f_csv = "benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_9.csv"
+        df = pd.read_csv(f_csv)
+        shuffle = False  # already shuffle
+
+    else:
+        raise ValueError()
+
+    return df, shuffle
+
+
+def main(dir_rewrite, run_number, dir_results_parent, do_image_eval,
+         do_language_only):
     key_prompt_eval = 0
     seed = 0
     model = "gpt-4o-2024-08-06"
@@ -55,22 +74,134 @@ def main(dir_rewrite, run_number, dir_results_parent):
     url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
     f_csv = Path(dir_rewrite) / "jeffs_choices.csv"
     assert f_csv.exists()
-    df = pd.read_csv(f_csv)
 
-    ## first get the rewritten questions
+    # source the right base questions 
+    questions_source = 'jeffs_revised'
+    questions_source = 'qkey3_ckey9'
+    df, _ = get_data(questions_source)
 
-    # question folders
+    # get the rewritten questions from the bot run `dir_rewrite` (which depends on the run number)
+    mcqs, mcqs_question, mcqs_choices, idxs_question = get_mcqs_from_bot(
+        dir_rewrite)
+    df_questions = df.loc[idxs_question]
+    assert len(df_questions) == len(idxs_question)
+
+    ## prepare all the prompt info
+    cache_images, batch_prompts_imgs, batch_prompts_text, gts, idxs = get_prompts(
+        df_questions, mcqs, key_prompt_eval)
+
+    assert len(batch_prompts_text) == len(batch_prompts_imgs)
+    assert len(batch_prompts_text) == len(idxs)
+
+    seeds = [seed] * len(batch_prompts_text)
+    # blind experiment change
+    if key_prompt_eval == 1:
+        batch_prompts_imgs = None
+
+    print("calling gpt")
+    responses = call_gpt_batch(texts=batch_prompts_text,
+                               imgs=batch_prompts_imgs,
+                               model=model,
+                               json_mode=False,
+                               seeds=seeds)
+    cost = sum([c[1] for c in responses])
+    msgs = [m[0] for m in responses]
+    print(f"Cost of vlm call w choices${cost:.3f}")
+
+    # regex out the predictions
+    # preds_letter = []
+    preds = _regex_predictions(
+        msgs, prompt_eval_templates[key_prompt_eval]["regex_pattern"])
+
+    # compute the basic stats
+    gts = np.array(gts)
+    preds = np.array(preds)
+    acc = (gts == preds).sum() / len(gts)
+    print(f"Accuracy {acc:.3f}")
+
+    # get the old csv, and add accuracy results to it
+    f_results_ = glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_sorted*")
+    assert len(f_results_) == 1
+    f_results = f_results_[0]
+    df_results = pd.read_csv(f_results)
+    df_results['question_key'] = [
+        d[1] for d in df_results['log_str'].str.split("_")
+    ]
+
+    # make sure everything is lined up properly
+    df_results.loc[idxs, 'correct'] = (gts == preds).astype(int)
+    dir_results = dir_results_parent / f"res_{run_number}"
+    dir_results.mkdir(exist_ok=True)
+    f_save = dir_results / "results.csv"
+    df_results.to_csv(f_save)
+
+    df_questions['bot_question'] = mcqs_question
+    df_questions['bot_choices'] = mcqs_choices
+    df_questions['bot_code'] = df_results['code']
+    df_questions['iterations'] = df_results['iterations']
+    df_questions['cost'] = df_results['cost']
+
+    ## also save the old questions.
+    df_questions.loc[idxs, 'gt'] = -1
+    df_questions.loc[idxs, 'gt'] = gts
+    df_questions['pred'] = -1
+    df_questions.loc[idxs, 'pred'] = preds
+
+    df_questions.loc[idxs, 'correct'] = (preds == gts).astype(int)
+
+    f_save_questions = dir_results / "df_questions.csv"
+    df_questions.to_csv(f_save_questions)
+
+    if 1:
+        print(f"Per exit code accuracy ")
+        print()
+
+    if do_language_only:
+        prompt_prefix = """The following question is supposed to be paired with an image. We will not provide the image, so answer to the best of your ability.\n\n"""
+        batch_prompts_text_llm = [
+            prompt_prefix + s for s in batch_prompts_text
+        ]
+        responses = call_gpt_batch(texts=batch_prompts_text_llm,
+                                   imgs=None,
+                                   model=model,
+                                   json_mode=False,
+                                   seeds=seeds)
+        cost = sum([c[1] for c in responses])
+        msgs = [m[0] for m in responses]
+        print(f"Cost of vlm call w choices${cost:.3f}")
+
+        # regex out the predictions
+        # preds_letter = []
+        preds_no_image = _regex_predictions(
+            msgs, prompt_eval_templates[key_prompt_eval]["regex_pattern"])
+        preds_no_image = np.array(preds_no_image)
+        acc = (gts == preds_no_image).sum() / len(gts)
+        print(f"Language only accuracy {acc:.3f}")
+
+        df_questions['pred_no_image'] = -1
+        df_questions.loc[idxs, 'pred_no_image'] = preds_no_image
+        df_questions.loc[idxs, 'correct_no_image'] = (
+            preds_no_image == gts).astype(int)
+
+        f_save_questions = dir_results / "df_questions.csv"
+        df_questions.to_csv(f_save_questions)
+
+    ipdb.set_trace()
+    pass
+
+
+def get_mcqs_from_bot(dirs_rewrite):
     dirs = glob.glob(f"{dir_rewrite}/res_run_{run_number:04d}_*")
     assert len(dirs) == 1
     dirs_rewrite_qs = dirs[0]
     dirs_questions = glob.glob(f"{dirs_rewrite_qs}/question_*")
     idxs_question = [int(Path(d).stem.split("_")[1]) for d in dirs_questions]
     idxs_question = sorted(idxs_question)
-    df_questions = df.loc[idxs_question]
-    assert len(df_questions) == len(idxs_question)
 
     # get the question mcqs
     mcqs = []
+    mcqs_question = []
+    mcqs_choices = []
     for idx_question in idxs_question:
         files = glob.glob(
             f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
@@ -80,7 +211,15 @@ def main(dir_rewrite, run_number, dir_results_parent):
             mcq = json.load(fp)
         mcqs.append(mcq)
 
-    ## prepare all the prompt info
+        mcqs_question.append(mcq['question_stem'])
+        mcqs_choices.append({
+            'chocices':
+            dict(choices=mcq['choices'], correct_index=mcq['correct_index'])
+        })
+    return mcqs, mcqs_question, mcqs_choices, idxs_question
+
+
+def get_prompts(df_questions, mcqs, key_prompt_eval):
     cache_images = {}
     batch_prompts_imgs = []
     batch_prompts_text = []
@@ -128,67 +267,41 @@ def main(dir_rewrite, run_number, dir_results_parent):
         gts.append(correct_index)
         idxs.append(idx)
 
-    assert len(batch_prompts_text) == len(batch_prompts_imgs)
-    assert len(batch_prompts_text) == len(idxs)
+    return cache_images, batch_prompts_imgs, batch_prompts_text, gts, idxs
 
-    seeds = [seed] * len(batch_prompts_text)
-    # blind experiment change
-    if key_prompt_eval == 1:
-        batch_prompts_imgs = None
 
-    print("calling gpt")
-    responses = call_gpt_batch(texts=batch_prompts_text,
-                               imgs=batch_prompts_imgs,
-                               model=model,
-                               json_mode=False,
-                               seeds=seeds)
-    cost = sum([c[1] for c in responses])
-    msgs = [m[0] for m in responses]
-    print(f"Cost of vlm call w choices${cost:.3f}")
-
-    # regex out the predictions
-    # preds_letter = []
+def _regex_predictions(texts: list[str], regex_pattern: str):
     preds = []
-    for msg in msgs:
-        pattern = prompt_eval_templates[key_prompt_eval]["regex_pattern"]
-        match = re.search(pattern, msg)
+    for text in texts:
+        pattern = regex_pattern
+        match = re.search(pattern, text)
         if match is not None:
             pred = int(match.group(1)) - 1
             preds.append(pred)
         else:
             preds.append(-1)
 
-    # compute the basic stats
-    gts = np.array(gts)
-    preds = np.array(preds)
-    acc = (gts==preds).sum() / len(gts)
-    print(acc)
-
-    # get the old csv, and add accuracy results to it 
-    f_results_ =  glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_sorted*")
-    assert len(f_results_) == 1 
-    f_results = f_results_[0]
-    df_results = pd.read_csv(f_results)
-    df_results['question_key'] = [d[1] for d in df_results['log_str'].str.split("_")]
-
-    # make sure everything is lined up properly 
-    assert np.array_equal(df_results['question_key'].astype(int).values, np.array(idxs_question))
-    df_results['correct'] = (gts==preds)
-
-    dir_results = dir_results_parent / f"res_{run_number}"
-    dir_results.mkdir(exist_ok=True)
-    f_save = dir_results / "results.csv"
-    df_results.to_csv(f_save)
+    return preds
 
 
 if __name__ == "__main__":
-    run_number = 86
+    run_number = 122
+    do_image_eval = True
+    do_language_only = True
+    idxs_filter = True
     dir_rewrite = "analysis_scripts/results/20241028_v1_mcq_refiner_bot"
 
-    dir_results_parent = Path(__file__).parent / "results" / Path(__file__).stem
+    dir_results_parent = Path(__file__).parent / "results" / Path(
+        __file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
 
-    main(dir_rewrite, run_number, dir_results_parent)
+    main(dir_rewrite, run_number, dir_results_parent, do_image_eval,
+         do_language_only)
 
-
-
+[
+    'The sample undergoes self-repair mechanisms, maintaining image integrity.',
+    'Electrons create new structural bonds, leading to clearer images.',
+    'Electric fields nullify the high-energy impact, preserving quality.',
+    'The electron absorption leads to compound crystallization, improving resolution.',
+    'Prolonged electron contact causes changes that impair structural representation, reducing detail.'
+]

@@ -1,4 +1,5 @@
 """
+python -m ipdb benchmark/make_mcq_benchmark/generate_choices.py
 """
 import ipdb
 import sys
@@ -15,7 +16,12 @@ from models.openai_api import call_gpt_batch
 dir_this_file = Path(__file__).parent
 
 
-def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=True, subset=None):
+def gen_choices(key_form,
+                key_question_gen,
+                key_choices_gen,
+                seed=0,
+                update_q=True,
+                subset=None):
     dir_data_questions = Path(
         f"benchmark/data/formdata_{key_form}/question_strategy_{key_question_gen}"
     )
@@ -24,15 +30,14 @@ def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=Tr
     if subset:
         df_questions = df_questions[:subset]
 
-
-    if key_choices_gen in (6,7):
+    if key_choices_gen in (6, 7):
         assert key_question_gen == 0, "debugging key_choices_gen number only"
     if key_choices_gen in prompt_template_simple.keys():
         df_questions = gen_choices_simple(df_questions, key_choices_gen, seed)
 
     else:
         raise NotImplementedError()
-    df_questions = update_question(df_questions, update_q)
+    df_questions = update_question(df_questions, update_q, key_choices_gen)
 
     df_questions['choices'] = make_choices(
         df_questions['llm_response_choices'], seed)
@@ -42,14 +47,28 @@ def gen_choices(key_form, key_question_gen, key_choices_gen, seed=0, update_q=Tr
     print(f"Saved to {f_save}")
 
 
-def update_question(df_questions, update_q):
+def update_question(df_questions, update_q, key_choices_gen):
+    if key_choices_gen in (9, ):
+        distractor_key = 'distractors'
+    else:
+        distractor_key = 'incorrect_answers'
+
     df_questions['original_question'] = copy.deepcopy(df_questions['question'])
     df_questions['original_answer'] = copy.deepcopy(df_questions['answer'])
     if update_q:
-        df_questions['question'] = df_questions['llm_response_choices'].apply(
-            lambda x: ast.literal_eval(x)['question'])
-        df_questions['answer'] = df_questions['llm_response_choices'].apply(
-            lambda x: ast.literal_eval(x)['answer']) 
+        # to handle some bug I don't understand
+        if key_choices_gen in (9, ):
+            df_questions['question'] = df_questions[
+                'llm_response_choices'].apply(lambda x: x['question'])
+            df_questions['answer'] = df_questions[
+                'llm_response_choices'].apply(lambda x: x['answer'])
+        else:
+            df_questions['question'] = df_questions[
+                'llm_response_choices'].apply(
+                    lambda x: ast.literal_eval(x)['question'])
+            df_questions['answer'] = df_questions[
+                'llm_response_choices'].apply(
+                    lambda x: ast.literal_eval(x)['answer'])
     return df_questions
 
 
@@ -166,9 +185,40 @@ Answer: '''{{answer}}'''
 
 Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
 """,
+    # version for running the full v1 pipeline ... we'll give these to the bot
+    # this one will be used with a bot
+    9:
+    """\
+You are an expert in molecular and cell biology, and in microscopy. 
+I will give you a biology-related question and its answer - a "QA-pair".
+The question is related to an image, but we do not provide you with the image.
 
+YOUR TASK: 
+Transfer this question and answer into a multi-choice question. 
+
+First, rephrase an equivalent question and equivalent answer.
+The question and answer can be summarized and shorter so that they fit a standard mutliple-choice format that is concise.
+
+Second, generate incorrect options, called 'distractors'.
+The distractors should be challenging to eliminate. 
+The distractors should be similar in length to the correct answer.
+Please generate 4 distractors.
+
+{{question}}
+
+ANSWER: 
+{{answer}}
+
+""",
 
 }
+from pydantic import BaseModel
+
+
+class McqGenerated(BaseModel):
+    question: str
+    answer: str
+    distractors: list[str]
 
 
 def gen_choices_simple(df_questions, key_choices_gen, seed):
@@ -182,7 +232,7 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
         # 2 is placeholder for the full model using prompt 0
         model = "gpt-4o-2024-08-06"
         key_prompt_template = 0
-    elif key_choices_gen > 2: # we want to use the full model
+    elif key_choices_gen > 2:  # we want to use the full model
         model = "gpt-4o-2024-08-06"
         key_prompt_template = key_choices_gen
     else:
@@ -201,16 +251,28 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
         assert "{{" not in prompt
 
     print(f"Running GPT {model} with {len(batch_prompts)} prompts")
-    responses = call_gpt_batch(batch_prompts,
-                               json_mode=True,
-                               model=model,
-                               seed=seed)
+
+    if key_choices_gen in (9, ):
+        responses = call_gpt_batch(batch_prompts,
+                                   model=model,
+                                   response_format=McqGenerated,
+                                   seed=seed)
+    else:
+        responses = call_gpt_batch(batch_prompts,
+                                   json_mode=True,
+                                   model=model,
+                                   seed=seed)
     cost = sum([c[1] for c in responses])
     print(f"Cost of llm call ${cost:.3f}")
     msgs = [c[0] for c in responses]
 
+    # a backcompatibility thing when changing distractor names
+    for msg in msgs:
+        if 'distractors' in msg.keys():
+            msg['incorrect_answers'] = msg['distractors']
+            del msg['distractors']
+
     df_questions['llm_response_choices'] = msgs
-    ipdb.set_trace()
 
     return df_questions
 
@@ -246,11 +308,17 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
-    key_question_gen = 0
+    key_question_gen = 3
     # key for generatin the choices
-    key_choices_gen = 7
-    subset = None #150
+    key_choices_gen = 9
+    subset = None
+    # subset = 150
 
-    gen_choices(key_form, key_question_gen, key_choices_gen, subset=subset, seed=0)
+    gen_choices(key_form,
+                key_question_gen,
+                key_choices_gen,
+                subset=subset,
+                seed=0)
     ipdb.set_trace()
     pass
+

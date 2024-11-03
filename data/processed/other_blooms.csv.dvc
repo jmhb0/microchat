@@ -1,0 +1,5 @@
+outs:
+- md5: 81685a581768ad23be849a09bb786440
+  size: 20285
+  hash: md5
+  path: other_blooms.csv
