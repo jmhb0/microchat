@@ -137,100 +137,85 @@ blooms:
      - Analyze: Understanding the underlying structure of knowledge to be able to distinguish between fact and opinion.
      - Synthesis/Evaluate: Making judgments about the value of ideas, theories, items and materials.
      - Create: Reorganizing concepts into new structures or patterns through generating, producing or planning.
-  blooms_question_stems: |
-    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
-    - Recall: Remembering basic facts and identifying elements in images.
-    - Examples:
-      "What is the cellular structure shown in this image?"
-      "Where is this type of tissue commonly found?"
-      "Identify the cell type shown in the micrograph."
-      "List three characteristics of this tissue type."
-      "What is the function of the structure labeled 'A'?"
-    - Comprehension: Understanding and interpreting structures without relating them to broader concepts.
-    - Examples:
-      "How would you classify this tissue based on its structure?"
-      "Explain the significance of the staining pattern observed."
-      "Summarize the features seen in this slide."
-      "Identify and describe the location of specialized cells in this tissue."
-      "How can you explain the organization of cells in this image?"
-    - Application: Applying knowledge to new situations; requires additional functional or structural understanding.
-    - Examples:
-      "How would you use your knowledge to identify abnormalities in this image?"
-      "What approach would you use to differentiate between these two cell types?"
-      "How can you use staining techniques to identify specific cells?"
-      "What elements would you analyze to confirm a diagnosis?"
-      "What would result if the highlighted area was damaged?"
-    - Analysis: Examining and connecting structure and function; critically evaluating relationships.
-    - Examples:
-      "What are the key features of the cells, and how do they relate to their function?"
-      "How is the tissue architecture related to its physiological role?"
-      "What conclusions can you draw about the disease state from this image?"
-      "How can you distinguish between benign and malignant features here?"
-      "Why do you think these structural changes have occurred?"
-    - Synthesis/Evaluation: Predicting relationships and interactions; judging and critiquing knowledge in new situations.
-    - Examples:
-      "How would you improve patient outcomes based on these findings?"
-      "What alternative diagnoses can you propose given the image data?"
-      "How would you design a follow-up study to test your hypothesis?"
-      "Predict the outcome of disease progression based on the evidence."
-      "How can a model be constructed to change our understanding of this tissue?"
-  blooms_biology_exam: |
-    # Revised Bloom's classification applied to biology multiple-choice questions:
-    Level 1: Recall
-        Focus: Recall or identification of objects in images. Remembering basic definitions, facts, and terms.
-        Skills Assessed: Identify, recall, list, recognize, or label
-        Characteristics of MC questions: Question only requires information recall or simple image recognition.
-        Example biology exam question: "Identify the parts of a eukaryotic cell", "Identify the correct definition of osmosis"
-    
-    Level 2: Comprehension (Understand)
-        Focus: Understanding the organization of cells and tissues; interpreting images without broader context; describe or explain in your own words, re-tell, or summarize
-        Skills Assessed: Describe, Explain, Identify, Classify, Locate.
-        Characteristics of MC questions: Question requires understanding of concept or terms; understand image object in simple context 
-        Example biology exam question: "Describe nuclear transport to a lay person; provide an example of a cell signaling pathway"
-    
-    Level 3: Application
-        Focus: Applying knowledge to new situations; advanced visual identification that requires deep understanding and application to a new setting. PREDICT an outcome using several pieces of information or concepts; use information in a new context
-        Skills Assessed: Apply, Connect, Apply several pieces of information or concepts in a new context.
-        Characteristics of MC questions: Apply knowledge to distinguish between properly and improperly stated outcomes; Question requires application of knowledge to predict the most likely outcome given a new situation or perturbation to the system
-        Example biology exam question: Predict what happens to X if Y increases
-    
-    Level 4: Analysis
-        Focus: Analyzing comprehensive knowledge; connecting structure and function within a single cell type or structure.
-        Skills Assessed: Analyze, Infer, Advanced Classification
-        Characteristics of MC questions: Question requires interpretation of data and selection of best conclusion
-        Example biology exam question: Interpret data, graphs, or figures; make a diagnosis or analyze a case study; advanced compare/contrast information
-    
-    Level 5: Synthesis/Evaluation    
-        Focus: Predicting relationships between different cell types or tissues; judging and critiquing multiple elements in new situations; using scientific or clinical judgment.
-        Skills Assessed: Predict, Judge, Critique, Decide, Evaluate, Synthesize/Create
-        Characteristics of MC questions: Question requires assessment of information relative to its support of an argument
-        Example biology exam question: Develop a hypothesis, design an experiment, create or evaluate a model, or evaluate a new hypothesis to explain a phenomenon
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
     Level 1: Recall
-        Focus: Recall or identification of objects in images. Remembering basic definitions, facts, and terms.
-        Skills Assessed: Recall, Memorization.
-        Common Question Stems: "What is...?",  "Where is...?", "When does... occur?", "Identify the...", "List the characteristics of...", "Define the term associated with..."
-    
+        Focus: Recall or identification of objects in images; remembering basic definitions, facts, and terms.
+        Skills Assessed: Identify, Recall, List, Recognize, Label, Memorization.
+        Characteristics of Questions: Requires simple information recall or image recognition.
+        Common Question Stems:
+          - "What is...?"
+          - "Where is...?"
+          - "When does... occur?"
+          - "Identify the..."
+          - "List the characteristics of..."
+          - "Define the term associated with..."
+        Example Questions:
+          - "Identify the parts of a eukaryotic cell."
+          - "What is the cellular structure shown in this image?"
+          - "Identify the correct definition of osmosis."
+          - "List three characteristics of this tissue type."
     Level 2: Comprehension (Understand)
-        Focus: Understanding the organization of cells and tissues; interpreting images without broader context.
-        Skills Assessed: Explain, Identify, Classify, Locate.
-        Common Question Stems: "How would you classify...?", "How does this image compare to...?", "What is the main idea illustrated by...?", "Explain the significance of...", "Summarize the features seen in..."
-    
+      Focus: Understanding the organization of cells and tissues; interpreting images without broader context; explaining concepts in one's own words.
+      Skills Assessed: Describe, Explain, Identify, Classify, Locate.
+      Characteristics of Questions: Requires understanding of concepts or terms; interpreting images in simple contexts.
+      Common Question Stems:
+          - "How would you classify...?"
+          - "How does this image compare to...?"
+          - "What is the main idea illustrated by...?"
+          - "Explain the significance of..."
+          - "Summarize the features seen in..."
+      Example Questions:
+          - "Describe nuclear transport to a layperson."
+          - "Provide an example of a cell signaling pathway."
+          - "How can you explain the organization of cells in this image?"
+          - "Explain the significance of the staining pattern observed."
     Level 3: Application
-        Focus: Applying knowledge to new situations; advanced visual identification that requires deep understanding and application to a new setting.
-        Skills Assessed: Apply, Connect.
-        Common Question Stems: "How would you use your knowledge to...?", "What examples can you find that demonstrate...?", "How would you solve...?", "What approach would you use to differentiate...?", "How would you apply what you've learned to explain...?"
-    
+      Focus: Applying knowledge to new situations; advanced visual identification requiring deep understanding and application; predicting outcomes using multiple pieces of information.
+      Skills Assessed: Apply, Connect, Predict.
+      Characteristics of Questions: Applying knowledge to new contexts; predicting outcomes given new situations or system changes.
+      Common Question Stems:
+          - "How would you use your knowledge to...?"
+          - "What examples can you find that demonstrate...?"
+          - "How would you solve...?"
+          - "What approach would you use to differentiate...?"
+          - "How would you apply what you've learned to explain...?"
+      Example Questions:
+          - "Predict what happens to X if Y increases."
+          - "How would you use your knowledge to identify abnormalities in this image?"
+          - "What would result if the highlighted area was damaged?"
+          - "How can you use staining techniques to identify specific cells?"
     Level 4: Analysis
-        Focus: Analyzing comprehensive knowledge; connecting structure and function within a single cell type or structure.
-        Skills Assessed: Analyze, Classify.
-        Common Question Stems: "What are the key features of... and how do they relate to...?", "How is... related to its function?", "Why do you think...?", "What conclusions can you draw about...?" "How can you distinguish between...?"
-    
-    Level 5: Synthesis/Evaluation    
-        Focus: Predicting relationships between different cell types or tissues; judging and critiquing multiple elements in new situations; using scientific or clinical judgment.
-        Skills Assessed: Predict, Judge, Critique, Decide, Evaluate.
-        Common Question Stems: "What changes would you make to...?", "How would you improve...?", "What would happen if...?", "What alternative can you propose...?", "How would you evaluate the effectiveness of...?", "Predict the outcome of..."
+    Focus: Analyzing comprehensive knowledge; connecting structure and function within cells; interpreting data and drawing conclusions.
+    Skills Assessed: Analyze, Infer, Advanced Classification.
+    Characteristics of Questions: Requires interpretation of data; selecting the best conclusion.
+    Common Question Stems:
+      - "What are the key features of... and how do they relate to...?"
+      - "How is... related to its function?"
+      - "Why do you think...?"
+      - "What conclusions can you draw about...?"
+      - "How can you distinguish between...?"
+    Example Questions:
+      - "Interpret data, graphs, or figures."
+      - "Make a diagnosis or analyze a case study."
+      - "Why do you think these structural changes have occurred?"
+      - "How can you distinguish between benign and malignant features here?"
+    Level 5: Synthesis/Evaluation
+    Focus: Predicting relationships between different cell types or tissues; judging and critiquing multiple elements in new situations; using scientific or clinical judgment.
+    Skills Assessed: Predict, Judge, Critique, Decide, Evaluate, Synthesize, Create.
+    Characteristics of Questions: Requires assessment of information relative to an argument; developing hypotheses; designing experiments; evaluating models.
+    Common Question Stems:
+      - "What changes would you make to...?"
+      - "How would you improve...?"
+      - "What would happen if...?"
+      - "What alternatives can you propose...?"
+      - "How would you evaluate the effectiveness of...?"
+      - "Predict the outcome of..."
+    Example Questions:
+      - "Develop a hypothesis."
+      - "Design an experiment."
+      - "How would you improve patient outcomes based on these findings?"
+      - "Predict the outcome of disease progression based on the evidence."
   blooms_tips_for_mc_question: |
     # Essential Components for Writing Multiple-Choice Tests Based on the Revised Bloom's Taxonomy:
 
