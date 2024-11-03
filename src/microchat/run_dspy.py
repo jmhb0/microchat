@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """run_dspy.py in src/microchat."""
-
+import os
 from pathlib import Path
 from typing import Optional
 import click
@@ -21,6 +21,7 @@ from microchat.models.dspy_modules import CoTSelfCorrectRAG
 from microchat.models.model_factory import create_model
 from microchat.mc_questions.mcq import MCQ, Blooms
 from microchat.teleprompters.teleprompter_factory import create_optimizer
+from microchat.utils.process_model_history import history_to_jsonl
 
 try:
     import datasets
@@ -33,6 +34,13 @@ except ImportError as e:
     logger.error("Please install datasets==3.0.1.")
     logger.error(e)
     raise e
+
+try:
+    from langtrace_python_sdk import langtrace
+
+    # langtrace.init(api_key=os.getenv("LANGTRACE_API_KEY"))
+except ImportError as e:
+    logger.warning("Langtrace not installed.")
 
 
 @click.command()

@@ -22,44 +22,41 @@ def history_to_jsonl(
         n: The number of recent history items to include.
         output_file: Path to the JSONL file to write.
     """
-    output_file = output_file or f"{lm.model_name}_history.jsonl"
-    output_path = Path(output_dir).joinpath(output_file)
+    for idx, data in enumerate(lm.history[-n:]):
+        output_file = output_file or f"{lm.model_name}_history_{idx:02d}.txt"
+        output_path = Path(output_dir).joinpath(output_file)
 
-    output_prompt_dict = {}
-    with output_path.open("w") as f:
-        for item in lm.history[-n:]:
-            entry = {
-                "timestamp": item.get("timestamp", "Unknown time"),
-                "messages": item.get("messages")
-                or [{"role": "user", "content": item["prompt"]}],
-                "responses": item.get("outputs", []),
-            }
-            f.write(json.dumps(entry) + "\n")
+        # Initialize an empty list to hold the formatted conversation
+        formatted_output = []
 
-            # save system_context, and user message to json
-            system_context = None
-            user_message = None
-            if message_list := item.get("messages"):
-                # find the message with role 'system'
-                for message in message_list:
-                    if message.get("role") == "system":
-                        system_context = message.get("content")
+        # Extract messages from the data
+        messages = data['messages']
 
-                    elif message.get("role") == "user":
-                        user_message = message.get("content")
-                    else:
-                        logger.warning(f"Unknown message role: {message.get('role')}")
+        # Process the system message separately
+        system_message = messages[0]
+        if system_message['role'] == 'system':
+            system_message_str = system_message['content'].strip()
+            formatted_output.append('System message:\n' + system_message_str)
 
-                # update the output_prompt_dict
-                output_prompt_dict[item["uuid"]] = {
-                    "timestamp": entry["timestamp"],
-                    "system_context": system_context,
-                    "user_message": user_message,
-                }
+        # Iterate over the messages starting from the second message
+        for idx, message in enumerate(messages[1:]):
+            role = message['role']
+            content = message['content'].strip()
 
-    logger.info(f"History written to {output_path}")
-    # save json file with optimized prompt, system_context, and user_message
-    output_file = output_path.parent.joinpath(f"{lm.model_name}_dspy_prompt.json")
-    logger.info(f"Writing optimized prompts to {output_file}")
-    with open(output_file, "w") as f:
-        json.dump(output_prompt_dict, f, indent=4)
+            if role == 'user':
+                formatted_output.append("\n") if idx == 0 else None
+                formatted_output.append(f'----- Example {idx:} -----\nUser message:\n' + content)
+            elif role == 'assistant':
+                formatted_output.append('\nAssistant message:\n' + content)
+
+        # If there's a 'response' in data, include it as the final assistant message
+        if 'response' in data and 'choices' in data['response'] and data['response']['choices']:
+            assistant_response = data['response']['choices'][0]['message']['content'].strip()
+            formatted_output.append('Response:\n' + assistant_response)
+
+        # Combine the formatted output into a single string
+        formatted_output_str = '\n'.join(formatted_output)
+
+        # save_formatted string
+        with open(output_path, 'w') as f:
+            f.write(formatted_output_str)

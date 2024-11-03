@@ -2,7 +2,8 @@
 """dspy_modules.py in src/microchat/models."""
 
 from pathlib import Path
-from typing import List, Optional
+from random import shuffle
+from typing import List, Optional, Any
 
 from loguru import logger
 
@@ -18,7 +19,7 @@ from microchat.models.base_signatures import (
     ReviseInputContext,
     ClassifyBlooms,
     GenerateSearchQuery,
-    SelfAssessBlooms,
+    SelfAssessBlooms, DefaultQA,
 )
 
 context = yaml_loader(Path(MODULE_ROOT, "conf", "question_context.yaml"))
@@ -31,26 +32,36 @@ re_blooms_compiled = re.compile(r"|".join(blooms_list), re.IGNORECASE)
 
 # Base class for RAG Modules
 class BaseRAG(dspy.Module):
-    def __init__(self, num_passages: int = 5, **kwargs):
+    def __init__(self, num_passages: int = 3, **kwargs):
         """Initialize shared components for RAG modules."""
         super().__init__()
         self.num_passages = num_passages
         self.context = None
         self.retrieve = None
         self.signature: Optional[dspy.Signature] = None
+        self.generate_answer: Optional[Any] = None
         self.kwargs = kwargs
         self._set_context_and_signature()
 
     def _set_context_and_signature(self):
         """Set context and signature based on specified context type."""
         if self.kwargs.get("context") == "nbme":
-            self.signature = ReviseQuestionContext
-            self.context = self._format_context(context["nbme"])
-        elif self.kwargs.get("context") == "blooms":
-            self.signature = ClassifyBlooms
-            self.context = self._format_context(context["blooms"])
+            self.signature = ReviseInputContext
+            temp_context = context["nbme"]
+            temp_context = self._format_context(temp_context[: self.num_passages])
+            shuffle(temp_context)
+            self.context = temp_context
+        elif self.kwargs.get("context") == "blooms" or "blooms" in self.kwargs.get(
+            "context"
+        ):
+            self.signature = SelfAssessBlooms #ClassifyBlooms # SelfAssessBlooms
+            self.signature_name = self.signature.__name__
+            temp_context = context["blooms"]
+            temp_context = self._format_context(temp_context)
+            shuffle(temp_context)
+            self.context = temp_context
         else:
-            self.signature = None
+            self.signature = DefaultQA
             self.retrieve = dspy.Retrieve(k=self.num_passages)
 
     @staticmethod
@@ -61,31 +72,27 @@ class BaseRAG(dspy.Module):
             for k, v in raw_context.items()
         ]
 
-    def generate_answer(self, question: str, context: Optional[List[str]] = None):
-        """Generate an answer using the given context and question."""
-        if context is None:
-            context = (
-                self.retrieve(question).passages if self.retrieve else self.context
-            )
-        prediction = dspy.ChainOfThought(self.signature)(
-            context=context, question=question
-        )
-        return prediction
-        # dspy.Prediction(context=context, answer=prediction.answer)
-
-
 # Define the module
 # Specific RAG module implementations
 class CoTRAG(BaseRAG):
-    def __init__(self, num_passages: int = 5, **kwargs):
+    def __init__(self, num_passages: int = 3, **kwargs):
         """Initialize the CoTRAG module with specified context and passages."""
         super().__init__(num_passages=num_passages, **kwargs)
-        if not self.signature:
-            self.signature = ReviseInput  # Default signature if none is specified
+        self.generate_answer = dspy.ChainOfThought(self.signature)
 
     def forward(self, question: str):
         """Forward method for processing the question through the RAG pipeline."""
-        return self.generate_answer(question)
+        if self.retrieve:
+            self.context = self.retrieve(question).passages
+        else:
+            # Shuffle the context for variety
+            context = self.context.copy()
+            shuffle(context)
+            context = context[: self.num_passages]
+
+        prediction = self.generate_answer(context=context, question=question)
+
+        return dspy.Prediction(context=context, answer=prediction.answer)
 
 
 class CoTMultiHopRAG(BaseRAG):
@@ -125,7 +132,7 @@ class CoTSelfCorrectRAG(BaseRAG):
 
     def __init__(self, num_passages: int = 5, **kwargs):
         super().__init__(num_passages=num_passages, **kwargs)
-        self.self_assess = dspy.ChainOfThought(SelfAssessBlooms)
+
         if not self.signature:
             self.signature = ClassifyBlooms  # Default signature if none is specified
 
@@ -143,10 +150,48 @@ class CoTSelfCorrectRAG(BaseRAG):
         )
 
         # Perform self-assessment on the initial prediction
-        assess_response = self.self_assess(question=self_check_question, context=None)
+        if teacher_model := getattr(dspy.settings, "tm", None):
+            with dspy.settings.context(lm=teacher_model):
+                assess_response = dspy.ChainOfThought(SelfAssessBlooms)(
+                    question=self_check_question, context=self.context
+                )
+        else:
+            logger.error(f"Teacher model not found in settings.")
+
+        return assess_response
+
+class CoTSelfCorrectRAG(BaseRAG):
+    """Module for classifying Bloom's Taxonomy level with self-assessment."""
+
+    def __init__(self, num_passages: int = 5, **kwargs):
+        super().__init__(num_passages=num_passages, **kwargs)
+
+        if not self.signature:
+            self.signature = ClassifyBlooms  # Default signature if none is specified
+
+    def forward(self, question: str):
+        """Forward method for processing the question through the RAG pipeline."""
+
+        initial_prediction = self.generate_answer(question, context=self.context)
+        # format for self assessment
+        self_check_question = (
+            f"An LLM model evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
+            f"{question}\n"
+            f" The model predicted the question is at the Bloom's level of:\n"
+            f"Bloom's:```{initial_prediction.answer}```\n"
+            f"Please evaluate the Bloom's Taxonomy level of the question and provide your independent assessment:"
+        )
+
+        # Perform self-assessment on the initial prediction
+        if teacher_model := getattr(dspy.settings, "tm", None):
+            with dspy.settings.context(lm=teacher_model):
+                assess_response = dspy.ChainOfThought(SelfAssessBlooms)(
+                    question=self_check_question, context=self.context
+                )
+        else:
+            logger.error(f"Teacher model not found in settings.")
 
         # compare the initial prediction with the self-assessment
-        assess_response.context = self.context
         return assess_response
         # return dspy.Prediction(context=self.context, answer=assess_response.answer)
 

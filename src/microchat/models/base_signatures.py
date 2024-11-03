@@ -69,7 +69,7 @@ class ClassifyBlooms(dspy.Signature):
     """You are an expert in BioMedical AI tasked with classifying user-submitted question and answer pairs according to Bloom's Revised Taxonomy. Imagine you are in a high-stakes educational assessment scenario where your classifications will directly impact the development of a new curriculum aimed at enhancing students' cognitive skills in biology. Carefully analyze the provided context and question, then determine the most appropriate Bloom's taxonomy level for the question. After your initial classification, critically evaluate your decision by asking yourself: 'Are you sure about the Bloom's taxonomy category?' If you have any doubts, reassess your classification to ensure it accurately reflects the cognitive demands of the question. Your goal is to enhance the accuracy of educational assessments based on your expertise in Bloom's taxonomy."""
 
     context = dspy.InputField(
-        desc="Bloom's taxonomy for writing multiple-choice questions."
+        desc="Bloom's taxonomy for biology multiple-choice questions."
     )
     question = dspy.InputField(
         desc="The revised question formatted for a one-best-answer multiple choice."

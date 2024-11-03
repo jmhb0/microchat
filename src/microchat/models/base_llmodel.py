@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """base_llmodel.py in src/microchat/models."""
-
+import os
 import re
 
 from pydantic import (
@@ -67,11 +67,15 @@ class LLModel(BaseModel):
             )
 
             # set tokenizer name
-            self.tokenizer_name: str = tk.encoding_name_for_model(self.model_prefix)
+            if "o1" in self.model_prefix:
+                self.tokenizer_name: str = "o200k_base"
+            else:
+                self.tokenizer_name: str = tk.encoding_name_for_model(self.model_prefix)
+
             self.tokenizer = tk.get_encoding(self.tokenizer_name)
 
-            logger.info(f"Model: {self.model_name}")
-            logger.info(f"Tokenizer: {self.tokenizer_name}")
+            logger.debug(f"Model: {self.model_name}") if os.getenv("DEBUG") else None
+            logger.debug(f"Tokenizer: {self.tokenizer_name}")
 
     @staticmethod
     def compute_chars(prompt: str) -> int:
