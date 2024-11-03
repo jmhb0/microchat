@@ -1,6 +1,7 @@
 """
 Usage:
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
+python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 
 # to send batch questions
 # --send_batch
@@ -70,7 +71,9 @@ def main(args):
 
     # 1. load dataset from huggingface and format into standard format
     dataset_info_path = os.path.join(ds_save_dir, 'dataset_info.npz')
-    query_qs, all_qs = parse_dataset(args.dataset_name, dataset_info_path)
+    query_qs, all_qs = parse_dataset(args.dataset_name,
+                                     dataset_info_path,
+                                     args.dataset_path)
     
     jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api.jsonl')
     if not os.path.exists(jsonl_path):
@@ -79,12 +82,17 @@ def main(args):
     # 2. call gpt for batch dataset processing
     gpt_output = blooms_tagging(ds_save_dir, jsonl_path,
                                 send_batch=args.send_batch,
-                                batch_id=args.batch_id)
+                                batch_id=args.batch_id,
+                                prompt_key=args.prompt_key,
+                                system_key=args.system_key)
     if gpt_output is not None:
         # 4. parse output tags and save to dataset
         # new cols: blooms_question_category, blooms_confidence, blooms_level, blooms_source, blooms_reasoning
         # if there's a counts_dict, then re-organize the output tags from the template questions to the complete dataset
-        save_tags(gpt_output, ds_save_dir, query_qs, all_qs=all_qs)
+        save_tags(gpt_output, ds_save_dir, query_qs,
+                  all_qs=all_qs,
+                  prompt_key=args.prompt_key,
+                  system_key=args.system_key)
 
 def save_to_jsonl(data, filename):
     """
@@ -103,6 +111,19 @@ def read_jsonl(path: str) -> List[Dict[str, Any]]:
     """Read JSONL file and return a list of dictionaries."""
     with open(path, buffering=1024*1024) as f:
         return [json.loads(line) for line in f if line.strip()]
+    
+def organize_ours(file_path, dataset_name='ours'):
+    df = pd.read_csv(file_path)
+    query_qs = []
+    all_qs = None # no need bc we don't have template qs
+    for idx, row in df.iterrows():
+        q_info = {'question_stem': row['question'],
+            'correct_answer': row['answer'],
+            'dataset': dataset_name,
+            'id': str(row['key_question']),
+            'use_case': str(row['use_case'])}
+        query_qs.append(q_info)
+    return query_qs, all_qs
 
 def organize_microbench():
     """
@@ -117,7 +138,6 @@ def organize_microbench():
     ds = load_dataset("jnirschl/uBench", split='test')
     # ds is a list of dictionaries per image
     # dict_keys(['image_id', 'image', 'label', 'label_name', 'dataset', 'domain', 'institution', 'license', 'microns_per_pixel', 'modality', 'ncbitaxon_id', 'ncbitaxon_name', 'pmid', 'split', 'stain', 'subdomain', 'submodality', 'synthetic', 'captions', 'questions', 'bbox', 'polygon'])
-    print(f"Processing {dataset_name}...")
     # get question templates and counts
     for im in tqdm(ds):
         for q_key, q_v  in im['questions'].items():
@@ -137,13 +157,16 @@ def organize_microbench():
     # TODO: add cognition dataset
     return query_qs, all_qs
 
-def parse_dataset(dataset_name, save_path):
+def parse_dataset(dataset_name, save_path, file_path=None):
     if os.path.exists(save_path):
         data = np.load(save_path, allow_pickle=True)
         return data['query_qs'].tolist(), data['all_qs'].tolist()
     
+    print(f"Processing {dataset_name}...")
     if dataset_name == 'microbench':
         query_qs, all_qs = organize_microbench()
+    if 'ours' in dataset_name:
+        query_qs, all_qs = organize_ours(file_path, dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)
@@ -197,13 +220,14 @@ def call_offline_gpt(jsonl_path, save_dir):
 
 
 def blooms_tagging(save_dir, jsonl_path,
-                   send_batch=False, batch_id=None):
-    save_path = os.path.join(save_dir, 'gpt_output.jsonl')
+                   send_batch=False, batch_id=None,
+                   prompt_key=0, system_key=0):
+    save_path = os.path.join(save_dir, f'gpt_output_{prompt_key}_{system_key}.jsonl')
     if os.path.exists(save_path):
         print(f"Loading gpt output from {save_path}")
         gpt_output = read_jsonl(save_path)
         return gpt_output
-    
+
     if send_batch:
         # 2. call the gpt for blooms tagging
         call_offline_gpt(jsonl_path, save_dir)
@@ -222,6 +246,8 @@ def blooms_tagging(save_dir, jsonl_path,
             # TODO: fix writing so we have only the response or clean the response in the next function
             gpt_output.write_to_file(save_path)
             return gpt_output
+        elif status == 'failed':
+            ipdb.set_trace()
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
         
@@ -329,8 +355,9 @@ def plot_histograms(df, column_name, ds_save_dir, possible_values=None, figsize=
     
     plt.close()
 
-def save_tags(gpt_output, save_dir, query_qs, all_qs=None):
-    save_path = os.path.join(save_dir, 'tagged_dataset.csv')
+def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
+              prompt_key=0, system_key=0):
+    save_path = os.path.join(save_dir, f'tagged_dataset_{prompt_key}_{system_key}.csv')
     if os.path.exists(save_path):
         print(f"Loading tagged dataset from {save_path}")
         blooms_qs = pd.read_csv(save_path)
@@ -358,12 +385,14 @@ def save_tags(gpt_output, save_dir, query_qs, all_qs=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add Blooms tags to the dataset')
-    parser.add_argument('--dataset_name', type=str, help='dataset name from huggingface', default='microbench')
+    parser.add_argument('--dataset_name', type=str, help='dataset name', default='ours') # options: ours, microbench
     parser.add_argument('--save_dir', type=str, help='directory to save the tagged dataset', default='blooms_tagging')
     parser.add_argument('--prompt_key', type=int, help='prompt key to use', default=0)
     parser.add_argument('--system_key', type=int, help='system prompt key to use', default=0)
     parser.add_argument('--send_batch', action='store_true', help='send batch to gpt')
     parser.add_argument('--batch_id', type=str, help='batch id to retrieve the output')
+    parser.add_argument('--dataset_path', type=str, help='path to the dataset file', default=
+                        '/pasteur/data/microchat/dataset_versions/df_questions_key_choices_9_nov3_s1_naive.csv')
 
     args = parser.parse_args()
     main(args)
