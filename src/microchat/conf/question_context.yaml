@@ -145,6 +145,43 @@ blooms:
      - Analyze: Understanding the underlying structure of knowledge to be able to distinguish between fact and opinion.
      - Synthesis/Evaluate: Making judgments about the value of ideas, theories, items and materials.
      - Create: Reorganizing concepts into new structures or patterns through generating, producing or planning.
+  blooms_question_stems: |
+    # Bloom's Taxonomy Categorization for Biomedical Image-Based Reasoning:
+    - Recall: Remembering basic facts and identifying elements in images.
+    - Examples:
+      "What is the cellular structure shown in this image?"
+      "Where is this type of tissue commonly found?"
+      "Identify the cell type shown in the micrograph."
+      "List three characteristics of this tissue type."
+      "What is the function of the structure labeled 'A'?"
+    - Comprehension: Understanding and interpreting structures without relating them to broader concepts.
+    - Examples:
+      "How would you classify this tissue based on its structure?"
+      "Explain the significance of the staining pattern observed."
+      "Summarize the features seen in this slide."
+      "Identify and describe the location of specialized cells in this tissue."
+      "How can you explain the organization of cells in this image?"
+    - Application: Applying knowledge to new situations; requires additional functional or structural understanding.
+    - Examples:
+      "How would you use your knowledge to identify abnormalities in this image?"
+      "What approach would you use to differentiate between these two cell types?"
+      "How can you use staining techniques to identify specific cells?"
+      "What elements would you analyze to confirm a diagnosis?"
+      "What would result if the highlighted area was damaged?"
+    - Analysis: Examining and connecting structure and function; critically evaluating relationships.
+    - Examples:
+      "What are the key features of the cells, and how do they relate to their function?"
+      "How is the tissue architecture related to its physiological role?"
+      "What conclusions can you draw about the disease state from this image?"
+      "How can you distinguish between benign and malignant features here?"
+      "Why do you think these structural changes have occurred?"
+    - Synthesis/Evaluation: Predicting relationships and interactions; judging and critiquing knowledge in new situations.
+    - Examples:
+      "How would you improve patient outcomes based on these findings?"
+      "What alternative diagnoses can you propose given the image data?"
+      "How would you design a follow-up study to test your hypothesis?"
+      "Predict the outcome of disease progression based on the evidence."
+      "How can a model be constructed to change our understanding of this tissue?"
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
     Level 1: Recall
@@ -224,11 +261,19 @@ blooms:
       - "Design an experiment."
       - "How would you improve patient outcomes based on these findings?"
       - "Predict the outcome of disease progression based on the evidence."
-  blooms_tips_for_mc_question: |
-    # Essential Components for Writing Multiple-Choice Tests Based on the Revised Bloom's Taxonomy:
-
-    Use Plausible Distractors: Craft convincing incorrect answers to effectively assess learners' understanding and ability to apply knowledge.
-    Integrate Charts and Graphs: Include visual data for interpretation to test analyzing skills.
-    Transform Verbs into Nouns: Modify questions to test creating and evaluating skills by asking for the best description of a concept.
-    Use Examples or Stories: Provide detailed scenarios that require learners to apply, understand, and analyze information.
-    Employ Multilevel Thinking Questions: Use phrases like "most appropriate" or "most important" to assess judgment skills and deep comprehension.
+  blooms_taxonomy_verb_chart: |
+    # Bloom's Taxonomy Verb Chart for Writing Multiple-Choice Questions:
+      1) Recall: Retrieving relevant knowledge from memory.
+          Verbs: Cite, Define, List, Recall, Remember, Recognize, Repeat, State.
+  
+      2) Comprehension: Constructing meaning through interpreting and explaining.
+          Verbs: Classify, Compare, Describe, Discuss, Explain, Interpret, Understand, Summarize.
+  
+      3) Application: Using knowledge in new situations.
+          Verbs: Apply, Demonstrate, Execute, Implement, Solve, Use.
+  
+      4) Analysis: Breaking information into components to understand structure.
+          Verbs: Analyze, Differentiate, Examine, Organize, Outline, Question.
+  
+      5) Synthesis/Evaluation: Making judgments based on criteria and standards.
+          Verbs: Assess, Critique, Evaluate, Justify, Support, Test.
