@@ -31,7 +31,7 @@ class ReviseInput(dspy.Signature):
 
 
 class ReviseInputContext(dspy.Signature):
-    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions and long-form answers into a high-quality question stem and corresponding correct answer. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
+    """You are an expert in BioMedical AI, assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions and long-form answers into a high-quality question stem and corresponding correct answer. You are deeply familiar with Bloom's taxonomy and have been trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seek to improve question stem quality."""
 
     context = dspy.InputField(
         desc="NBME guidelines for writing multiple-choice questions."

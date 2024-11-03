@@ -27,6 +27,7 @@ def validate_context_and_answer(example, pred, trace=None):
 
 
 def validate_blooms(example, pred, trace=None):
+    """Measure the accuracy of a predicted blooms taxonomy level"""
     if answer_EM := dspy.evaluate.answer_exact_match(example, pred):
         return int(answer_EM)
 
@@ -36,15 +37,16 @@ def validate_blooms(example, pred, trace=None):
 
     # weighted score based on level, name, and self-assessment match
     weights = {
-        "level": 0.75,
-        "name": 0.25,
+        "level": 0.5,
+        "level_diff": 0.5, # 1 - (abs difference in level / 5)
     }
     # check if the predicted answer is in blooms taxonomy
     level_score = 1 if gt_level == pred_level else 0
-    name_score = 1 if gt_name == pred_name else 0
+    level_diff = 1 - abs(gt_level - pred_level)/5
 
     # calculate weighted score
-    score = sum([level_score, name_score])
+    score = zip([level_score, level_diff], weights.values())
+    return sum(s * w for s, w in score)
     # if trace is not None:
     #     trace.update({"level_score": level_score, "name_score": name_score})
 

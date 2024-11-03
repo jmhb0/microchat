@@ -146,6 +146,7 @@ class CSVDataset(Dataset):
 
         self.dataset_name = Path(filepath).stem
         self.kwargs: dict = kwargs
+        random_seed = kwargs.get("random_seed", 8675309)
         # question_key = kwargs.get("question_key", "question")
         # answer_key = kwargs.get("answer_key", "answer")
 
@@ -161,7 +162,7 @@ class CSVDataset(Dataset):
             logger.info(f"Min samples: {min_samples}")
             df = (
                 df.groupby("blooms_level")
-                .apply(lambda x: x.sample(min(num_samples, len(x)), replace=False))
+                .apply(lambda x: x.sample(min(num_samples, len(x)), replace=False, random_state=random_seed))
                 .reset_index(drop=True)
             )
 
