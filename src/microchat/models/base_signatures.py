@@ -16,7 +16,7 @@ class DefaultQA(dspy.Signature):
 
     context = dspy.InputField(desc="may contain relevant facts")
     question = dspy.InputField()
-    answer = dspy.OutputField()
+    answer = dspy.OutputField(desc="often between 1 and 5 words")
 
 
 class ReviseInput(dspy.Signature):
@@ -66,7 +66,7 @@ class SelfAssessRevisedInput(dspy.Signature):
 
 
 class ClassifyBlooms(dspy.Signature):
-    """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your task is to take user-submitted question and answer pairs and assign the most appropriate level in Bloom's Revised Taxonomy to each pair. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on assessing the cognitive levels of multiple-choice questions. You always state if you are uncertain about the classification and continually seek to improve the accuracy of your assessments. After making an initial assessment of the Bloom's classification, ask yourself: 'Are you sure about the Bloom's taxonomy category?' Double-check your classification and make adjustments if necessary to ensure the question stem accurately reflects the appropriate level of cognitive skills according to Bloom's taxonomy."""
+    """You are an expert in BioMedical AI tasked with classifying user-submitted question and answer pairs according to Bloom's Revised Taxonomy. Imagine you are in a high-stakes educational assessment scenario where your classifications will directly impact the development of a new curriculum aimed at enhancing students' cognitive skills in biology. Carefully analyze the provided context and question, then determine the most appropriate Bloom's taxonomy level for the question. After your initial classification, critically evaluate your decision by asking yourself: 'Are you sure about the Bloom's taxonomy category?' If you have any doubts, reassess your classification to ensure it accurately reflects the cognitive demands of the question. Your goal is to enhance the accuracy of educational assessments based on your expertise in Bloom's taxonomy."""
 
     context = dspy.InputField(
         desc="Bloom's taxonomy for writing multiple-choice questions."

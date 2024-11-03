@@ -63,6 +63,14 @@ nbme:
     One-Best-Answer Items: These are multiple-choice questions with a stem (often including a vignette), a focused lead-in question, and several options—one correct answer and several distractors. Distractors should be directly related to the lead-in and homogeneous with the correct answer. Incorrect options may be partially true but are less correct than the keyed answer. The test-taker is instructed to select the "most likely" or "best" answer among options that can be ranked along a single continuum.
     Homogeneous Options: All options should address the lead-in in the same manner and be rankable along a single dimension. Heterogeneous options that cover miscellaneous facts and cannot be ordered from least to most correct are flawed. A well-designed item allows the test-taker to understand the question without relying on the options.
     Cover-the-Options Rule: A properly focused lead-in should enable the test-taker to answer the question without seeing the options. Covering the options and attempting to answer the item is a good way to check if this rule has been followed.
+  tips_for_mc_question_using_blooms: |
+    # Essential Components for Writing Multiple-Choice Tests Based on the Revised Bloom's Taxonomy:
+
+    Use Plausible Distractors: Craft convincing incorrect answers to effectively assess learners' understanding and ability to apply knowledge.
+    Integrate Charts and Graphs: Include visual data for interpretation to test analyzing skills.
+    Transform Verbs into Nouns: Modify questions to test creating and evaluating skills by asking for the best description of a concept.
+    Use Examples or Stories: Provide detailed scenarios that require learners to apply, understand, and analyze information.
+    Employ Multilevel Thinking Questions: Use phrases like "most appropriate" or "most important" to assess judgment skills and deep comprehension.
   shape_of_a_good_one_best_answer_multiple_choice: |
     # Summary of Guidelines for Crafting Effective Multiple-Choice Items:
     
