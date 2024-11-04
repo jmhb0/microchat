@@ -45,7 +45,7 @@ sample_size = 150
 idxs = np.random.choice(idxs_all, size=sample_size, replace=False)
 df = df_questions_all.loc[idxs]
 
-idxs_lst = [int(idx) for idx in idxs]
+idxs_lst = sorted([int(idx) for idx in idxs])
 
 with open(dir_results_parent / "idxs_sample.json", "w") as fp:
 	json.dump(idxs_lst, fp, indent=4)
