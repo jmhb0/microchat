@@ -12,6 +12,7 @@ python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /
 """
 
 import os
+import re
 import ast
 import argparse
 from datasets import load_dataset
@@ -76,7 +77,7 @@ def main(args):
                                      dataset_info_path,
                                      args.dataset_path)
     
-    jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api.jsonl')
+    jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api_{args.system_key}_{args.prompt_key}.jsonl')
     if not os.path.exists(jsonl_path):
         convert_to_jsonl(query_qs, jsonl_path,
                          prompt_key=args.prompt_key, system_key=args.system_key)
@@ -263,12 +264,29 @@ def blooms_tagging(save_dir, jsonl_path,
             ipdb.set_trace()
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
-        
+
+
 def clean_gpt_output(gpt_output):
     final_output = []
     for qs in gpt_output:
         res = qs['response']['body']['choices'][0]['message']['content']
-        res = json.loads(res)
+        try:
+            res = json.loads(res)
+        except json.JSONDecodeError:
+            # If parsing fails, create a stripped down version
+            match = re.match(r'\s*{\s*"blooms_name":\s*"([^"]+)",\s*"blooms_level":\s*(\d+)', res)
+            if match:
+                res = {
+                    "blooms_name": match.group(1),
+                    "blooms_level": int(match.group(2)),
+                    "blooms_reasoning": "Error parsing original reasoning"
+                }
+            else:
+                res = {
+                    "blooms_name": "Error parsing original name",
+                    "blooms_level": -1,
+                    "blooms_reasoning": "Error parsing original reasoning"
+                }
         res.update({'id': qs['custom_id']})
         final_output.append(res)
     final_df = pd.DataFrame(final_output)
