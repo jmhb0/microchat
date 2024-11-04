@@ -24,7 +24,7 @@ def process_blooms(
 ) -> Tuple[int, str]:
     # extract the blooms level from the response
     blooms_name = None
-    blooms_level = None
+    blooms_level = -1
     if match := re_blooms_compiled.search(answer):
         blooms_name = match.group().lower()
         # find the level of the blooms taxonomy from blooms_dict
