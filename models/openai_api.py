@@ -341,6 +341,23 @@ def test_basic():
                     json_mode=False)
     msg = res[0]
 
+def test_system_prompt():
+    model = "gpt-4o-mini"
+    system_prompt = "After answering any question, provide a short anecdote from the perspective of a bogan Australian visiting California."
+    text = "How did Steve Irwin die? "
+    overwrite_cache = True
+    # overwrite_cache = False
+    cache = True
+    res = call_gpt(text,
+                    system_prompt=system_prompt,
+                    model=model,
+                    cache=cache,
+                    overwrite_cache=overwrite_cache,
+                    json_mode=False)
+    msg = res[0]
+    ipdb.set_trace()
+    pass
+
 
 def test_conversation():
     model = "gpt-4o-mini"
@@ -414,7 +431,8 @@ if __name__ == "__main__":
     sys.path.insert(0, "..")
     sys.path.insert(0, ".")
 
-    test_basic()
+    # test_basic()
+    test_system_prompt()
     ipdb.set_trace()
     test_batch()
     test_conversation()

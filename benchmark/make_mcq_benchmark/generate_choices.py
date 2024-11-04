@@ -9,6 +9,7 @@ import numpy as np
 import ast
 import copy
 import random
+import yaml
 
 sys.path.insert(0, '.')
 from models.openai_api import call_gpt_batch
@@ -30,13 +31,23 @@ def gen_choices(key_form,
     if subset:
         df_questions = df_questions[:subset]
 
+    if key_choices_gen in (10,):
+        f_sysprompt = "benchmark/data/system_prompt_docs/sysprompt_nov3.yaml"
+        with open(f_sysprompt, 'r') as fp:
+            system_prompt_yaml = yaml.safe_load(fp)
+        system_prompt = system_prompt_yaml['mcq_generation']['system_context']
+    else: 
+        system_prompt = None
+
     if key_choices_gen in (6, 7):
         assert key_question_gen == 0, "debugging key_choices_gen number only"
     if key_choices_gen in prompt_template_simple.keys():
-        df_questions = gen_choices_simple(df_questions, key_choices_gen, seed)
-
+        df_questions = gen_choices_simple(df_questions, key_choices_gen, seed, system_prompt)
     else:
         raise NotImplementedError()
+
+    
+
     df_questions = update_question(df_questions, update_q, key_choices_gen)
 
     df_questions['choices'] = make_choices(
@@ -48,7 +59,7 @@ def gen_choices(key_form,
 
 
 def update_question(df_questions, update_q, key_choices_gen):
-    if key_choices_gen in (9, ):
+    if key_choices_gen in (9,10):
         distractor_key = 'distractors'
     else:
         distractor_key = 'incorrect_answers'
@@ -57,7 +68,7 @@ def update_question(df_questions, update_q, key_choices_gen):
     df_questions['original_answer'] = copy.deepcopy(df_questions['answer'])
     if update_q:
         # to handle some bug I don't understand
-        if key_choices_gen in (9, ):
+        if key_choices_gen in (9, 10):
             df_questions['question'] = df_questions[
                 'llm_response_choices'].apply(lambda x: x['question'])
             df_questions['answer'] = df_questions[
@@ -210,7 +221,30 @@ ANSWER:
 {{answer}}
 
 """,
+    # version similar to 9, but using the sysprompt from benchmark/data/system_prompt_docs/sysprompt_nov3.yaml
+    10:
+    """\
+I will now give you a biology-related question and its answer - a "QA-pair".
+The question is related to an image, but we do not provide you with the image.
 
+YOUR TASK: 
+Transfer this question and answer into a multi-choice question. 
+The questions should follow the guidance for "Multiple-Choice Questions (MCQs)" provided. 
+
+First, rephrase an equivalent question and equivalent answer.
+The question and answer can be summarized and shorter so that they fit a standard mutliple-choice format that is concise.
+
+Second, generate incorrect options, called 'distractors'.
+The distractors should be challenging to eliminate. 
+The distractors should be similar in length to the correct answer.
+Please generate 4 distractors.
+
+{{question}}
+
+ANSWER: 
+{{answer}}
+
+""",
 }
 from pydantic import BaseModel
 
@@ -221,7 +255,7 @@ class McqGenerated(BaseModel):
     distractors: list[str]
 
 
-def gen_choices_simple(df_questions, key_choices_gen, seed):
+def gen_choices_simple(df_questions, key_choices_gen, seed, system_prompt):
     """
     The most basic possible llm prompting.  
     """
@@ -252,16 +286,19 @@ def gen_choices_simple(df_questions, key_choices_gen, seed):
 
     print(f"Running GPT {model} with {len(batch_prompts)} prompts")
 
-    if key_choices_gen in (9, ):
+    if key_choices_gen in (9, 10,):
         responses = call_gpt_batch(batch_prompts,
                                    model=model,
                                    response_format=McqGenerated,
+                                   system_prompt=system_prompt,
                                    seed=seed)
     else:
         responses = call_gpt_batch(batch_prompts,
                                    json_mode=True,
                                    model=model,
+                                   system_prompt=system_prompt,
                                    seed=seed)
+
     cost = sum([c[1] for c in responses])
     print(f"Cost of llm call ${cost:.3f}")
     msgs = [c[0] for c in responses]
@@ -308,11 +345,12 @@ if __name__ == "__main__":
     # which form we collect the quetions from
     key_form = 0
     # which set of questions to get - made in make_questions.py
+    # key_question_gen = 0
     key_question_gen = 3
     # key for generatin the choices
     key_choices_gen = 9
     subset = None
-    # subset = 150
+    # subset = 20
 
     gen_choices(key_form,
                 key_question_gen,
