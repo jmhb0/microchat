@@ -67,13 +67,13 @@ def update_dataframes(idx):
 def apply_updates(df, map_updates):
     """ 
     For a dataframe, apply updates from one column to another column. 
-    The `map_updates` dict_keys are the col name for the col to update, and 
+    The `map_updates` dict_keys are the col name for the col we will update, and 
     dict_values are the col name holding the updates. 
     The update column is applied only if its text is NOT in ["X", "", "NO"].
     """
     for col_src, col_update in map_updates.items():
         updates = df[col_update].values
-        mask = ~np.isin(updates, ["X", "", "0", "NO"])
+        mask = ~np.isin(updates, ["X", "", "NO"])
         df.loc[mask, col_src] = updates[mask]
 
     return df

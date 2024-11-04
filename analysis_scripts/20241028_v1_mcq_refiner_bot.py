@@ -179,7 +179,7 @@ def evaluate_mcq_noimage(question_stem: str, choices: list[str],
     prompt_text = f"{prompt_prefix}\n{question_stem}\n{prompt_suffix}\n\n{choices_str}"
 
     # run gpt, extract prediction
-    response = call_gpt(prompt_text, model=cfg_eval.model, seed=seed)
+    response = call_gpt(prompt_text, model=cfg_eval.model, seed=seed, verbose=False)
     response_text = response[0]
     pred_letter, pred_index = _extract_mc_answer(response_text, regex_pattern)
     is_correct = (correct_index == pred_index)
@@ -200,7 +200,7 @@ def reflect_on_mcqnoimage_pass(conversation: list[dict],
                         model=cfg_reflect.model,
                         conversation=conversation,
                         seed=seed,
-                        json_mode=False)
+                        json_mode=False,verbose=False)
 
     cost = response[1]['cost'] if response[1] is not None else 0
     return dict(conversation=response[3], response_text=response[0], cost=cost)
@@ -240,6 +240,7 @@ def rewrite_qa(reflections: list[dict], cfg_rewrite,
             prompt,
             model=cfg_rewrite.model,
             seed=seed,
+            verbose=False
         )
         response = _enforce_llm_response_structure(response_unstructured,
                                                    response_format, seed)
@@ -252,7 +253,7 @@ def rewrite_qa(reflections: list[dict], cfg_rewrite,
         response = call_gpt(prompt,
                             model=cfg_rewrite.model,
                             response_format=response_format,
-                            seed=seed)
+                            seed=seed, verbose=False)
         cost = response[1]['cost'] if response[1] is not None else 0
         msg = response[0]
         messages = response[3]
@@ -282,6 +283,7 @@ def check_rewrite_issame(question_stem_original: str, answer_original: str,
             prompt,
             model=cfg_check_rewrite.model,
             seed=seed,
+            verbose=False
         )
         response = _enforce_llm_response_structure(response_unstructured,
                                                    response_format, seed)
@@ -294,7 +296,7 @@ def check_rewrite_issame(question_stem_original: str, answer_original: str,
         response = call_gpt(prompt,
                             model=cfg_check_rewrite.model,
                             seed=seed,
-                            response_format=response_format)
+                            response_format=response_format, verbose=False)
         cost = response[1]['cost'] if response[1] is not None else 0
         msg = response[0]
         messages = response[3]
@@ -455,7 +457,7 @@ def _enforce_llm_response_structure(response_unstructured,
     response = call_gpt(prompt,
                         model=model,
                         response_format=response_format,
-                        seed=seed)
+                        seed=seed, verbose=False)
     return response
 
 
@@ -568,7 +570,8 @@ def _save_final_results(f_summary, log_str, cfg):
     Also write some summary stats
     """
     df = pd.read_csv(f_summary)
-    df_ordered = df.sort_values("log_str")
+    df['question_key'] = [int(n[1]) for n in df['log_str'].str.split("_")]
+    df_ordered = df.sort_values("question_key")
 
     # reordering
     f_summary_ordered = Path(
@@ -670,6 +673,25 @@ def process_single_question(dir_log, cfg, question_stem, choices,
     return log_str, iteration, use_case, return_code, cost_total
 
 
+def get_data(questions_source):
+    if questions_source == 'jeffs_revised':
+        url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
+        f_csv = dir_results_parent / "jeffs_choices.csv"
+        if not f_csv.exists():
+            download_csv(url_csv, f_csv)
+        df = pd.read_csv(f_csv)
+        do_shuffle = True
+
+    elif questions_source == 'qkey3_ckey9':
+        f_csv = "benchmark/data/formdata_0/question_strategy_3/df_questions_key_choices_9.csv" 
+        df = pd.read_csv(f_csv)
+        shuffle = False # already shuffle
+
+    else: 
+        raise ValueError()
+
+    return df, shuffle
+
 def main(dir_results_parent, cfg, do_multiprocessing=False):
     # config #
     do_shuffle = True
@@ -677,11 +699,9 @@ def main(dir_results_parent, cfg, do_multiprocessing=False):
     dir_results, f_summary, log_str_main = config_logger(
         dir_results_parent, cfg)
 
-    url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuDqK65cBcb0e5y-_DqK5HbFC3raPMP2isPBzTe8tg6vsfTl-7WkDI7NnKTzHJWQ/pub?gid=1746076346&single=true&output=csv"
-    f_csv = dir_results_parent / "jeffs_choices.csv"
-    if not f_csv.exists():
-        download_csv(url_csv, f_csv)
-    df = pd.read_csv(f_csv)
+    questions_source = 'jeffs_revised'
+    questions_source = 'qkey3_ckey9'
+    df, do_shuffle = get_data(questions_source)
 
     # Prepare function args for all the questions
     func_args = []
@@ -690,11 +710,21 @@ def main(dir_results_parent, cfg, do_multiprocessing=False):
         log_str = f"question_{idx_test}"
 
         # get the QAs
-        question_stem = row['revised_question']
-        choices_jeff_fmt = row['multiple_choice']
-        use_case = row['_use_case']
-        choices, correct_index = _process_choices_from_jeffs_sheet(
-            choices_jeff_fmt)
+        if questions_source == 'jeffs_revised':
+            question_stem = row['revised_question']
+            choices_jeff_fmt = row['multiple_choice']
+            use_case = row['_use_case']
+            choices, correct_index = _process_choices_from_jeffs_sheet(
+                choices_jeff_fmt)
+        
+        # choices is list[str], 
+        elif questions_source == 'qkey3_ckey9':
+            question_stem = row['question']
+            choices_dict = ast.literal_eval(row['choices'])
+            choices = choices_dict['choices']
+            correct_index = choices_dict['correct_index']
+            use_case = row['use_case']
+
 
         if do_shuffle:
             seed_shuffle = idx_test + cfg['seed']
@@ -739,7 +769,6 @@ if __name__ == "__main__":
     model_gpt4o = "gpt-4o-2024-08-06"
     model_gpt4omini = "gpt-4o-mini-2024-07-18"
 
-    model = model_o1
     # target questions
     idxs_question = [136, 137, 138, 139, 140, 142, 145]
     idxs_question = [
@@ -747,6 +776,7 @@ if __name__ == "__main__":
         188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
         542, 543
     ]
+    idxs_question = list(range(300))
 
     # yapf: disable
     cfg = dict(
@@ -770,22 +800,22 @@ if __name__ == "__main__":
     # key 1 gpt 4o
     cfg = dict(
         name="standard",
-        seed=2,
+        seed=0,
         max_iters=5,
         eval=dict(model=model_gpt4o, key=1),
         reflect=dict(model=model_gpt4o, key=1),
         rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=5),
         check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
     )
-    cfg = dict(
-        name="key1-modelo1",
-        seed=1,
-        max_iters=5,
-        eval=dict(model=model_o1, key=1),
-        reflect=dict(model=model_o1, key=1),
-        rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
-        check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
-    )
+    # cfg = dict(
+    #     name="key1-modelo1",
+    #     seed=1,
+    #     max_iters=5,
+    #     eval=dict(model=model_o1, key=1),
+    #     reflect=dict(model=model_o1, key=1),
+    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
+    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
+    # )
     # cfg = dict(
     #     name="key1-modelo1mini",
     #     seed=0,
