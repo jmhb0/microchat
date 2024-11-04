@@ -54,7 +54,7 @@ class BaseRAG(dspy.Module):
         elif self.kwargs.get("context") == "blooms" or "blooms" in self.kwargs.get(
             "context"
         ):
-            self.signature = SelfAssessBlooms #ClassifyBlooms # SelfAssessBlooms
+            self.signature = SelfAssessBlooms # gpt-4o-mini with SelfAssessBlooms is better default
             self.signature_name = self.signature.__name__
             temp_context = context["blooms"]
             temp_context = self._format_context(temp_context)
