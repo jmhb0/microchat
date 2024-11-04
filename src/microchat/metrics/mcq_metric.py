@@ -37,6 +37,19 @@ def validate_blooms(example, pred, trace=None):
 
     # weighted score based on level, name, and self-assessment match
     weights = {
+        "level": 0.75,
+        "level_diff": 0.25,
+    }
+    level_score = 1 if gt_level == pred_level else 0
+    # penalize larger differences
+    level_diff = abs(gt_level - pred_level) ** 4
+    level_diff = 1 / (1 + level_diff)
+
+    # calculate weighted score
+    score = zip([level_score, level_diff], weights.values())
+    return sum(s * w for s, w in score)
+    # weighted score based on level, name, and self-assessment match
+    weights = {
         "level": 0.5,
         "level_diff": 0.5, # 1 - (abs difference in level / 5)
     }
