@@ -50,11 +50,10 @@ def create_questions(df_questions, df_images, key_question_gen, key_form, add_co
         df_questions_final = combine_questions_without_llm(
             df_questions, df_images, add_context=add_context)
 
-        pass
-
     else:
         raise NotImplementedError()
 
+    ipdb.set_trace()
     df_questions_final.to_csv(dir_data_save / f"clean_df_questions.csv")
 
 

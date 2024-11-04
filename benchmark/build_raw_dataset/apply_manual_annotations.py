@@ -95,3 +95,5 @@ def clean_dataframe(df):
 if __name__ == "__main__":
     idx = "0"
     df_images, df_questions = update_dataframes(idx)
+    ipdb.set_trace()
+    pass

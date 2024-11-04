@@ -181,7 +181,7 @@ if 0:
 
 
 ##### form 78 #####
-if 1:
+if 0:
     for f_in, f_out in zip(("APOE e3.tiff", "Rev APOE e4.tif"), (("APOE e3", "Rev APOE e4"))):
         f = f"../Downloads/form79/{f_in}"
         assert Path(f).exists()
@@ -197,6 +197,23 @@ if 1:
     ipdb.set_trace()
     pass
 
+##### form 10 #####
+if 1:
+    for f_in, f_out in zip(("TS_PBTOhNGN2hiPSCs_BR3_N03_Unmixed-6-channel - Zach C.tiff",), (("TS_PBTOhNGN2hiPSCs_BR3_N03_Unmixed-6-channel",))):
+        f = f"../Downloads/form10/{f_in}"
+        assert Path(f).exists()
+        img0_ = AICSImage(f)
+        data = img0_.data
+        imgs = list(data[0, 3,:])
+        print(data.shape)
+        imgs = [norm_01(im) for im in imgs]
+        grid = make_grid(imgs, 3, 3, padding=10, pad_value=1)
+        grid = (grid * 255).astype(np.uint8)
+        # Image.fromarray(grid).save(f"grid_image_{suffix}.png")
+        Image.fromarray(grid).save(
+            f"{f_out}.png")
 
+        ipdb.set_trace()
+        pass
 
 
