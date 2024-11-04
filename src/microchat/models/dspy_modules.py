@@ -16,7 +16,6 @@ from microchat import MODULE_ROOT
 from microchat.fileio.text.readers import yaml_loader
 from microchat.models.base_signatures import (
     ReviseInput,
-    ReviseInputContext,
     ClassifyBlooms,
     GenerateSearchQuery,
     SelfAssessBlooms,
@@ -73,6 +72,7 @@ class BaseRAG(dspy.Module):
             f"{k.strip().replace('_', ' ').capitalize()}| {v.strip()}"
             for k, v in raw_context.items()
         ]
+
 
 # Define the module
 # Specific RAG module implementations

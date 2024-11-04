@@ -1,26 +1,21 @@
 nbme:
   basic_rules_for_writing_one_best_answer_multiple_choice: |
     Summary of Basic Rules for Writing One-Best-Answer Items:
-    
     - Focus on Important Concepts:
         Each item should address a significant concept or testing point.
         Use a clear blueprint or test specifications to ensure coverage of all essential topics.
-
     - Assess Higher-Order Thinking, Not Recall:
         Design items that test application and synthesis of knowledge.
         Provide an appropriate stimulus (e.g., an experimental vignette) to offer context.
         Avoid questions that merely require recall of isolated facts.
-
     - Craft Clear and Focused Lead-ins:
         The question stem should be specific, closed-ended, and unambiguous.
         Test-takers should be able to answer the question based solely on the vignette and lead-in.
         Steer clear of open-ended or vague lead-ins.
-
     - Ensure Homogeneous and Plausible Options:
         All answer choices should be consistent in content and format.
         Distractors should be plausible and challenging to prevent easy elimination.
         The correct answer should be the most accurate among equally plausible options.
-
     - Review for Technical Flaws:
         Check that the item's structure is logical, with the vignette preceding the lead-in.
         Use only necessary context and avoid clues that could reveal the answer.
@@ -72,8 +67,7 @@ nbme:
     Use Examples or Stories: Provide scenarios that require learners to apply, understand, and analyze information.
     Employ Multilevel Thinking Questions: Use phrases like "most appropriate" or "most important" to assess judgment skills and deep comprehension.
   shape_of_a_good_one_best_answer_multiple_choice: |
-    # Summary of Guidelines for Crafting Effective Multiple-Choice Items:
-    
+    # Summary of Guidelines for Crafting Effective Multiple-Choice Items:    
     - Focus on Important Concepts: Ensure the question addresses significant ideas rather than trivial details.
     - Self-Contained Stem:
         Include only the relevant facts within the stem.
