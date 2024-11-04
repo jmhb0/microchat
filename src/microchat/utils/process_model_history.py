@@ -30,33 +30,41 @@ def history_to_jsonl(
         formatted_output = []
 
         # Extract messages from the data
-        messages = data['messages']
+        messages = data["messages"]
 
         # Process the system message separately
         system_message = messages[0]
-        if system_message['role'] == 'system':
-            system_message_str = system_message['content'].strip()
-            formatted_output.append('System message:\n' + system_message_str)
+        if system_message["role"] == "system":
+            system_message_str = system_message["content"].strip()
+            formatted_output.append("System message:\n" + system_message_str)
 
         # Iterate over the messages starting from the second message
         for idx, message in enumerate(messages[1:]):
-            role = message['role']
-            content = message['content'].strip()
+            role = message["role"]
+            content = message["content"].strip()
 
-            if role == 'user':
+            if role == "user":
                 formatted_output.append("\n") if idx == 0 else None
-                formatted_output.append(f'----- Example {idx:} -----\nUser message:\n' + content)
-            elif role == 'assistant':
-                formatted_output.append('\nAssistant message:\n' + content)
+                formatted_output.append(
+                    f"----- Example {idx:} -----\nUser message:\n" + content
+                )
+            elif role == "assistant":
+                formatted_output.append("\nAssistant message:\n" + content)
 
         # If there's a 'response' in data, include it as the final assistant message
-        if 'response' in data and 'choices' in data['response'] and data['response']['choices']:
-            assistant_response = data['response']['choices'][0]['message']['content'].strip()
-            formatted_output.append('Response:\n' + assistant_response)
+        if (
+            "response" in data
+            and "choices" in data["response"]
+            and data["response"]["choices"]
+        ):
+            assistant_response = data["response"]["choices"][0]["message"][
+                "content"
+            ].strip()
+            formatted_output.append("Response:\n" + assistant_response)
 
         # Combine the formatted output into a single string
-        formatted_output_str = '\n'.join(formatted_output)
+        formatted_output_str = "\n".join(formatted_output)
 
         # save_formatted string
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             f.write(formatted_output_str)

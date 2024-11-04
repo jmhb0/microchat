@@ -162,7 +162,13 @@ class CSVDataset(Dataset):
             logger.info(f"Min samples: {min_samples}")
             df = (
                 df.groupby("blooms_level")
-                .apply(lambda x: x.sample(min(num_samples, len(x)), replace=False, random_state=random_seed))
+                .apply(
+                    lambda x: x.sample(
+                        min(num_samples, len(x)),
+                        replace=False,
+                        random_state=random_seed,
+                    )
+                )
                 .reset_index(drop=True)
             )
 

@@ -42,9 +42,7 @@ class LLModel(BaseModel):
     frequency_penalty: NonNegativeFloat = 0.0
     presence_penalty: NonNegativeFloat = 0.0
     seed: NonNegativeInt = 8675309
-    tokenizer: Optional[tk.core.Encoding] = Field(
-        None, alias="tokenizer"
-    )  # set by model
+    tokenizer: Optional[tk.core.Encoding] = Field(None)
     tokenizer_name: Optional[str] = Field(None, alias="tokenizer_name")  # set by model
     kwargs: Optional[dict] = Field(None, alias="kwargs")
 
@@ -76,13 +74,3 @@ class LLModel(BaseModel):
 
             logger.debug(f"Model: {self.model_name}") if os.getenv("DEBUG") else None
             logger.debug(f"Tokenizer: {self.tokenizer_name}")
-
-    @staticmethod
-    def compute_chars(prompt: str) -> int:
-        """Compute the number of characters in a prompt."""
-        return len(prompt)
-
-    @staticmethod
-    def compute_tokens(prompt: str, tokenizer: tk.Encoding) -> int:
-        """Compute the number of tokens in a prompt."""
-        return len(tokenizer.encode(prompt).ids)

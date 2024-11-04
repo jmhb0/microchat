@@ -19,7 +19,9 @@ from microchat.models.base_signatures import (
     ReviseInputContext,
     ClassifyBlooms,
     GenerateSearchQuery,
-    SelfAssessBlooms, DefaultQA,
+    SelfAssessBlooms,
+    DefaultQA,
+    SelfAssessRevisedInput,
 )
 
 context = yaml_loader(Path(MODULE_ROOT, "conf", "question_context.yaml"))
@@ -46,23 +48,23 @@ class BaseRAG(dspy.Module):
     def _set_context_and_signature(self):
         """Set context and signature based on specified context type."""
         if self.kwargs.get("context") == "nbme":
-            self.signature = ReviseInputContext
-            temp_context = context["nbme"]
-            temp_context = self._format_context(temp_context[: self.num_passages])
+            self.signature = SelfAssessRevisedInput
+            temp_context = self._format_context(context["nbme"])
             shuffle(temp_context)
             self.context = temp_context
         elif self.kwargs.get("context") == "blooms" or "blooms" in self.kwargs.get(
             "context"
         ):
-            self.signature = SelfAssessBlooms # gpt-4o-mini with SelfAssessBlooms is better default
-            self.signature_name = self.signature.__name__
-            temp_context = context["blooms"]
-            temp_context = self._format_context(temp_context)
+            # gpt-4o-mini with SelfAssessBlooms is better default
+            self.signature = SelfAssessBlooms
+            temp_context = self._format_context(context["blooms"])
             shuffle(temp_context)
             self.context = temp_context
         else:
             self.signature = DefaultQA
             self.retrieve = dspy.Retrieve(k=self.num_passages)
+
+        self.signature_name = self.signature.__name__
 
     @staticmethod
     def _format_context(raw_context: dict) -> List[str]:
@@ -159,6 +161,7 @@ class CoTSelfCorrectRAG(BaseRAG):
             logger.error(f"Teacher model not found in settings.")
 
         return assess_response
+
 
 class CoTSelfCorrectRAG(BaseRAG):
     """Module for classifying Bloom's Taxonomy level with self-assessment."""

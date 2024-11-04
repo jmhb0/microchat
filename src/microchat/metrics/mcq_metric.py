@@ -2,13 +2,15 @@
 """mcq_metric.py in src/microchat/metrics."""
 
 import dspy
+from loguru import logger
 
 from microchat import MODULE_ROOT
 from microchat.fileio.text.readers import yaml_loader
+from microchat.mc_questions.mcq import MCQ
 
 from microchat.models.dspy_modules import CoTSelfCorrectRAG
 from microchat.models.model_factory import create_model
-from microchat.utils.process_text import process_blooms
+from microchat.utils.process_text import process_blooms, compute_tokens
 
 blooms_taxonomy: dict = yaml_loader(MODULE_ROOT.joinpath("conf", "blooms.yaml")).get(
     "taxonomy"
@@ -50,29 +52,32 @@ def validate_blooms(example, pred, trace=None):
     return sum(s * w for s, w in score)
 
 
-
 def validate_nbme(example, pred, trace=None):
     if answer_EM := dspy.evaluate.answer_exact_match(example, pred):
-        return int(answer_EM)
+        return float(answer_EM)
 
-    # check input answer and output answer have same semantic meaning
-    gt_level, gt_name = process_blooms(example.answer)
-    pred_level, pred_name = process_blooms(pred.answer)
+    # mcq model
+    try:
+        mcq = MCQ(example=example, prediction=pred)
+    except Exception as e:
+        logger.error(f"Error creating MCQ: {e}")
+        return 0
 
     # weighted score based on level, name, and self-assessment match
     weights = {
-        "level": 0.75,
-        "level_diff": 0.125, # abs difference in level
-        "name": 0.125,
+        "similarity": 0.8,  # similarity between predicted and ground truth answers
+        "formatted": 0.2,  # formatted according to NBME guidelines
+        "extraneous": 0.2,  # extraneous information to give away the answer lower score
+        "option_token_ratio": 0.4,  # if MC options, ratio of mean(incorrect) to correct
+        "answer_token_metric": 0.2,  # exponential decay function for answer token difference
+        "errors": 0.2,  # errors in parsing the example or prediction
     }
-    # check if the predicted answer is in blooms taxonomy
-    level_score = 1 if gt_level == pred_level else 0
-    level_diff = abs(gt_level - pred_level)
-    name_score = 1 if gt_name == pred_name else 0
+    # normalize weights to sum to 1
+    weights = {k: v / sum(weights.values()) for k, v in weights.items()}
 
     # calculate weighted score
-    score = sum([level_score, level_diff, name_score])
-    # if trace is not None:
-    #     trace.update({"level_score": level_score, "name_score": name_score})
-
-    return sum(score * weight for weight in weights.values())
+    metrics_dict = mcq.metrics
+    score = zip(
+        [metrics_dict[k] for k in weights if k in metrics_dict], weights.values()
+    )
+    return sum(s * w for s, w in score)

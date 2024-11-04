@@ -13,20 +13,56 @@ from typing import List, Dict, Optional, Any, Tuple
 from loguru import logger
 import dspy
 import tiktoken as tk
-import tiktoken_ext
-from pprint import pprint
+from microchat.metrics.token_metrics import compute_token_metric
 
-from microchat.models.base_signatures import SelfAssessBlooms
+from microchat.models.base_signatures import SelfAssessBlooms, CheckSimilar
 from microchat.models.dspy_modules import re_blooms_compiled, blooms_dict
 from microchat.models.model_factory import create_model
-from microchat.utils.process_text import process_blooms
+from microchat.utils.process_text import process_blooms, compute_tokens, compute_chars
 
-re_clean_text = re.compile(r"`{1,3}|")
+re_clean_text = re.compile(r"`{1,3}|'{1,3}", re.IGNORECASE)
 re_correct_ans = re.compile(r"\(Correct\)$", re.IGNORECASE)
+re_true = re.compile(r"(True|Yes|Correct|Right)", re.IGNORECASE)
+re_false = re.compile(r"(False|No|Incorrect|Wrong)", re.IGNORECASE)
 # re_correct_incorrect = re.compile(r"\((Correct)\)|\((Incorrect)\)", re.IGNORECASE)
 re_clean_opt = re.compile(
     r"^\d+\.\s|^\w{1}\.\s|\(Correct\)$|\(Incorrect\)$", re.IGNORECASE
 )
+re_parse_example = re.compile(
+    r"Description of image preparation:\n(?P<quote1>['`]{2,3})(?P<description>.*?)(?P=quote1)\n+"
+    r"(Additional information:\n(?P<quote2>['`]{2,3})(?P<additional_info>.*?)(?P=quote2)\n+)?"
+    r"Question:\n(?P<quote3>['`]{2,3})(?P<question>.*?)(?P=quote3)\n+"
+    r"Answer:\n(?P<quote4>['`]{2,3})(?P<correct_answer>.*?)(?P=quote4)",
+    re.IGNORECASE | re.DOTALL,
+)
+re_parse_prediction = re.compile(
+    r"(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
+    r"\n+A\)\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace handling
+    r"B\)\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
+    r"C\)\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
+    r"D\)\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
+    r"\n+[Cc]orrect\s[Aa]nswer:\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)",  # Capture correct answer with flexible capitalization
+    re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
+)
+re_parse_prediction_2 = re.compile(
+    r"Revised Question\s?\d?:\n+['`]{2,3}(?P<question>.*?)['`]{2,3}"  # Capture Revised Question text within triple backticks
+    r"\n+Revised Answer\s?\d?:\n+['`]{2,3}(?P<correct_answer>.*?)['`]{2,3}",  # Capture Revised Answer text within triple backticks
+    re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
+)
+re_parse_prediction_3 = re.compile(
+    r"(?:Question:\s*)?(?P<question>.*?)(?=\n\n(Revised|Correct)\s?Answer:)"  # Optional "Question:" prefix and captures question up to "Answer" prefix
+    r"\n\n(?:Revised|Correct)\s?Answer:\s*\n?(?P<correct_answer>.*)",  # Matches "Correct Answer:" or "Revised Answer:" followed by answer text
+    re.IGNORECASE
+    | re.DOTALL,  # Allows case-insensitive matching and multi-line capture
+)
+re_parse_prediction_4 = re.compile(
+    r"(?P<question>.*?)(?=\n\n(?:[Nn]o|[Yy]es|[Aa]\)))"  # Capture question up to an answer indicator (No, Yes, or A))
+    r"\n\n(?:[Nn]o|[Yy]es|A\))\s?(?P<correct_answer>.*)",  # Match answer prefix (No, Yes, or A)) and capture answer text
+    re.IGNORECASE | re.DOTALL,  # Allows case-insensitive and multi-line matching
+)
+
+
+DEFAULT_TEACHER = create_model("o1-mini")
 
 
 class MCQ(BaseModel):
@@ -36,17 +72,15 @@ class MCQ(BaseModel):
     """
 
     example: dspy.Example
-    module: dspy.Module
+    prediction: dspy.Example
     tokenizer: Optional[tk.Encoding] = None
 
     # variables set from processing the example
-    context: Optional[List[str]] = None
-    question: Optional[str] = Field(None, alias="question", min_length=24)
-    answer: Optional[str] = Field(None, alias="answer", min_length=1)
-    options: Optional[List[str]] = None
-    question_tokens: Optional[int] = None
-    options_tokens: Optional[List[int]] = None
-    correct_tokens: Optional[int] = None
+    tokenizer_name: Optional[str] = Field(None, alias="tokenizer_name")  # set by model
+    example_dict: Optional[Dict[str, str]] = {}
+    prediction_dict: Optional[Dict[str, Any]] = {}
+    metrics: Optional[Dict[str, Any]] = {}
+    errors: Optional[int] = 0
 
     class Config:
         arbitrary_types_allowed = True
@@ -55,12 +89,6 @@ class MCQ(BaseModel):
     def validate_example(cls, value):
         if not isinstance(value, dspy.Example):
             raise ValueError("example must be a DSPy Example instance.")
-        return value
-
-    @field_validator("module")
-    def validate_module(cls, value):
-        if not isinstance(value, dspy.Module):
-            raise ValueError("module must be a DSPy Module instance.")
         return value
 
     @field_validator("tokenizer")
@@ -72,182 +100,214 @@ class MCQ(BaseModel):
     @staticmethod
     def compute_chars(prompt: str) -> int:
         """Compute the number of characters in a prompt."""
-        return len(prompt)
+        return compute_chars(prompt)
 
     @staticmethod
     def compute_tokens(prompt: str, tokenizer: tk.Encoding) -> int:
         """Compute the number of tokens in a prompt."""
-        return len(tokenizer.encode(prompt))
-
-    def predict(self) -> dspy.Prediction:
-        """
-        Predict the answer using the DSPy module.
-        """
-        logger.debug(f"Predicting answer for question: {self.example.question}")
-        try:
-            return self.module(self.example.question)
-        except Exception as e:
-            logger.error(f"Error in prediction: {e}")
-            raise e
-
-    @classmethod
-    def clean_pred_answer(cls, pred: dspy.Prediction) -> Dict:
-        """
-        Clean the prediction answer, extract the question, options, and correct answer.
-        """
-        logger.debug("Cleaning the prediction and extracting options.")
-
-        response = pred.answer
-
-        # Extract the question from the response
-        question = cls._extract_question(response)
-
-        # Extract and clean the predicted answer from the response
-        answer = cls._extract_answer(response)
-
-        # Extract and clean multiple choice options
-        mc_options, correct_incorrect = cls._extract_options(response)
-
-        if answer is None or answer not in mc_options:
-            logger.error(f"Answer: {answer} not found in the options.")
-            raise ValueError("Predicted answer not found in the options.")
-
-        # Find the correct answer from the multiple choice options
-        correct_answer = mc_options[correct_incorrect.index(True)]
-
-        # Validate if the answer matches the correct answer
-        cls._validate_answer(answer, correct_answer)
-
-        # shuffle options
-        mc_options = list(mc_options)
-        np.random.shuffle(mc_options)
-
-        return {
-            "context": pred.context,
-            "question": question,
-            "answer": answer,
-            "options": mc_options,
-        }
-
-    @staticmethod
-    def _extract_question(response: str) -> str:
-        """
-        Extract and clean the revised question from the response.
-        """
-        try:
-            question = response.split("Answer:")[0].strip()
-        except IndexError as e:
-            logger.error("Answer section missing from response.")
-            raise ValueError("Answer section is missing.") from e
-
-        # split, assume newline after 'Question:\n```'
-        question = question.split("\n")[-1].strip()
-
-        return re_clean_text.sub("", question).strip()
-
-    @staticmethod
-    def _extract_answer(response: str) -> str:
-        """
-        Extract and clean the predicted answer from the response.
-        """
-        try:
-            answer = response.split("Answer:")[1].strip().split("\nOptions")[0]
-        except IndexError as e:
-            logger.error("Answer section missing from response.")
-            raise ValueError("Answer section is missing.") from e
-
-        return re_clean_text.sub("", answer).strip()
-
-    @staticmethod
-    def _extract_options(response: str) -> tuple[tuple[str, ...], tuple[bool, ...]]:
-        """
-        Extract and clean the multiple choice options from the response.
-        """
-        try:
-            mc_options = response.split("Options:")[1].strip().split("\n")
-        except IndexError as e:
-            logger.error("Options section missing from response.")
-            raise ValueError("Options section is missing.") from e
-
-        mc_options = tuple(re_clean_text.sub("", option) for option in mc_options)
-        correct_incorrect = tuple(
-            bool(re_correct_ans.search(option)) for option in mc_options
-        )
-        # one correct answer
-        if sum(correct_incorrect) != 1:
-            logger.error("Multiple correct answers found.")
-            raise ValueError("Multiple correct answers found.")
-
-        # clean mc_options to remove prefix and (Correct) or (Incorrect)
-        mc_options = tuple(
-            re_clean_opt.sub("", option).strip() for option in mc_options
-        )
-
-        if len(mc_options) != len(correct_incorrect):
-            logger.error("Options and correct/incorrect flags do not match.")
-            raise ValueError("Options and correct/incorrect flags do not match.")
-
-        return mc_options, correct_incorrect
-
-    @staticmethod
-    def _validate_answer(answer: str, correct_answer: Optional[str]) -> None:
-        """
-        Validate if the predicted answer matches the correct answer.
-        """
-        if answer != correct_answer:
-            logger.error(
-                f"Answer: {answer} does not match Correct Answer: {correct_answer}"
-            )
-            raise ValueError("Predicted answer does not match the correct answer.")
+        return compute_tokens(prompt, tokenizer)
 
     def __repr__(self) -> str:
         """An unambiguous string representation of the class instance."""
-        return f"MCQ(example={self.example}, module={self.module})"
+        return f"MCQ(example={self.example}, prediction={self.prediction})"
 
     def __str__(self) -> str:
         """An easy-to-read string representation of the dataset class."""
-        answer_index = self.options.index(self.answer) + 1
-        output_str = [f"({self.question_tokens} tkns) Question: {self.question}\n"]
-        output_str += [
-            f"({tokens} tkns) {i+1}. {option} \n"
-            for i, (option, tokens) in enumerate(zip(self.options, self.options_tokens))
+        question = self.example_dict.get("question", "")
+        answer = self.example_dict.get("correct_answer", "")
+        revised_question = self.prediction_dict.get("question", "")
+        revised_answer = self.prediction_dict.get("correct_answer", "")
+        output_str = [
+            f"Original question: {question}\nOriginal answer: {answer}\n\n",
+            f"----------------------------------------\n",
+            f"Revised question: {revised_question}Revised answer: {revised_answer}\n",
+            f"----------------------------------------\n",
+            f"Metrics: {self.metrics}",
         ]
-        output_str += "----------------------------------------\n"
-        output_str += (
-            f"({self.correct_tokens} tkns) Answer: {answer_index}. {self.answer}\n"
-        )
 
         return "".join(output_str)
+
+    def compute_metrics(
+        self, question_key: str = "question", answer_key: str = "correct_answer"
+    ) -> Dict[str, float]:
+        temp_example = dspy.Example(
+            question=self.example_dict.get(question_key),
+            answer=self.example_dict.get(answer_key),
+        )
+        temp_pred = dspy.Example(
+            question=self.prediction_dict.get(question_key),
+            answer=self.prediction_dict.get(answer_key),
+        )
+
+        # check for exact match of the answer
+        if match := dspy.evaluate.answer_exact_match(temp_example, temp_pred):
+            return {
+                "similarity": float(match),
+                "formatted": float(match),
+                "extraneous": 1 - float(match),
+            }
+
+        # check for semantic similarity of the question
+        context = self.example_dict.get("description")
+        if addtl_info := self.example_dict.get("additional_info"):
+            context += f"\n\nAdditional information: {addtl_info}"
+
+        question_str = (
+            f"Original question: {temp_example.question}\nOriginal answer: {temp_example.answer}\n\n"
+            f"----------------------------------------\n"
+            f"Revised question: {temp_pred.question}Revised answer: {temp_pred.answer}\n"
+        )
+        with dspy.settings.context(lm=DEFAULT_TEACHER.lm):
+            result = dspy.ChainOfThought(CheckSimilar)(
+                context=context, question=question_str
+            )
+
+        # clean text outputs
+        similarity = re_clean_text.sub("", result.similarity).strip()
+        similarity = re_true.sub("1", similarity)
+        formatted = re_clean_text.sub("", result.formatted).strip()
+        formatted = re_true.sub("1", formatted)
+        extraneous = re_clean_text.sub("", result.extraneous).strip()
+        extraneous = re_true.sub("1", extraneous)
+        try:
+            similarity = float(eval(similarity))
+            formatted = float(eval(formatted))
+            extraneous = float(eval(extraneous))
+        except ValueError as e:
+            logger.error(f"Error in converting metrics to float: {e}")
+            similarity = 0
+            formatted = 0
+            extraneous = 0
+
+        return {
+            "similarity": float(similarity),
+            "formatted": float(formatted),
+            "extraneous": 1 - float(extraneous),
+        }
 
     def model_post_init(self, __context: Any) -> None:
         """
         Post-initialization hook for the MCQ model.
         """
+        lm_name = getattr(dspy.settings.lm, "model_name", None)
+        lm_prefix = getattr(dspy.settings.lm, "model_prefix", None)
         if self.tokenizer is None:
-            self.tokenizer = tk.get_encoding(dspy.settings.lm.model_prefix)
+            # set tokenizer name
+            if "o1" in lm_prefix:
+                self.tokenizer_name: str = "o200k_base"
+            else:
+                self.tokenizer_name: str = tk.encoding_name_for_model(lm_prefix)
+
+            self.tokenizer = tk.get_encoding(self.tokenizer_name)
 
         # process the example
-        response = self.predict()
-        cleaned_response = self.clean_pred_answer(response)
+        example_match = re_parse_example.search(self.example.question)
+        if example_match is None:
+            self.errors += 1
+            logger.warning("Example does not match the expected format.")
+        else:
+            self.example_dict = example_match.groupdict()
+
+        # process the prediction
+        pred_match = re_parse_prediction.search(self.prediction.answer)
+        pred_match = (
+            re_parse_prediction_2.search(self.prediction.answer)
+            if pred_match is None
+            else pred_match
+        )
+        pred_match = (
+            re_parse_prediction_3.search(self.prediction.answer)
+            if pred_match is None
+            else pred_match
+        )
+        pred_match = (
+            re_parse_prediction_4.search(self.prediction.answer)
+            if pred_match is None
+            else pred_match
+        )
+        if pred_match is None:
+            self.errors += 1
+            logger.warning("Prediction does not match the expected format.")
+        else:
+            self.prediction_dict = pred_match.groupdict()
+
+        # extract the question, options, and correct answer from the prediction
+        pred_question = self.prediction_dict.get("question")
+        pred_options = [
+            self.prediction_dict.get(f"option_{char}")
+            for char in "abcdefghijklmnop"
+            if self.prediction_dict.get(f"option_{char}")
+        ]
+        pred_answer = self.prediction_dict.get("correct_answer")
+        pred_option_correct = self.prediction_dict.get("correct_option")
+        pred_correct_index = -1
+        if pred_answer in pred_options:
+            pred_correct_index = pred_options.index(pred_answer)
+
+        # check if pred_answer tokens are longer than the original answer
+        ans_token_metric = 0
+        if self.example_dict.get("correct_answer") and pred_answer:
+            orig_tokens = self.compute_tokens(
+                self.example_dict.get("correct_answer"), self.tokenizer
+            )
+            pred_tokens = self.compute_tokens(pred_answer, self.tokenizer)
+            ans_token_ratio = pred_tokens / orig_tokens
+            ans_token_metric = compute_token_metric(orig_tokens, pred_tokens, k=0.5)
+
+            if ans_token_ratio >= 1.5:
+                logger.warning(
+                    f"Predicted answer longer: {orig_tokens} vs. {pred_tokens} for {pred_answer}"
+                )
+                logger.warning(
+                    f"Original answer: {self.example_dict.get('correct_answer')}"
+                )
+                logger.warning(f"Predicted answer: {pred_answer}")
+
+        # compare token difference example and prediction
+        token_diff = {}
+        for key in ["question", "correct_answer"]:
+            if key in self.example_dict and key in self.prediction_dict:
+                example_tokens = self.compute_tokens(
+                    self.example_dict.get(key, ""), self.tokenizer
+                )
+                pred_tokens = self.compute_tokens(
+                    self.prediction_dict.get(key, ""), self.tokenizer
+                )
+                token_diff[key] = abs(example_tokens - pred_tokens)
+
+        # compute the number of tokens in the options and correct answer
+        option_token_ratio = 1  # if no pred_options, don't penalize the model
+        if pred_options:
+            option_tokens = [
+                self.compute_tokens(option, self.tokenizer) for option in pred_options
+            ]
+            correct_tokens = option_tokens[pred_correct_index] or 1
+            incorrect_tokens = [
+                tokens
+                for i, tokens in enumerate(option_tokens)
+                if i != pred_correct_index
+            ]
+            token_ratio = np.divide(np.array(incorrect_tokens), correct_tokens)
+
+            # compute metric for token ratio, want to have ratio near 1
+            option_token_ratio = np.mean(token_ratio)
 
         #
-        self.context = cleaned_response["context"]
-        self.question = cleaned_response["question"]
-        self.answer = cleaned_response["answer"]
-        self.options = cleaned_response["options"]
+        try:
+            self.metrics = self.compute_metrics(
+                question_key="question", answer_key="correct_answer"
+            )
+        except Exception as e:
+            logger.error(f"Error in computing metrics: {e}")
+            self.metrics = {
+                "similarity": 0,
+                "formatted": 0,
+                "extraneous": 0,
+            }
 
-        # find index of the correct answer
-        correct_index = self.options.index(self.answer)
-
-        # compute the number of chars and tokens in the question and options
-        self.question_tokens = self.compute_tokens(self.question, self.tokenizer)
-        self.options_tokens = [
-            self.compute_tokens(option, self.tokenizer) for option in self.options
-        ]
-        self.correct_tokens = self.options_tokens[correct_index]
-
-        # compute ratio of tokens in the correct answer to the tokens for all options
-        token_ratio = np.divide(np.array(self.options_tokens), self.correct_tokens)
+        self.metrics["option_token_ratio"] = option_token_ratio
+        self.metrics["answer_token_metric"] = ans_token_metric
+        self.metrics["errors"] = 1 - (self.errors / 2)
 
 
 class Blooms(BaseModel):
@@ -294,12 +354,12 @@ class Blooms(BaseModel):
     @staticmethod
     def compute_chars(prompt: str) -> int:
         """Compute the number of characters in a prompt."""
-        return len(prompt)
+        return compute_chars(prompt)
 
     @staticmethod
     def compute_tokens(prompt: str, tokenizer: tk.Encoding) -> int:
         """Compute the number of tokens in a prompt."""
-        return len(tokenizer.encode(prompt))
+        return compute_tokens(prompt, tokenizer)
 
     @staticmethod
     def _process_answer(

@@ -19,6 +19,51 @@ class DefaultQA(dspy.Signature):
     answer = dspy.OutputField(desc="often between 1 and 5 words")
 
 
+# class CheckAnswer(dspy.Signature):
+#     """You are an expert in Biomedical AI with training from the National Board of Medical Examiners to design multiple choice questions for biology and biomedical exams. Your role is to perform quality control to check that an LLM faithfully revised a user-submitted question-answer pair by comparing the revised question to the original question as well as the revised answer to the original answer. You always state if you are uncertain about whether the revised question or answer are similar to the original.
+#     When checking for similarity between the original and revised question, consider the following:
+#       - The revised question should maintain the original question's meaning.
+#       - The revised question should be clear, concise, and formatted correctly for a multiple-choice question.
+#       - The revised question should not contain extraneous details about cell lines, structures, or diseases that could bias the answer.
+#     When checking for similarity between the original and revised answer, consider the following:
+#       - The revised answer should accurately reflect the original answer.
+#       - The revised answer should be concise, clear, and correctly answer the revised question.
+#     """
+#
+#     question = dspy.InputField(desc="The original question submitted by the user.")
+#     answer = dspy.OutputField(
+#         desc="A boolean indicating if the revised question has the same meaning as the original."
+#     )
+
+
+class CheckSimilar(dspy.Signature):
+    """You are an expert in Biomedical AI with training from the National Board of Medical Examiners to design image-based multiple choice questions for biology and biomedical exams. Your role is to perform quality control to check that an LLM faithfully revised a user-submitted question-answer pair by comparing the revised question to the original question as well as the revised answer to the original answer. You always state if you are uncertain in your assessment.
+    When checking for similarity between the original and revised question, consider the following:
+      - The revised question should maintain the original question's overall meaning.
+      - The revised question formatted correctly for a one-best answer NBME-style multiple-choice question.
+      - The revised question should not describe perceptual features of the image that could bias the answer.
+      - The revised question should not contain extraneous details about cell lines or diseases that could bias the answer.
+     When checking for similarity between the original and revised answer, consider the following:
+       - The revised answer should accurately reflect the original answer.
+       - The revised answer should be concise, clear, and correctly answer the revised question.
+       - The revised answer format should adhere to NBME guidelines.
+    """
+
+    context = dspy.InputField(desc="Experimental details related to the question.")
+    question = dspy.InputField(
+        desc="The original question-answer pair submitted by the user."
+    )
+    similarity = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised question-answer pair has the same meaning as the original."
+    )
+    formatted = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised question-answer pair format adheres to NBME multiple-choice guidelines."
+    )
+    extraneous = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised question contains unnecessary text details that give clues to the answer."
+    )
+
+
 class ReviseInput(dspy.Signature):
     """You are an expert in BioMedical AI assisting in designing benchmarks to test vision-language models' perception and reasoning. Your role is to convert user-submitted questions and long-form answers into a high-quality question stem and corresponding correct answer. You are deeply familiar with Bloom's taxonomy and trained by the National Board of Medical Examiners on crafting multiple-choice items to assess content knowledge and reasoning. You always state if you are uncertain about writing a question stem and are knowledgeable about "stem-equity," continually seeking to improve question stem quality."""
 
@@ -45,13 +90,34 @@ class ReviseInputContext(dspy.Signature):
 
 
 class SelfAssessRevisedInput(dspy.Signature):
-    """You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' perception and reasoning capabilities by converting user-submitted questions and long-form answers into a high-quality question stem and correct answer according to NBME guidelines.
-    You focus on content knowledge, reasoning, and stem equity, always seeking ways to improve question quality and stating if you are uncertain about how to write a question stem or revise a given answer.
-    When revising a question and answer pair, perform a self-check to ensure the revised question stem and answer are accurate. Review the following guidelines for writing multiple-choice questions:
+    """You are an expert in Biomedical AI with training from the National Board of Medical Examiners to design multiple choice questions for biology and biomedical exams. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' biomedical perception and reasoning capabilities by converting user-submitted questions and long-form answers into a high-quality question stem and paired correct answer. You focus on testing challenging image-based biomedical reasoning, always seeking ways to improve question stem quality and stating if you are uncertain about how to revise a question stem or answer.
+    When revising a question and answer pair, perform a self-check to ensure the revised question stem and answer preserve the original question meaning. Always ensure that answer is accurate for the corresponding question.
 
-    ## TODO: Add guidelines for writing multiple-choice questions.
+    # Question Format: Use the following format for multiple-choice questions:
+    {question}\n\nA) {option_a}  \nB) {option_b}  \nC) {option_c}  \nD) {option_d}  \n\nCorrect answer: {option_correct}) {correct_answer}'
 
-    After reviewing these guidelines, ask yourself: "Does the revised question stem and answer accurately reflect the original question and answer?" Double-check your revision and make adjustments if necessary to ensure the revised question stem and answer accurately reflect the original topic but have been correctly reformatted to NBME guidelines.
+    # Review the following NBME guidelines for writing multiple-choice questions:
+    ## Guidelines for Crafting Effective Multiple-Choice Items:
+    - Assess Higher-Order Thinking about Important Concepts: Design items that test application, analysis, and synthesis/evaluation of knowledge. Do not test trivial facts or details.
+    - Self-Contained Stem:
+        + Include only the relevant facts within the stem.
+        + Design the stem so it can be answered without referring to the options.
+        + Avoid adding extra information in the answer choices.
+     - Clarity and Simplicity:
+        + Keep the question straightforward, not tricky or overly complex.
+        + Use positive phrasing; avoid negatives like "except" or "not" in the lead-in.
+     - Structure of the Item:
+        + Vignette: Provide necessary context or details, but do not give away the answer.
+        + Lead-in: Clearly pose the question to be answered.
+        + Answer Choices: Offer a concise and uniform list of options, adhering to the "cover-the-options" rule.
+    - Review for Technical Flaws:
+        Check that the item's structure is logical, with the vignette preceding the lead-in.
+        During review, ask:
+          + Can the question be answered without the options?
+          + Is the phrasing clear and free from confusion?
+          + Are there unintended clues benefiting test-wise students?
+
+    After reviewing these guidelines, ask yourself: "Does the revised question stem and answer accurately reflect the original question and answer?" Double-check your revision and make adjustments if necessary to ensure the revised question stem and answer pair preserve the original meaning and follow NBME guidelines.
     """
 
     context = dspy.InputField(
