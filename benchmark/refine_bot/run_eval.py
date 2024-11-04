@@ -174,6 +174,17 @@ def get_refined_bot_mcqs(name, run):
     if not Path(dir_rewrite):
         raise ValueError(f"no results folder for {dir_rewrite_parent}")
 
+    # first recover the results csv
+    # get the old csv, and add accuracy results to it
+    f_results_ = glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_sorted*")
+    assert len(f_results_) == 1
+    f_results = f_results_[0]
+    df_results = pd.read_csv(f_results)
+    df_results['question_key'] = [
+        d[1] for d in df_results['log_str'].str.split("_")
+    ]
+    # df_results.index = df_results["key_question"]
+
     dirs = glob.glob(f"{dir_rewrite}/res_run_{run_number:04d}_*")
     assert len(dirs) == 1
     dirs_rewrite_qs = dirs[0]
@@ -186,10 +197,19 @@ def get_refined_bot_mcqs(name, run):
     mcqs_question = []
     mcqs_choices = []
     for idx_question in idxs_question:
-        files = glob.glob(
-            f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
-        nums = [int(Path(f).stem.split("_")[4]) for f in files]
-        file = files[np.argmax(nums)]
+        row_ = df_results[df_results['key_question']==idx_question]
+        assert len(row_)==1
+        row = row_.iloc[0]
+        assert row['key_question'] == idx_question
+
+        code = row['code']
+        if 'SUCCESS' not in code:
+            file = f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter_0.json"
+        else:
+            files = glob.glob(
+                f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
+            nums = [int(Path(f).stem.split("_")[4]) for f in files]
+            file = files[np.argmax(nums)]
         with open(file, 'r') as fp:
             mcq = json.load(fp)
         mcqs.append(mcq)
@@ -199,16 +219,6 @@ def get_refined_bot_mcqs(name, run):
             'chocices':
             dict(choices=mcq['choices'], correct_index=mcq['correct_index'])
         })
-
-    # also recover the results csv
-    # get the old csv, and add accuracy results to it
-    f_results_ = glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_sorted*")
-    assert len(f_results_) == 1
-    f_results = f_results_[0]
-    df_results = pd.read_csv(f_results)
-    df_results['question_key'] = [
-        d[1] for d in df_results['log_str'].str.split("_")
-    ]
 
     return mcqs, mcqs_question, mcqs_choices, idxs_question, df_results
 
@@ -223,35 +233,33 @@ def _get_filenames_from_key(key, ):
 def select_mcqs_by_priority(dfs):
     """
     Select 'mcqs' values based on priority of 'code' values across multiple dataframes.
-    
+
     Parameters:
     dfs (list): List of pandas DataFrames, each containing 'code' and 'mcqs' columns
-    
+
     Returns:
     pandas.Series: Selected 'mcqs' values based on priority order
     """
     # Define priority order (highest to lowest)
     priority_order = [
-        'SUCCESS_REWRITE',
-        'SUCCESS_NO_CHANGE',
-        'FAIL_ITERATIONS',
+        'SUCCESS_REWRITE', 'SUCCESS_NO_CHANGE', 'FAIL_ITERATIONS',
         'FAIL_REWRITE'
     ]
-    
+
     # Create a dictionary to map codes to their priority (lower number = higher priority)
     priority_map = {code: i for i, code in enumerate(priority_order)}
-    
+
     # Number of rows (assuming all dataframes have same number of rows)
     n_rows = len(dfs[0])
-    
+
     # Initialize results with NaN
     selected_mcqs = pd.Series([np.nan] * n_rows)
-    
+
     # For each row
     for row_idx in range(n_rows):
         best_priority = float('inf')
         best_mcq = np.nan
-        
+
         # Check each dataframe
         for df in dfs:
             code = df.loc[row_idx, 'code']
@@ -261,11 +269,10 @@ def select_mcqs_by_priority(dfs):
                 if current_priority < best_priority:
                     best_priority = current_priority
                     best_mcq = df.loc[row_idx, 'mcqs']
-        
-        selected_mcqs[row_idx] = best_mcq
-    
-    return selected_mcqs
 
+        selected_mcqs[row_idx] = best_mcq
+
+    return selected_mcqs
 
 
 if __name__ == "__main__":
@@ -273,8 +280,8 @@ if __name__ == "__main__":
     # config of whats in the other script
     df_results_lst = []
 
-    seeds = [0,1,2,3,4]
-    run_nums = [1,1,1,1,2]
+    seeds = [0, 1, 2, 3, 4]
+    run_nums = [1, 1, 1, 1, 2]
     for (seed, run_number) in zip(seeds, run_nums):
         df, _, name = run_experiments.exp_1103_test150(seed=seed)
         mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
@@ -284,7 +291,7 @@ if __name__ == "__main__":
         assert np.array_equal(df['key_question'].values, idxs_question)
 
     # ipdb.set_trace()
-    # pass 
+    # pass
     df_choose_qs = select_mcqs_by_priority(df_results_lst)
     mcqs = df_choose_qs.values
 
@@ -303,7 +310,17 @@ if __name__ == "__main__":
     df_questions['pred_correct'] = (preds == gts).astype(int)
     df_questions['pred_cot'] = msgs
 
-    df = df_questions.merge(df_results, on="key_question", suffixes=('_q', '_r'))
+    df = df_questions.merge(df_results,
+                            on="key_question",
+                            suffixes=('_q', '_r'))
+    df['mcqs_formatted'] = [json.dumps(m, indent=4) for m in mcqs]
+    name = "mcqs_1104_best_5.csv"
+    dir_results_parent = Path(f"benchmark/refine_bot/results/eval")
+    dir_results_parent.mkdir(exist_ok=True)
+    f_save = dir_results_parent / name
+
+
+    df.to_csv(f_save, index=False)
 
 
     ipdb.set_trace()
