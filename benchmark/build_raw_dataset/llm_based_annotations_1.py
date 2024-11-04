@@ -77,7 +77,7 @@ Text:
     prompts_batch = []
     for (fs, t) in zip(filenames, contexts):
         prompt = prompt_template.replace("{{filenames}}",
-                                         fs).replace("{{text}}", t)
+                                         fs).replace("{{text}}", str(t))
         prompts_batch.append(prompt)
 
     # run
