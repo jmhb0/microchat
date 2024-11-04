@@ -124,7 +124,7 @@ def main(dir_rewrite, run_number, dir_results_parent, do_image_eval,
     assert len(f_results_) == 1
     f_results = f_results_[0]
     df_results = pd.read_csv(f_results)
-    df_results['question_key'] = [
+    df_results['key_question'] = [
         d[1] for d in df_results['log_str'].str.split("_")
     ]
 
@@ -298,10 +298,3 @@ if __name__ == "__main__":
     main(dir_rewrite, run_number, dir_results_parent, do_image_eval,
          do_language_only)
 
-[
-    'The sample undergoes self-repair mechanisms, maintaining image integrity.',
-    'Electrons create new structural bonds, leading to clearer images.',
-    'Electric fields nullify the high-energy impact, preserving quality.',
-    'The electron absorption leads to compound crystallization, improving resolution.',
-    'Prolonged electron contact causes changes that impair structural representation, reducing detail.'
-]

@@ -203,9 +203,6 @@ if __name__ == "__main__":
 
     key_prompt_eval = 0
 
-    # df_questions.loc[idxs, 'gpt_response'] = msgs
-    # df_questions.loc[idxs, 'gpt_prediction'] = preds
-    # df_questions.to_csv(f_eval_closed)
 
     df_questions, msgs, preds, gts, cache_images, f_eval_closed = eval_qa(
         key_form,
