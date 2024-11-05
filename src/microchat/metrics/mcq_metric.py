@@ -66,11 +66,11 @@ def validate_nbme(example, pred, trace=None):
     # weighted score based on level, name, and self-assessment match
     weights = {
         "similarity": 1.0,  # similarity between predicted and ground truth answers
-        "formatted": 0.24,  # formatted according to NBME guidelines
+        "formatted": 0.5,  # formatted according to NBME guidelines
         "extraneous": 0.5,  # extraneous information to give away the answer lower score
         "option_token_ratio": 0.5,  # if MC options, ratio of mean(incorrect) to correct
         "answer_token_metric": 0.5,  # exponential decay function for answer token difference
-        "errors": 0.25,  # errors in parsing the example or prediction
+        "errors": 0.2,  # errors in parsing the example or prediction
     }
     # normalize weights to sum to 1
     weights = {k: v / sum(weights.values()) for k, v in weights.items()}

@@ -35,6 +35,10 @@ re_parse_example = re.compile(
     r"Answer:\n(?P<quote4>['`]{2,3})(?P<correct_answer>.*?)(?P=quote4)",
     re.IGNORECASE | re.DOTALL,
 )
+
+re_parse_options = re.compile(
+    r"\n?\*?\*?(?P<option_label>[A-Z])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
+)
 re_parse_prediction = re.compile(
     r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
     r"\n+A\)\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace handling
