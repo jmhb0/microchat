@@ -197,23 +197,42 @@ if 0:
     ipdb.set_trace()
     pass
 
-##### form 10 #####
+##### form 74 https://drive.google.com/open?id=1gas0XKsYba4uuO1nyGI2S1uWpx0-YICk #####
 if 1:
-    for f_in, f_out in zip(("TS_PBTOhNGN2hiPSCs_BR3_N03_Unmixed-6-channel - Zach C.tiff",), (("TS_PBTOhNGN2hiPSCs_BR3_N03_Unmixed-6-channel",))):
-        f = f"../Downloads/form10/{f_in}"
+    for f_in, f_out in zip(("APOE e2.tiff", "APOE e3.tiff", "APOE e4.tiff",), (("APOE e2","APOE e3","APOE e4",))):
+        f = f"../Downloads/form_74/{f_in}"
         assert Path(f).exists()
         img0_ = AICSImage(f)
         data = img0_.data
-        imgs = list(data[0, 3,:])
+        imgs = list(data[0, :,3])
         print(data.shape)
         imgs = [norm_01(im) for im in imgs]
-        grid = make_grid(imgs, 3, 3, padding=10, pad_value=1)
+        grid = make_grid(imgs, 1, 2, padding=10, pad_value=1)
         grid = (grid * 255).astype(np.uint8)
         # Image.fromarray(grid).save(f"grid_image_{suffix}.png")
-        Image.fromarray(grid).save(
-            f"{f_out}.png")
+        f_save = f"../Downloads/form_74/{f_out}.png"
+        Image.fromarray(grid).save(f_save)
 
-        ipdb.set_trace()
-        pass
+    ipdb.set_trace()
+    pass
 
+
+##### form 75
+if 1:
+    for f_in, f_out in zip(("APOE e2.tiff", "APOE e3.tiff", "APOE e4.tiff",), (("APOE e2","APOE e3","APOE e4",))):
+        f = f"../Downloads/form_75/{f_in}"
+        assert Path(f).exists()
+        img0_ = AICSImage(f)
+        data = img0_.data
+        imgs = list(data[0, :,3])
+        print(data.shape)
+        imgs = [norm_01(im) for im in imgs]
+        grid = make_grid(imgs, 1, 2, padding=10, pad_value=1)
+        grid = (grid * 255).astype(np.uint8)
+        # Image.fromarray(grid).save(f"grid_image_{suffix}.png")
+        f_save = f"../Downloads/form_75/{f_out}.png"
+        Image.fromarray(grid).save(f_save)
+
+    ipdb.set_trace()
+    pass
 

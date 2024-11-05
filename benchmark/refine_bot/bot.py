@@ -73,16 +73,16 @@ def revise_mcq(cfg: OmegaConf,
         _log_qa(dir_log, iteration, question_stem, choices, correct_index)
 
         # evaluate current question without an image
-        result_eval_mcq_noimage = evaluate_mcq_noimage(question_stem,
+        results_eval_mcq_noimage, is_eval_is_incorrect, eval_messages = evaluate_mcq_noimage(question_stem,
                                                        choices,
                                                        correct_index,
                                                        seed=seed,
                                                        cfg_eval=cfg.eval)
-        data.evals_.append(result_eval_mcq_noimage)
-        _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index)
+        data.evals_.append(results_eval_mcq_noimage)
+        _log_eval(dir_log, iteration, results_eval_mcq_noimage, correct_index)
 
         # if eval is incorrect, then stop
-        if not result_eval_mcq_noimage['is_correct']:
+        if is_eval_is_incorrect:
             if iteration == 0:
                 code = "SUCCESS_NO_CHANGE"
                 logging.info(
@@ -104,7 +104,7 @@ def revise_mcq(cfg: OmegaConf,
 
         # reflect on how that was possible
         result_reflection = reflect_on_mcqnoimage_pass(
-            conversation=result_eval_mcq_noimage['messages'],
+            conversation=eval_messages,
             cfg_reflect=cfg.reflect,
             seed=seed,
         )
@@ -159,7 +159,7 @@ def evaluate_mcq_noimage(question_stem: str, choices: list[str],
     """
     Run 
     """
-    if cfg_eval.key not in (0, 1):
+    if cfg_eval.key not in (0, 1, 2):
         raise NotImplementedError()
 
     # "no image" prefix guidance + the standard CoT prompt + regex from MMLU-pro
@@ -177,22 +177,55 @@ def evaluate_mcq_noimage(question_stem: str, choices: list[str],
     prompt_text = f"{prompt_prefix}\n{question_stem}\n{prompt_suffix}\n\n{choices_str}"
 
     # run gpt, extract prediction
-    # ipdb.set_trace()
-    response = call_gpt(prompt_text,
-                        model=cfg_eval.model,
-                        seed=seed,
-                        verbose=False)
-    response_text = response[0]
-    pred_letter, pred_index = _extract_mc_answer(response_text, regex_pattern)
-    is_correct = (correct_index == pred_index)
+    rets = []
+    num_evals = cfg_eval['multi_eval']
+    is_correct_cnt = 0
+    is_correct_lst = []
+    for eval_num in range(num_evals):
 
-    cost = response[1]['cost'] if response[1] is not None else 0
+        response = call_gpt(prompt_text,
+                            model=cfg_eval.model,
+                            seed=seed+eval_num,
+                            verbose=False)
+        response_text = response[0]
+        pred_letter, pred_index = _extract_mc_answer(response_text, regex_pattern)
+        is_correct = (correct_index == pred_index)
+        is_correct_lst.append(is_correct)
+        is_correct_cnt  += is_correct
 
-    return dict(messages=response[3],
+        cost = response[1]['cost'] if response[1] is not None else 0
+
+        ret = dict(messages=response[3],
                 response_text=response_text,
                 is_correct=is_correct,
                 pred_index=pred_index,
                 cost=cost)
+
+        rets.append(ret)
+    
+    # do we meet the criteria for exiting? (not the most elegant but easy to understand way)
+    if num_evals == 1 and is_correct_cnt == 0: 
+        is_eval_incorrect = True 
+    elif num_evals > 1 and is_correct_cnt <= 1:
+        is_eval_incorrect = True 
+    else: 
+        is_eval_incorrect = False
+
+    # take the first instance of it being correct, and get the conversation to pass
+    idxs = np.where(is_correct_lst)[0]
+    if len(idxs)==0:
+        idx = 0
+    else: 
+        idx = idxs[0]
+    
+    # is_correct_lst
+    eval_messages = rets[idx]['messages']
+
+    # if is_correct_cnt < eval_num:
+    #     ipdb.set_trace()
+    #     pass
+
+    return rets, is_eval_incorrect, eval_messages
 
 
 def reflect_on_mcqnoimage_pass(conversation: list[dict],
@@ -486,7 +519,7 @@ def _log_qa(dir_log,
         json.dump(dict(mcq_object), fp, indent=2)
 
 
-def _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index):
+def _log_eval(dir_log, iteration, results_eval_mcq_noimage, correct_index):
     """
     By turning it into a string, we use newline, which makes logging more 
     readable.
@@ -494,22 +527,23 @@ def _log_eval(dir_log, iteration, result_eval_mcq_noimage, correct_index):
     letters = list("abcdefghijk")
     idx_to_letter = dict(zip(range(len(letters)), letters))
 
-    msgs = result_eval_mcq_noimage['messages']
-    assert len(msgs) == 2
-    str_log = ""
+    for i, result_eval_mcq_noimage in enumerate(results_eval_mcq_noimage):
+        msgs = result_eval_mcq_noimage['messages']
+        assert len(msgs) == 2
+        str_log = ""
 
-    # prompt
-    str_log += f"Prompt\n{80*'-'}\n"
-    assert len(msgs[0]['content']) == 1
-    str_log += msgs[0]['content'][0]['text']
+        # prompt
+        str_log += f"Prompt\n{80*'-'}\n"
+        assert len(msgs[0]['content']) == 1
+        str_log += msgs[0]['content'][0]['text']
 
-    # response
+        # response
 
-    str_log += f"\n{80*'-'}\nResponse (target answer is {idx_to_letter[correct_index]})\n{80*'-'}\n"
-    str_log += msgs[1]['content']
+        str_log += f"\n{80*'-'}\nResponse (target answer is {idx_to_letter[correct_index]})\n{80*'-'}\n"
+        str_log += msgs[1]['content']
 
-    with open(dir_log / f"1_eval_iter_{iteration}.txt", 'w') as fp:
-        fp.write(str_log)
+        with open(dir_log / f"1_eval_iter_{iteration}__run_{i}.txt", 'w') as fp:
+            fp.write(str_log)
 
 
 def _log_reflections(dir_log, iteration, result_reflection):
@@ -548,7 +582,7 @@ def _log_costs(cfg, evals_, reflections_, rewrites_, check_rewrites_,
     """
     For revising a single question, compute the final cost per stage. 
     """
-    cost_eval = sum([c['cost'] for c in evals_])
+    cost_eval = sum([c['cost'] for c_ in evals_ for c in c_])
     cost_reflect = sum([c['cost'] for c in reflections_])
     cost_rewrites = sum([c['cost'] for c in rewrites_])
     cost_check_rewrites = sum([c['cost'] for c in check_rewrites_])
@@ -772,7 +806,7 @@ if __name__ == "__main__":
     questions_source = 'qkey3_ckey9'
     df, do_shuffle = get_data(questions_source)
     df = df.iloc[:3]
-    ipdb.set_trace()
+    # ipdb.set_trace()
 
     run(df,
         cfg,
