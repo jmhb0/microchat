@@ -177,6 +177,7 @@ def evaluate_mcq_noimage(question_stem: str, choices: list[str],
     prompt_text = f"{prompt_prefix}\n{question_stem}\n{prompt_suffix}\n\n{choices_str}"
 
     # run gpt, extract prediction
+    # ipdb.set_trace()
     response = call_gpt(prompt_text,
                         model=cfg_eval.model,
                         seed=seed,
@@ -747,13 +748,7 @@ if __name__ == "__main__":
     n_choices_target = 5
 
     # target questions
-    idxs_question = [136, 137, 138, 139, 140, 142, 145]
-    idxs_question = [
-        136, 137, 138, 139, 140, 142, 145, 176, 177, 178, 179, 180, 181, 187,
-        188, 189, 190, 191, 192, 193, 194, 205, 206, 207, 538, 539, 540, 541,
-        542, 543
-    ]
-    idxs_question = list(range(300))
+    idxs_question = list(range(20))
 
     # yapf: disable
     cfg = dict(
@@ -765,43 +760,6 @@ if __name__ == "__main__":
         rewrite=dict(model=model_o1, key=0, strucured_output_key=0, n_choices_target=n_choices_target),
         check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
     )
-    cfg = dict(
-        name="standard",
-        seed=0,
-        max_iters=5,
-        eval=dict(model=model_gpt4o, key=0),
-        reflect=dict(model=model_gpt4o, key=0),
-        rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=n_choices_target),
-        check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
-    )
-    # key 1 gpt 4o
-    cfg = dict(
-        name="standard",
-        seed=0,
-        max_iters=5,
-        eval=dict(model=model_gpt4o, key=1),
-        reflect=dict(model=model_gpt4o, key=1),
-        rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=n_choices_target),
-        check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
-    )
-    # cfg = dict(
-    #     name="key1-modelo1",
-    #     seed=1,
-    #     max_iters=5,
-    #     eval=dict(model=model_o1, key=1),
-    #     reflect=dict(model=model_o1, key=1),
-    #     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
-    #     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
-    # )
-    # cfg = dict(
-    #     name="key1-modelo1mini",
-    #     seed=0,
-    #     max_iters=5,
-    #     eval=dict(model=model_o1mini, key=1),
-    #     reflect=dict(model=model_o1mini, key=1),
-    #     rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0, n_choices_target=5),
-    #     check_rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0),
-    # )
     # yapf: enable
 
     dir_results_parent =  Path("benchmark/refine_bot/results" )
