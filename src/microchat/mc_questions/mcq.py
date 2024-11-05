@@ -39,6 +39,16 @@ re_parse_example = re.compile(
 re_parse_options = re.compile(
     r"\n?\*?\*?(?P<option_label>[A-Z])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
 )
+
+re_parse_question = re.compile(
+    r"(?:\*\*?(?:Revised\s+)?Question:\*\*\n+)"  # Matches "Question" label with optional "Revised"
+    r"['`]{0,3}(?P<question>.*?)['`]{0,3}"                    # Captures the question within triple backticks
+    r"\n+\n?\*\*Answer Choices:\*\*\n"            # Matches "Answer Choices" label
+    r"(?P<choices>(?:[A-E]\) .+?(?:\s+\n|$))+)"    # Captures choices A-D with double spaces at line end
+    r"\n+\*?\*?Correct answer:\*?\*?\s+(?P<correct>[A-E]\)\.?\s?)",  # Matches "Correct answer" label and text
+    re.IGNORECASE | re.DOTALL                                    # Enables multi-line matching for `?P<question>`
+)
+
 re_parse_prediction = re.compile(
     r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
     r"\n+A\)\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace handling
