@@ -14,5 +14,8 @@ class OptimizerType(Enum):
 
     bootstrap_fine_tune = ("bootstrap", "bootstrap_fine_tune")
 
+    # miprov2
+    miprov2 = ("miprov2", "miprov2")
+
     def __repr__(self):
         return self.name

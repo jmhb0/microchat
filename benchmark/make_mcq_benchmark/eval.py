@@ -91,7 +91,7 @@ def eval_qa(key_form,
     idxs = []
     gts = []
 
-    cache_images = {}
+    rache_images = {}
     if key_prompt_eval == 0:
         n_imgs = len(df_questions['key_image'].unique())
         print(f"Collecting {n_imgs} image sets")

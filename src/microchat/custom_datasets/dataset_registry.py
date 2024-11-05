@@ -20,3 +20,6 @@ class DatasetType(Enum):
     microchat = MicroChatWrapper()  # expecting file $DATA_ROOT/microchat.csv
     mol_bio_cell = Mol_Bio_CellWrapper()
     microbench = MicroBenchWrapper()
+    blooms = BloomsWrapper()
+    other_blooms = Other_BloomsWrapper()
+    nbme_blooms = NBME_BloomsWrapper()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """run_dspy.py in src/microchat."""
-
+import os
 from pathlib import Path
 from typing import Optional
 import click
@@ -12,15 +12,21 @@ from loguru import logger
 
 import dspy
 from dspy.evaluate.evaluate import Evaluate
-from tqdm import tqdm
 
 from microchat import PROJECT_ROOT
 from microchat.custom_datasets.dataset_factory import create_dataset
 from microchat.fileio.dataframe.readers import df_loader
-from microchat.models.dspy_modules import CoTSelfCorrectRAG
+from microchat.fileio.text.readers import yaml_loader
+from microchat.fileio.text.writers import yaml_writer
+from microchat.metrics.mcq_metric import (
+    validate_blooms,
+    validate_nbme,
+)
+from microchat.models.dspy_modules import CoTSelfCorrectRAG, CoTRAG
 from microchat.models.model_factory import create_model
 from microchat.mc_questions.mcq import MCQ, Blooms
 from microchat.teleprompters.teleprompter_factory import create_optimizer
+from microchat.utils.process_model_history import history_to_jsonl
 
 try:
     import datasets
@@ -34,21 +40,28 @@ except ImportError as e:
     logger.error(e)
     raise e
 
+try:
+    from langtrace_python_sdk import langtrace
+
+    # langtrace.init(api_key=os.getenv("LANGTRACE_API_KEY"))
+except ImportError as e:
+    logger.warning("Langtrace not installed.")
+
 
 @click.command()
-@click.argument("dataset_name", type=click.STRING)
-@click.option(
-    "--model", type=click.STRING, default="o1-mini"
-)  # "gpt-4o-mini") # gpt-4o
-@click.option("--teacher-model", type=click.STRING, default="gpt-4o")
+@click.argument("dataset_name", type=click.STRING)  # blooms.csv
+@click.option("--model", type=click.STRING, default="o1-mini")
+@click.option("--teacher-model", type=click.STRING, default="o1-mini")
 @click.option("--retrieval-model", type=click.STRING, default="wiki17_abstracts")
-@click.option("--optimizer", type=click.STRING, default="bootstrap_random")
+@click.option("--optimizer", type=click.STRING, default="miprov2")
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, dir_okay=True, path_type=Path)
 )
-@click.option("--task", type=click.Choice(["nbme", "blooms"]), default="blooms")
+@click.option(
+    "--task", type=click.Choice(["nbme", "blooms", "hotpotqa"]), default="blooms"
+)
 @click.option("--random-seed", type=click.INT, default=8675309)
-@click.option("--retrieve-k", type=click.IntRange(3, 10), default=5)
+@click.option("--retrieve-k", type=click.IntRange(1, 10), default=3)
 @click.option("--dry-run", is_flag=True, help="Perform a trial run with no changes.")
 @click.version_option()
 def main(
@@ -60,7 +73,7 @@ def main(
     output_dir: Optional[Path] = None,
     task: Optional[str] = "blooms",
     random_seed: int = 8675309,
-    retrieve_k: int = 5,
+    retrieve_k: int = 3,
     dry_run: bool = False,
 ) -> None:
     """Docstring."""
@@ -76,6 +89,7 @@ def main(
     )
 
     logger.info(f"Dataset: {dataset_name}")
+    logger.info(f"Task: {task}")
     logger.info(f"Model: {model}")
     logger.info(f"Teacher model: {teacher_model}") if teacher_model else None
     logger.info(f"Random seed: {random_seed}")
@@ -101,15 +115,16 @@ def main(
 
     # instantiate model LLM/VLM model
     model = create_model(model)
+    teacher_lm = None  # create_model(teacher_model)
 
     # define retrieval model
     colbertv2_model = None
-    # if retrieval_model:
-    #     logger.info(f"Retrieval model: {retrieval_model}")
-    #     logger.info(f"Retrieve k: {retrieve_k}")
-    #     colbertv2_model = dspy.ColBERTv2(
-    #         url="http://20.102.90.50:2017/wiki17_abstracts"
-    #     )
+    if retrieval_model or task == "hotpotqa":
+        logger.info(f"Retrieval model: {retrieval_model}")
+        logger.info(f"Retrieve k: {retrieve_k}")
+        colbertv2_model = dspy.ColBERTv2(
+            url="http://20.102.90.50:2017/wiki17_abstracts"
+        )
 
     # configure DSPy settings
     dspy.settings.configure(lm=model.lm, rm=colbertv2_model)
@@ -119,6 +134,18 @@ def main(
     if task == "blooms":
         question_key = "question_answer"  # "revised_question_answer"  # "question" #"original_question_answer"
         answer_key = "blooms_question_category"  # "blooms_question_category"  # "revised_question" #"revised_question_answer"
+        metric = validate_blooms
+        eval_metric = dspy.evaluate.answer_exact_match
+    elif task == "nbme":
+        question_key = "original_question_answer"
+        answer_key = "revised_question_answer"
+        metric = validate_nbme
+        eval_metric = validate_nbme
+    elif task == "hotpotqa":
+        question_key = "question"
+        answer_key = "answer"
+        metric = dspy.evaluate.answer_exact_match
+        eval_metric = dspy.evaluate.answer_exact_match
     else:
         logger.error(f"Task {task} not implemented.")
         raise NotImplementedError(f"Task {task} not implemented.")
@@ -130,195 +157,106 @@ def main(
     )
 
     # Tell DSPy that the 'question' field is the input. Any other fields are labels and/or metadata.
-    trainset = [x.with_inputs("question") for x in dataset.train]
-    devset = [x.with_inputs("question") for x in dataset.dev]
+    trainset = [x.with_inputs("context", "question") for x in dataset.train]
+    devset = [x.with_inputs("context", "question") for x in dataset.dev]
 
     print(f"{len(trainset)}, {len(devset)}")
 
     train_example = trainset[0]
     dev_example = devset[0]
-    logger.info(f"Train question: {train_example.question}")
-    logger.info(f"Train answer: {train_example.answer}")
+    logger.debug(f"Train question: {train_example.question}")
+    logger.debug(f"Train answer: {train_example.answer}")
 
-    # Set up a basic teleprompter, which will compile our RAG program.
-    optimizer = create_optimizer(optimizer, teacher_model=teacher_model)
+    # Set up a teleprompter/optimizer, which will compile our RAG program.
+    optimizer, metric = create_optimizer(
+        optimizer, teacher_model=teacher_model, metric=metric
+    )
 
     # create module
-    module = CoTSelfCorrectRAG(context=task)
+    module = CoTRAG(context=task, num_passages=retrieve_k)
+    module.name = module.__class__.__name__
 
-    ## hack:  temp code to loop over all examples to get consensus Bloom's category
-    # loop over trainset and save response.answer to output_list, which will be new
-    # consensus label
-    teacher_model = create_model(teacher_model).lm
-    output_list = []
-    for idx, example in tqdm(
-        enumerate(trainset + devset), total=len(trainset + devset)
-    ):
-        # get consensus blooms
-        # the initial label was from MicroChat-MC
-        # this loop will use predict using o1-mini and self-assess
-        # or correct with gpt-4o. any examples without 100% agreement
-        # among MicroChat-MC, o1-mini, and, gpt-4o will get human review
-        try:
-            response = Blooms(
-                example=example, module=module, teacher_model=teacher_model
-            )
-            output_list.append(
-                {
-                    "key_image": response.example.key_image,
-                    "key_question": response.example.key_question,
-                    "revised_question_answer": response.example.question,
-                    "context": response.context,
-                    "self_check_question": response.self_check_question,
-                    "blooms_question_category": response.blooms_name.capitalize(),
-                    "blooms_confidence": response.blooms_confidence,
-                    "blooms_level": response.blooms_level,
-                    "blooms_source": response.blooms_source,
-                    "blooms_reasoning": response.blooms_reasoning,
-                }
-            )
-        except Exception as e:
-            logger.error(
-                f"Error with example {example.key_image} {example.key_question}: {e}"
-            )
-
-    # convert to df
-    output_df = pd.DataFrame(output_list)
-
-    # load orig df
-    orig_df = df_loader(Path(PROJECT_ROOT).joinpath("data", "processed", dataset_name))
-
-    # merge on key_image and key_question
-    output_df = pd.merge(
-        orig_df,
-        output_df,
-        on=["key_image", "key_question"],
-        how="left",
-        suffixes=("", "_pred"),
-    )
-
-    # print rows with non null for both blooms_question_category and blooms_question_category_pred
-    idx = output_df.loc[
-        (output_df["blooms_question_category"].notnull())
-        & (output_df["blooms_question_category_pred"].notnull())
-    ].index
-    print(
-        output_df.loc[
-            idx,
-            [
-                "blooms_question_category",
-                "blooms_question_category_pred",
-                "blooms_source",
-            ],
-        ]
-    )
-
-    # rename values in blooms_question_category_pred
-    rename_map = {
-        "Recall": "Recall",
-        "Remember": "Recall",
-        "Memorize": "Recall",
-        "Knowledge": "Recall",
-        "Comprehension": "Comprehension",
-        "Comprehend": "Comprehension",
-        "Understand": "Comprehension",
-        "Understanding": "Comprehension",
-        "Application": "Application",
-        "Apply": "Application",
-        "Applying": "Application",
-        "Analysis": "Analysis",
-        "Analyze": "Analysis",
-        "Analyzing": "Analysis",
-        "Evaluation": "Evaluation",
-        "Evaluate": "Evaluation",
-        "Evaluating": "Evaluation",
-        "Synthesis": "Synthesis",
-        "Synthesizing": "Synthesis",
-    }
-    output_df["blooms_question_category_pred"] = output_df[
-        "blooms_question_category_pred"
-    ].map(rename_map)
-
-    # save to csv
-    output_df.to_csv(
-        output_dir.joinpath(f"{model.model_name}_update_blooms.csv"), index=False
-    )
-
-    output_df_2 = pd.read_csv(
-        output_dir.joinpath(f"{model.model_name}_update_blooms.csv"), index_col=None
-    )
-    # drop dups
-    total_len = len(output_df_2)
-    output_df_2 = output_df_2.drop_duplicates(
-        subset=["key_question", "key_image", "revised_question"], keep="first"
-    )
-
-    # groupby key_question, and find most common blooms_question_category
-    temp = (
-        output_df.copy()
-        .groupby("key_question")[
-            ["blooms_question_category_pred", "blooms_source", "blooms_level"]
-        ]
-        .agg(
-            blooms_question_category=(
-                "blooms_question_category_pred",
-                lambda x: x.mode(),
-            ),
-            blooms_level=("blooms_level", lambda x: x.mode()),
-            blooms_source=("blooms_source", lambda x: x.mode()),
-            # fraction of blooms_level that are in the majority class
-            blooms_confidence=(
-                "blooms_level",
-                lambda x: x.value_counts().max() / len(x),
-            ),
-        )
-        .reset_index()
-    )
-
-    # get rows with non null and non empty list
-    idx_temp = temp.loc[
-        temp["blooms_question_category_pred"].notnull()
-        & temp["blooms_question_category_pred"].apply(lambda x: len(x) > 0)
-    ].index
-    temp = temp.loc[idx_temp]
-
-    #
-    temp.to_csv(
-        output_dir.joinpath(f"{model.model_name}_update_blooms_agg.csv"), index=False
-    )
-
-    #
-    module.save(output_dir.joinpath(f"{model.model_name}_demos.json"))
-
-    # compile rag
-    compiled_rag = optimizer.compile(module, trainset=trainset)
-
-    # instantiate MCQ to test the compiled rag
-    model_dump = model.model_dump(include={"tokenizer"})
-    if task == "blooms":
-        test_single = Blooms(example=dev_example, module=compiled_rag, **model_dump)
-    elif task == "nbme":
-        test_single = MCQ(
-            example=dev_example,
-            module=compiled_rag,
-            **model.model_dump(include={"tokenizer"}),
-        )
-    else:
-        logger.error(f"Task {task} not implemented.")
-
-    ##
-    # Set up the `evaluate_on_hotpotqa` function. We'll use this many times below.
+    # Set up the `evaluator` function. We'll use this many times below.
     evaluator = Evaluate(
         devset=devset,
         num_threads=1,
         display_progress=True,
-        display_table=5,
         provide_traceback=True,
+        metric=eval_metric,
+        return_outputs=True,
     )
 
-    # Evaluate the `compiled_rag` program with the `answer_exact_match` metric.
-    metric = dspy.evaluate.answer_exact_match
-    temp_eval = evaluator(compiled_rag, metric=metric)
+    # # results yaml
+    results_file = output_dir.joinpath("results.yaml")
+    model_filepath = output_dir.joinpath(
+        f"{model.model_name}_{module.name}_{module.signature_name}.json"
+    )
+
+    # evalute zero shot
+    zs_score, zs_results = evaluator(module, metric=eval_metric)
+    logger.info(f"Zero-shot score: {zs_score}")
+    if results_file.exists():
+        results = yaml_loader(results_file)
+        if model.model_name not in results:
+            results[model.model_name] = {}
+        results[model.model_name][module.signature_name]["zero_shot_score"] = float(
+            zs_score
+        )
+        yaml_writer(results, results_file)
+    else:
+        yaml_writer(
+            {
+                model.model_name: {
+                    module.signature_name: {"zero_shot_score": float(zs_score)}
+                }
+            },
+            results_file,
+        )
+
+    # compile rag
+    logger.info(f"Compiling {module.name} with optimizer {optimizer.name} and model {model.model_name}")
+    compiled_rag = optimizer.compile(
+        module, trainset=trainset, minibatch_size=len(devset)
+    )
+
+    # save compiled rag
+    compiled_rag.save(output_dir.joinpath(model_filepath))
+    # save history for the last 5 examples
+    history_to_jsonl(
+        model.lm, output_dir, output_file=f"{model.model_name}_history.jsonl", n=5
+    )
+
+    # Evaluate the `compiled_rag` program with the specified metric.
+    if not model_filepath.exists():
+        logger.error(f"Error saving compiled RAG to {model_filepath}")
+        raise FileNotFoundError(f"Error saving compiled RAG to {model_filepath}")
+
+    logger.info(f"Loading compiled RAG from {model_filepath}")
+    trained_module = CoTRAG(context=task, num_passages=retrieve_k)
+    trained_module.load(model_filepath)
+    trained_module.name = trained_module.__class__.__name__
+
+    # evaluate trained rag
+    score, results = evaluator(trained_module, metric=eval_metric)
+    results_df = pd.DataFrame(results, columns=["example", "prediction", "score"])
+    logger.info(f"Compiled RAG score: {score}")
+    # save score to yaml
+    if results_file.exists():
+        results = yaml_loader(results_file)
+        if model.model_name not in results:
+            results[model.model_name] = {}
+        results[model.model_name][module.signature_name][optimizer.name] = float(score)
+        yaml_writer(results, results_file)
+    else:
+        yaml_writer(
+            {model.model_name: {module.signature_name: {optimizer.name: float(score)}}},
+            results_file,
+        )
+
+    # Save the results
+    results_df.to_csv(
+        output_dir.joinpath(f"{model_filepath.stem}_results.csv"), index=False
+    )
 
 
 if __name__ == "__main__":

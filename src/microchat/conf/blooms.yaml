@@ -28,6 +28,7 @@ taxonomy:
         - evaluation
         - evaluating
         - synthesis/evaluation
+        - evaluation/synthesis
     6:
         - create
         - creating

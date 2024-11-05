@@ -55,13 +55,22 @@ class HFDataset(Dataset):
             official_train = hf_dataset.pop("train")
             rng = random.Random(0)
             rng.shuffle(official_train)
-            hf_dataset["train"] = official_train[: len(official_train) * 75 // 100]
-            hf_dataset["dev"] = official_train[len(official_train) * 75 // 100 :]
+            num_train = len(official_train) * 75 // 100
+            num_dev = len(official_train) - num_train  # TODO: check min 1
+            hf_dataset["train"] = official_train[:num_train]
+            hf_dataset["dev"] = official_train[num_train : num_train + num_dev]
         elif (
             not hf_dataset.get("train")
             and hf_dataset.get("validation")
             or hf_dataset.get("dev")
         ):
+            logger.info("Creating unofficial train split from official dev.")
+            official_dev = hf_dataset.pop("validation") or hf_dataset.pop("dev")
+            rng = random.Random(0)
+            rng.shuffle(official_dev)
+            hf_dataset["train"] = official_dev[: len(official_dev) * 75 // 100]
+            hf_dataset["dev"] = official_dev[len(official_dev) * 75 // 100 :]
+        else:
             logger.info("Creating unofficial train split from official dev.")
             official_dev = hf_dataset.pop("validation") or hf_dataset.pop("dev")
             rng = random.Random(0)
@@ -137,11 +146,39 @@ class CSVDataset(Dataset):
 
         self.dataset_name = Path(filepath).stem
         self.kwargs: dict = kwargs
+        random_seed = kwargs.get("random_seed", 8675309)
         # question_key = kwargs.get("question_key", "question")
         # answer_key = kwargs.get("answer_key", "answer")
 
         # read data
         df = df_loader(filepath)
+
+        # count unique for blooms_question_category
+        if "blooms_level" in df.columns:
+            logger.info(f"Unique blooms_level: {df['blooms_level'].nunique()}")
+            # sample min_samples from each blooms_level
+            num_samples = 15  # df["blooms_level"].value_counts().min()
+            min_samples = df["blooms_level"].value_counts().min()
+            logger.info(f"Min samples: {min_samples}")
+            df = (
+                df.groupby("blooms_level")
+                .apply(
+                    lambda x: x.sample(
+                        min(num_samples, len(x)),
+                        replace=False,
+                        random_state=random_seed,
+                    )
+                )
+                .reset_index(drop=True)
+            )
+
+        # fillna with empty string for col blooms_rationale
+        if "blooms_rationale" in df.columns and df["blooms_rationale"].isnull().any():
+            df["blooms_rationale"] = df["blooms_rationale"].fillna("")
+
+        # fillna correct_answer if all nan
+        if "correct_answer" in df.columns and df["correct_answer"].isnull().any():
+            df["correct_answer"] = df["correct_answer"].fillna("")
 
         # HACK create new column revised question-answer
         if Path(filepath).stem == "microchat":
@@ -156,21 +193,27 @@ class CSVDataset(Dataset):
                 df["question"] + "\n\nAnswer:\n```" + df["answer_correct"] + "```"
             )
             df["revised_question_answer"] = (
-                "Question:\n```"
+                "Revised Question:\n```"
                 + df["revised_question"]
-                + "```\n\nAnswer:\n```"
+                + "```\n\nRevised Answer:\n```"
                 + df["answer_correct"]
                 + "```"
             )
             df["revised_question_answer_mc"] = (
-                "Question:\n```"
+                "Revised Question:\n```"
                 + df["revised_question"]
-                + "\n\nAnswer:\n```"
+                + "\n\nRevised Answer:\n```"
                 + df["answer_correct"]
                 + "\n\nOptions:\n```"
                 + df["multiple_choice"]
             )
-        elif Path(filepath).stem in {"mol_bio_cell", "microbench"}:
+        elif Path(filepath).stem in {
+            "mol_bio_cell",
+            "microbench",
+            "blooms",
+            "other_blooms",
+            "nbme_blooms",
+        }:
             df["question_answer"] = (
                 "Question:\n```"
                 + df["question_stem"]
@@ -178,9 +221,11 @@ class CSVDataset(Dataset):
                 + df["correct_answer"]
                 + "```"
             )
+        else:
+            logger.error(f"File {filepath} not found.")
 
         # strip ending newline or whitespace
-        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
 
         # assert question_key, answer_key
         col_set_diff = set([question_key, answer_key]) - set(df.columns)
@@ -268,8 +313,8 @@ class CSVDataset(Dataset):
         keys: List[str] = [
             question_key,
             answer_key,
-            "key_image",
-            "key_question",
+            # "key_image",
+            # "key_question",
             "blooms_reasoning",
             "blooms_source",
         ]

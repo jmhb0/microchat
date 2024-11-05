@@ -118,6 +118,7 @@ def call_gpt(
             "text": text,
         },
     ]
+        
 
     # for imgs, put a hash key representation in content for now. If not cahcing,
     # we'll replace this value later (it's because `_encode_image_np` is slow)
