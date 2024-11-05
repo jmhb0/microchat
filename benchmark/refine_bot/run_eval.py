@@ -15,6 +15,10 @@ import pickle
 import os
 import glob
 
+import hashlib
+def checksum_md5(input_string):
+    return hashlib.md5(input_string.encode()).hexdigest()
+
 sys.path.insert(0, '.')
 from models.openai_api import call_gpt_batch
 from benchmark.refine_bot import run_experiments
@@ -174,6 +178,9 @@ def eval_qa(df_questions,
 
 def get_refined_bot_mcqs(name, run_number):
     dir_rewrite = f"benchmark/refine_bot/results/run_experiments/{name}"
+    print("*"*80)
+    print(f"Getting results from directory {dir_rewrite}")
+    
     if not Path(dir_rewrite):
         raise ValueError(f"no results folder for {dir_rewrite_parent}")
 
@@ -312,6 +319,69 @@ def exp_1103_test150_best_5():
 
     return df, df_results, mcqs, name, run_number
 
+def exp_1103_test150_o1mini_best_5():
+    name = "mcqs_1104_best_5"
+    seeds = [0, 1, 2, 3, 4, 5]
+    run_nums = [1, 1, 1, 1, 1, 1]
+    # seeds = [0,]
+    # run_nums = [ 1]
+    assert len(run_nums) == len(seeds)
+    # seeds = [0, 1,]
+    # run_nums = [1, 1,]
+    for (seed, run_number) in zip(seeds, run_nums):
+        df, _, name = run_experiments.exp_1103_test150_o1mini(seed=seed)
+        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
+            name, run_number)
+        df_results['mcqs'] = mcqs
+        df_results_lst.append(df_results)
+        assert np.array_equal(df['key_question'].values, idxs_question)
+
+    df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+    mcqs = df_choose_qs.values
+
+    return df, df_results, mcqs, name, run_number
+
+def exp_1103_k2_test150_best():
+    name = "mcqs_1103_k2_test150_best"
+    seeds = [0, 1, 2, 3, 4]
+    run_nums = [1, 1, 1, 1, 1]
+    seeds = [0,  ]
+    run_nums = [1, ]
+    assert len(run_nums) == len(seeds)
+    # seeds = [0, 1,]
+    # run_nums = [1, 1,]
+    for (seed, run_number) in zip(seeds, run_nums):
+        df, _, name = run_experiments.exp_1103_k2_test150(seed=seed)
+        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
+            name, run_number)
+        df_results['mcqs'] = mcqs
+        df_results_lst.append(df_results)
+        assert np.array_equal(df['key_question'].values, idxs_question)
+
+    df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+    mcqs = df_choose_qs.values
+
+    return df, df_results, mcqs, name, run_number
+
+def exp_1103_test150_multieval_150_best4(multi_eval=3):
+    seeds = [0, 1, 2, 3]
+    run_nums = [2, 2, 2, 2]
+    seeds = [0, ]
+    run_nums = [2,]
+    for (seed, run_number) in zip(seeds, run_nums):
+        df, _, name = run_experiments.exp_1103_test150_multieval_150(seed=seed, multi_eval=multi_eval)
+        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
+            name, run_number)
+        df_results['mcqs'] = mcqs
+        df_results_lst.append(df_results)
+        assert np.array_equal(df['key_question'].values, idxs_question)
+
+    df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+    mcqs = df_choose_qs.values
+
+    return df, df_results, mcqs, name, run_number
+
+
 
 
 if __name__ == "__main__":
@@ -319,14 +389,21 @@ if __name__ == "__main__":
     # config of whats in the other script
     df_results_lst = []
 
+    # if 0: 
     if 1: 
-        df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
+        # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
+        df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
+        # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_o1mini_best_5()
+        # df_questions, df_results, mcqs, name, run_number = exp_1103_k2_test150_best()
+
     else:
+        run_number = 17
         run_number = 1
         seed = 0
         df_questions, _, name = run_experiments.exp_1103_test150_o1mini(seed=seed)
-        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
-            name, run_number)
+        # df_questions, _, name = run_experiments.exp_1103_test150_multieval_150(seed=seed)
+        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(name, run_number)
+
         df_results['mcqs'] = mcqs
         assert np.array_equal(df_questions['key_question'].values, idxs_question)
 

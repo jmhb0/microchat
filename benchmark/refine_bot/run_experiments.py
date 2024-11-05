@@ -43,6 +43,16 @@ cfg_4o_k1 = dict(
     rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=n_choices_target),
     check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
 )
+# key 2 gpt 4o. the rewrite key is still
+cfg_4o_k2 = dict(
+    name="cfg_4o_k2",
+    seed=0,
+    max_iters=max_iters,
+    eval=dict(model=model_gpt4o, key=2, multi_eval=multi_eval),
+    reflect=dict(model=model_gpt4o, key=2),
+    rewrite=dict(model=model_gpt4o, key=2, strucured_output_key=1, n_choices_target=n_choices_target),
+    check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
+)
 cfg_o1_k1 = dict(
     name="key1-modelo1",
     seed=1,
@@ -130,13 +140,28 @@ def exp_1103_test150(seed):
 
     return df, cfg, name
 
+def exp_1103_k2_test150(seed):
+    """ The random sample 150 """
+    # configs
+    name = f"exp_1103_k2_test150_seed_{seed}"
+    cfg = cfg_4o_k2
+    cfg['seed'] = seed
+
+    # get dataset 
+    df = get_df_from_key("1103_naive_kq3_kc9", overwrite=False)
+    idxs = _get_idxs_sample()
+    df = df.loc[idxs]
+
+    return df, cfg, name
+
+
 def exp_1103_test150_o1mini(seed):
     df, cfg, name = exp_1103_test150(seed)
-    name="cfg_4o_k1"
+    name="cfg_4o_k1_"
 
     for k in ('eval','reflect', 'rewrite','check_rewrite'):
         cfg[k]['model'] = model_gpt4omini
-    name += "_o1mini"
+    name += f"_o1mini_{seed}"
 
     return df, cfg, name
 
@@ -196,15 +221,19 @@ if __name__ == "__main__":
     # df, cfg, name = exp_1103_test150(seed=3)
     # df, cfg, name = exp_1103_test150(seed=4)
     # df, cfg, name = exp_1103_test150_o1mini(seed=0)
-    df, cfg, name = exp_1103_test150_multieval_150(seed=0, multi_eval=3)
+    # for seed in [0,1,2,3]:
+    for seed in [0,1,2,3,4]:
+        # df, cfg, name = exp_1103_test150_multieval_150(seed=seed, multi_eval=3)
+        # df, cfg, name = exp_1103_test150_o1mini(seed=seed)
+        df, cfg, name = exp_1103_k2_test150(seed=seed)
+        dir_results = dir_results_parent / f"{name}"
+        dir_results.mkdir(exist_ok=True, parents=True)
+        # df = df.iloc[:25]
 
-    dir_results = dir_results_parent / f"{name}"
-    dir_results.mkdir(exist_ok=True, parents=True)
-
-    bot.run(df,
-            cfg,
-            dir_results,
-            do_multiprocessing=do_multiprocessing,
-            do_shuffle=False)
-    ipdb.set_trace()
-    pass
+        bot.run(df,
+                cfg,
+                dir_results,
+                do_multiprocessing=do_multiprocessing,
+                do_shuffle=False)
+    # ipdb.set_trace()
+    # pass
