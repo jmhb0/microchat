@@ -23,11 +23,12 @@ lookup_dfs = {
 }
 
 max_iters = 4
+multi_eval = 1
 cfg_4o_k0 = dict(
     name="cfg_4o_k0",
     seed=0,
     max_iters=max_iters,
-    eval=dict(model=model_gpt4o, key=0),
+    eval=dict(model=model_gpt4o, key=0, multi_eval=multi_eval),
     reflect=dict(model=model_gpt4o, key=0),
     rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1, n_choices_target=n_choices_target),
     check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
@@ -37,7 +38,7 @@ cfg_4o_k1 = dict(
     name="cfg_4o_k1",
     seed=0,
     max_iters=max_iters,
-    eval=dict(model=model_gpt4o, key=1),
+    eval=dict(model=model_gpt4o, key=1, multi_eval=multi_eval),
     reflect=dict(model=model_gpt4o, key=1),
     rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1, n_choices_target=n_choices_target),
     check_rewrite=dict(model=model_gpt4o, key=1, strucured_output_key=1),
@@ -46,7 +47,7 @@ cfg_o1_k1 = dict(
     name="key1-modelo1",
     seed=1,
     max_iters=max_iters,
-    eval=dict(model=model_o1, key=1),
+    eval=dict(model=model_o1, key=1, multi_eval=multi_eval),
     reflect=dict(model=model_o1, key=1),
     rewrite=dict(model=model_o1, key=1, strucured_output_key=0, n_choices_target=5),
     check_rewrite=dict(model=model_o1, key=1, strucured_output_key=0),
@@ -55,7 +56,7 @@ cfg_o1_k0 = dict(
     name="cfg_o1_k0",
     seed=0,
     max_iters=max_iters,
-    eval=dict(model=model_o1, key=0),
+    eval=dict(model=model_o1, key=0, multi_eval=multi_eval),
     reflect=dict(model=model_o1, key=0),
     rewrite=dict(model=model_o1, key=0, strucured_output_key=0, n_choices_target=n_choices_target),
     check_rewrite=dict(model=model_gpt4o, key=0, strucured_output_key=1),
@@ -64,7 +65,7 @@ cfg_o1mini_k1 = dict(
     name="key1-modelo1mini",
     seed=0,
     max_iters=max_iters,
-    eval=dict(model=model_o1mini, key=1),
+    eval=dict(model=model_o1mini, key=1, multi_eval=multi_eval),
     reflect=dict(model=model_o1mini, key=1),
     rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0, n_choices_target=5),
     check_rewrite=dict(model=model_o1mini, key=1, strucured_output_key=0),
@@ -105,7 +106,7 @@ def _get_idxs_sample():
 
 def exp_1102_first150():
     """
-    The set we developed on
+    The first 150 as a list 
     """
     name = "exp_1102_first150"
     df, do_shuffle = _get_data_october('qkey3_ckey9')
@@ -116,10 +117,38 @@ def exp_1102_first150():
 
 
 def exp_1103_test150(seed):
+    """ The random sample 150 """
     # configs
     name = f"exp_1103_test150_seed_{seed}"
     cfg = cfg_4o_k1
     cfg['seed'] = seed
+
+    # get dataset 
+    df = get_df_from_key("1103_naive_kq3_kc9", overwrite=False)
+    idxs = _get_idxs_sample()
+    df = df.loc[idxs]
+
+    return df, cfg, name
+
+def exp_1103_test150_o1mini(seed):
+    df, cfg, name = exp_1103_test150(seed)
+    name="cfg_4o_k1"
+
+    for k in ('eval','reflect', 'rewrite','check_rewrite'):
+        cfg[k]['model'] = model_gpt4omini
+    name += "_o1mini"
+
+    return df, cfg, name
+
+def exp_1103_test150_multieval_150(seed, multi_eval=3):
+    """ 
+    The random sample 150. 
+    """
+    # configs
+    name = f"exp_1103_test150multieval{multi_eval}_seed_{seed}"
+    cfg = cfg_4o_k1
+    cfg['seed'] = seed
+    cfg['eval']['multi_eval'] = multi_eval
 
     # get dataset 
     df = get_df_from_key("1103_naive_kq3_kc9", overwrite=False)
@@ -161,11 +190,13 @@ if __name__ == "__main__":
     do_multiprocessing = True
 
     ## run this experiment
-    df, cfg, name = exp_1103_test150(seed=0)
-    df, cfg, name = exp_1103_test150(seed=1)
-    df, cfg, name = exp_1103_test150(seed=2)
-    df, cfg, name = exp_1103_test150(seed=3)
-    df, cfg, name = exp_1103_test150(seed=4)
+    # df, cfg, name = exp_1103_test150(seed=0)
+    # df, cfg, name = exp_1103_test150(seed=1)
+    # df, cfg, name = exp_1103_test150(seed=2)
+    # df, cfg, name = exp_1103_test150(seed=3)
+    # df, cfg, name = exp_1103_test150(seed=4)
+    # df, cfg, name = exp_1103_test150_o1mini(seed=0)
+    df, cfg, name = exp_1103_test150_multieval_150(seed=0, multi_eval=3)
 
     dir_results = dir_results_parent / f"{name}"
     dir_results.mkdir(exist_ok=True, parents=True)
