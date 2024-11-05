@@ -49,6 +49,11 @@ re_parse_question = re.compile(
     re.IGNORECASE | re.DOTALL                                    # Enables multi-line matching for `?P<question>`
 )
 
+re_parse_answer = re.compile(
+    r"\n+\*?\*?Correct answer:\*?\*?\s?(?P<correct>[A-D]\) .+)",  # Matches "Correct answer" label and text
+    re.IGNORECASE | re.DOTALL                                    # Enables multi-line matching for `?P<question>`
+)
+
 re_parse_prediction = re.compile(
     r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
     r"\n+A\)\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace handling
