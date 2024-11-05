@@ -214,7 +214,7 @@ def main(
         )
 
     # compile rag
-    logger.info(f"Compiling RAG with optimizer {optimizer.name}")
+    logger.info(f"Compiling {module.name} with optimizer {optimizer.name} and model {model.model_name}")
     compiled_rag = optimizer.compile(
         module, trainset=trainset, minibatch_size=len(devset)
     )
@@ -231,6 +231,7 @@ def main(
         logger.error(f"Error saving compiled RAG to {model_filepath}")
         raise FileNotFoundError(f"Error saving compiled RAG to {model_filepath}")
 
+    logger.info(f"Loading compiled RAG from {model_filepath}")
     trained_module = CoTRAG(context=task, num_passages=retrieve_k)
     trained_module.load(model_filepath)
     trained_module.name = trained_module.__class__.__name__
@@ -244,11 +245,11 @@ def main(
         results = yaml_loader(results_file)
         if model.model_name not in results:
             results[model.model_name] = {}
-        results[model.model_name][module.signature_name][optimizer.name] = score
+        results[model.model_name][module.signature_name][optimizer.name] = float(score)
         yaml_writer(results, results_file)
     else:
         yaml_writer(
-            {model.model_name: {module.signature_name: {optimizer.name: score}}},
+            {model.model_name: {module.signature_name: {optimizer.name: float(score)}}},
             results_file,
         )
 

@@ -28,6 +28,7 @@ re_false = re.compile(r"(False|No|Incorrect|Wrong)", re.IGNORECASE)
 re_clean_opt = re.compile(
     r"^\d+\.\s|^\w{1}\.\s|\(Correct\)$|\(Incorrect\)$", re.IGNORECASE
 )
+re_remove_letter = re.compile(r"^[A-E]\)\s", re.IGNORECASE)
 re_parse_example = re.compile(
     r"Description of image preparation:\n(?P<quote1>['`]{2,3})(?P<description>.*?)(?P=quote1)\n+"
     r"(Additional information:\n(?P<quote2>['`]{2,3})(?P<additional_info>.*?)(?P=quote2)\n+)?"
@@ -37,7 +38,7 @@ re_parse_example = re.compile(
 )
 
 re_parse_options = re.compile(
-    r"\n?\*?\*?(?P<option_label>[A-Z])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
+    r"\n?\*?\*?(?P<option_label>[A-D])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
 )
 
 re_parse_question = re.compile(
@@ -50,8 +51,8 @@ re_parse_question = re.compile(
 )
 
 re_parse_answer = re.compile(
-    r"\n+\*?\*?Correct answer:\*?\*?\s?(?P<correct>[A-D]\) .+)",  # Matches "Correct answer" label and text
-    re.IGNORECASE | re.DOTALL                                    # Enables multi-line matching for `?P<question>`
+    r".*\n+\s*\**(?:Correct\s+)?Answer:\**\s*(?P<correct_option>\(?[A-E]\)?[.)]?)?\s*(?P<correct_answer>.*)",
+    re.IGNORECASE | re.DOTALL
 )
 
 re_parse_prediction = re.compile(
@@ -60,21 +61,39 @@ re_parse_prediction = re.compile(
     r"B\)\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"C\)\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"D\)\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
-    r"\n+\*+([Cc]orrect\s)?[Aa]nswer:\*+\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)",  # Capture correct answer with flexible capitalization
+    r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)",  # Capture correct answer with flexible capitalization
     re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
 )
 re_parse_prediction_2 = re.compile(
-    r"(?:\*?\*?Revised\s+)?Question(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<question>.*?)['`]{0,3}"  # Capture "Revised Question" with optional asterisks and backticks
-    r"\n+\n*(?:\*?\*?Revised\s+)?Answer(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<correct_answer>.*?)['`]{0,3}",  # Capture "Revised Answer" with optional asterisks and backticks
-    re.IGNORECASE | re.DOTALL  # Allows matching across multiple lines
+    r"(?:\*\*Question:\*\*\n)?(?P<question>.*?)(?=\n\n\*?\**A\))"  # Capture question up to 'A)'
+    r"\n+\*?\**A\)\*?\**\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace
+    r"\*?\**B\)\*?\**\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
+    r"\*?\**C\)\*?\**\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
+    r"\*?\**D\)\*?\**\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
+    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Da-d])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
+    re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
 )
 re_parse_prediction_3 = re.compile(
+    r"(?:\*\*)?(?P<question>.*?)(?=\n\n\*?\**A\))"  # Capture question up to 'A)'
+    r"\n+\*?\**A\)\*?\**\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace
+    r"\*?\**B\)\*?\**\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
+    r"\*?\**C\)\*?\**\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
+    r"\*?\**D\)\*?\**\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
+    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Da-d])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
+    re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
+)
+re_parse_prediction_4 = re.compile(
+    r"(?:\*?\*?Revised\s+)?Question(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<question>.*?)['`]{0,3}"  # Capture "Revised Question" with optional asterisks and backticks
+    r"\n+\n*(?:\*?\*?Revised\s+)?Answer(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<correct_answer>.*?)['`]{0,3}",  # Capture "Revised Answer" with optional asterisks and backticks
+    re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
+)
+re_parse_prediction_5 = re.compile(
     r"(?:Question:\s*)?(?P<question>.*?)(?=\n\n(Revised|Correct)\s?Answer:)"  # Optional "Question:" prefix and captures question up to "Answer" prefix
     r"\n\n(?:Revised|Correct)\s?Answer:\s*\n?(?P<correct_answer>.*)",  # Matches "Correct Answer:" or "Revised Answer:" followed by answer text
     re.IGNORECASE
     | re.DOTALL,  # Allows case-insensitive matching and multi-line capture
 )
-re_parse_prediction_4 = re.compile(
+re_parse_prediction_6 = re.compile(
     r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\n(?:[Nn]o|[Yy]es|[Aa]\)))"  # Capture question up to an answer indicator (No, Yes, or A))
     r"\n\n(?:[Nn]o|[Yy]es|A\))\s?(?P<correct_answer>.*)",  # Match answer prefix (No, Yes, or A)) and capture answer text
     re.IGNORECASE | re.DOTALL,  # Allows case-insensitive and multi-line matching
@@ -146,6 +165,16 @@ class MCQ(BaseModel):
 
         return "".join(output_str)
 
+    def get_tokens(self, original: bool, field: str) -> int:
+        if original:
+            return self.compute_tokens(
+                self.example_dict.get(field, ""), self.tokenizer
+            )
+        else:
+            return self.compute_tokens(
+                self.prediction_dict.get(field, ""), self.tokenizer
+            )
+
     def compute_metrics(
         self, question_key: str = "question", answer_key: str = "correct_answer"
     ) -> Dict[str, float]:
@@ -154,8 +183,8 @@ class MCQ(BaseModel):
             answer=self.example_dict.get(answer_key),
         )
         temp_pred = dspy.Example(
-            question=self.prediction_dict.get(question_key,""),
-            answer=self.prediction_dict.get(answer_key,""),
+            question=self.prediction_dict.get(question_key),
+            answer=self.prediction_dict.get(answer_key),
         )
 
         # check for exact match of the answer
@@ -235,23 +264,32 @@ class MCQ(BaseModel):
             self.example_dict = example_match.groupdict()
 
         # process the prediction
-        pred_match = re_parse_prediction.search(self.prediction.answer)
-        pred_match = (
-            re_parse_prediction_2.search(self.prediction.answer)
-            if pred_match is None
-            else pred_match
-        )
-        pred_match = (
-            re_parse_prediction_3.search(self.prediction.answer)
-            if pred_match is None
-            else pred_match
-        )
-        pred_match = (
-            re_parse_prediction_4.search(self.prediction.answer)
-            if pred_match is None
-            else pred_match
-        )
+        pred_match = None
+        for compiled_regex in [re_parse_prediction, re_parse_prediction_2, re_parse_prediction_3, re_parse_prediction_4, re_parse_prediction_5, re_parse_prediction_6]:
+            pred_match = compiled_regex.search(self.prediction.answer)
+            if pred_match:
+                break
+            pred_match = compiled_regex.search(self.prediction.answer.strip("*"))
+
         if pred_match is None:
+            if question := re_parse_question.search(self.prediction.answer):
+                self.prediction_dict["question"] = question.group("question")
+                options_1 = re_parse_options.findall(question.group("choices"))
+
+            if answer := re_parse_answer.search(self.prediction.answer):
+                self.prediction_dict["correct_answer"] = answer.group("correct_answer")
+                self.prediction_dict["correct_option"] = answer.group("correct_option")
+
+            if options := re_parse_options.findall(self.prediction.answer):
+                # convert to list and strip leading \* from the options
+                options = [(char, text.strip("*").strip()) for char, text in options]
+                # convert to dict
+                option_dict = {
+                    f"option_{char.lower()}": text for char, text in options if text
+                }
+            elif options_1:
+                pass
+
             self.errors += 1
             logger.warning("Prediction does not match the expected format.")
         else:
@@ -270,17 +308,49 @@ class MCQ(BaseModel):
         pred_question = self.prediction_dict.get("question")
         pred_options = [
             self.prediction_dict.get(f"option_{char}")
-            for char in "abcdefghijklmnop"
+            for char in "abcdefg"
             if self.prediction_dict.get(f"option_{char}")
         ]
+        if not pred_options:
+            logger.warning("No options found in the prediction.")
+            pred_options = re_parse_options.findall(self.prediction.answer)
+            pred_options = [elem[1] for elem in pred_options]
+            pred_answer = re_parse_answer.match(self.prediction.answer)
+            if pred_answer is not None:
+                pred_answer = re_clean_text.sub("", pred_answer.group("correct_answer")).strip()
+            else:
+                logger.warning("Correct answer does not match the expected format.")
+                self.errors += 1
+
+
+            if self.prediction_dict.get("correct_answer").strip() != pred_answer:
+                if re_remove_letter.sub("",self.prediction_dict.get("correct_answer").strip()) == pred_answer:
+                    self.prediction_dict["correct_answer"] = pred_answer
+                else:
+                    logger.warning("Correct answer does not match the expected format.")
+                    self.errors += 1
+
+
+        self.prediction_dict["options"] = pred_options
         pred_answer = self.prediction_dict.get("correct_answer")
+        if pred_answer:
+            pred_answer = re_clean_text.sub("", pred_answer).strip()
+
         pred_option_correct = self.prediction_dict.get("correct_option")
         pred_correct_index = -1
         if pred_answer in pred_options:
             pred_correct_index = pred_options.index(pred_answer)
+            self.prediction_dict["correct_index"] = pred_correct_index
+        elif pred_option_correct:
+            pred_correct_index = ord(pred_option_correct.lower()) - ord("a")
+            pred_answer = pred_options[pred_correct_index]
+            self.prediction_dict["correct_answer"] = pred_answer
+            self.prediction_dict["correct_index"] = pred_correct_index
+        else:
+            logger.warning(f"Correct answer not found in options: {pred_answer}")
 
         # check if pred_answer tokens are longer than the original answer
-        ans_token_metric = 0
+        ans_token_metric = 1
         if self.example_dict.get("correct_answer") and pred_answer:
             orig_tokens = self.compute_tokens(
                 self.example_dict.get("correct_answer"), self.tokenizer
@@ -289,7 +359,15 @@ class MCQ(BaseModel):
             ans_token_ratio = pred_tokens / orig_tokens
             ans_token_metric = compute_token_metric(orig_tokens, pred_tokens, k=0.5)
 
-            if ans_token_ratio >= 1.5:
+            if ans_token_ratio >= 4:
+                logger.error(
+                    f"Predicted answer too long: {orig_tokens} vs. {pred_tokens}"
+                )
+                logger.error(
+                    f"Original answer: {self.example_dict.get('correct_answer')}"
+                )
+                logger.error(f"Predicted answer: {pred_answer}")
+            elif ans_token_ratio >= 1.5:
                 logger.warning(
                     f"Predicted answer longer: {orig_tokens} vs. {pred_tokens}"
                 )
