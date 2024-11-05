@@ -2,6 +2,7 @@
 Usage:
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
+python 20241030_blooms_tagging.py --dataset_name omnimed_vqa_part1 --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 
 # to send batch questions
 # --send_batch
@@ -171,6 +172,38 @@ def organize_microbench():
     # TODO: add cognition dataset
     return query_qs, all_qs
 
+def organize_omnimed_vqa(file_path, dataset_name='omnimed_vqa_part1'):
+    """
+    file_path: path to the Open-access folder with the .json files
+    Note: has too many qs so splitting into 2 parts
+    """
+    query_qs = []
+    all_qs = None # no need bc we don't have template qs
+    q_count = 0
+    if 'part1' in dataset_name:
+        max_qs = 44000
+    else:
+        q_count = 44000
+        max_qs = 90000 # not real max
+    # iterate over subjsons
+    for file in os.listdir(file_path):
+        if q_count >= max_qs:
+            break
+        if not file.endswith(".json"):
+            continue
+        with open(os.path.join(file_path, file)) as f:
+            data = json.load(f)
+        for q in data:
+            if q_count >= max_qs:
+                break
+            q_info = {'question_stem': q['question'],
+                'correct_answer': q['gt_answer'],
+                'dataset': dataset_name,
+                'id': q['question_id']}
+            query_qs.append(q_info)
+            q_count += 1
+    return query_qs, all_qs
+
 def parse_dataset(dataset_name, save_path, file_path=None):
     if os.path.exists(save_path):
         data = np.load(save_path, allow_pickle=True)
@@ -179,8 +212,10 @@ def parse_dataset(dataset_name, save_path, file_path=None):
     print(f"Processing {dataset_name}...")
     if dataset_name == 'microbench':
         query_qs, all_qs = organize_microbench()
-    if 'ours' in dataset_name:
+    elif 'ours' in dataset_name:
         query_qs, all_qs = organize_ours(file_path, dataset_name)
+    elif 'omnimed_vqa' in dataset_name:
+        query_qs, all_qs = organize_omnimed_vqa(file_path, dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)
@@ -261,6 +296,7 @@ def blooms_tagging(save_dir, jsonl_path,
             gpt_output.write_to_file(save_path)
             return gpt_output
         elif status == 'failed':
+            print(retreival_info)
             ipdb.set_trace()
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
@@ -326,7 +362,6 @@ def plot_histograms(df, column_name, ds_save_dir, possible_values=None, figsize=
     if possible_values is not None:
         # Convert the column to categorical with specified categories
         temp_series = pd.Categorical(df[column_name], categories=possible_values, ordered=True)
-        
         # Create histogram with categorical data
         ax = sns.histplot(
             data=temp_series,
@@ -408,8 +443,11 @@ def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
         # save the tagged dataset
         blooms_qs.to_csv(save_path, index=False)
     # plot the histogram of the blooms levels
+    
+    # remove invalid values
+    blooms_qs = blooms_qs[(blooms_qs['blooms_level'] != -1) & (blooms_qs['blooms_level'].notna()) & (blooms_qs['blooms_level'] != 'nan')]
     # make the level a string variable
-    blooms_qs['blooms_level'] = blooms_qs['blooms_level'].astype(str)
+    blooms_qs['blooms_level'] = blooms_qs['blooms_level'].astype(int).astype(str)
     plot_histograms(blooms_qs, 'blooms_level', save_dir, possible_values=['1', '2', '3', '4', '5', '6'])
     plot_histograms(blooms_qs, 'blooms_name', save_dir)
 
@@ -423,7 +461,8 @@ if __name__ == '__main__':
     parser.add_argument('--send_batch', action='store_true', help='send batch to gpt')
     parser.add_argument('--batch_id', type=str, help='batch id to retrieve the output')
     parser.add_argument('--dataset_path', type=str, help='path to the dataset file', default=
-                        '/pasteur/data/microchat/dataset_versions/df_questions_key_choices_9_nov3_s1_naive.csv')
+                        # '/pasteur/data/microchat/dataset_versions/df_questions_key_choices_9_nov3_s1_naive.csv')
+                        '/pasteur/data/microchat/sota_benchmarks/omnimed_vqa/QA_information/Open-access')
 
     args = parser.parse_args()
     main(args)

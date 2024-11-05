@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """base_llmodel.py in src/microchat/models."""
-
+import os
 import re
 
 from pydantic import (
@@ -42,9 +42,7 @@ class LLModel(BaseModel):
     frequency_penalty: NonNegativeFloat = 0.0
     presence_penalty: NonNegativeFloat = 0.0
     seed: NonNegativeInt = 8675309
-    tokenizer: Optional[tk.core.Encoding] = Field(
-        None, alias="tokenizer"
-    )  # set by model
+    tokenizer: Optional[tk.core.Encoding] = Field(None)
     tokenizer_name: Optional[str] = Field(None, alias="tokenizer_name")  # set by model
     kwargs: Optional[dict] = Field(None, alias="kwargs")
 
@@ -67,18 +65,12 @@ class LLModel(BaseModel):
             )
 
             # set tokenizer name
-            self.tokenizer_name: str = tk.encoding_name_for_model(self.model_prefix)
+            if "o1" in self.model_prefix:
+                self.tokenizer_name: str = "o200k_base"
+            else:
+                self.tokenizer_name: str = tk.encoding_name_for_model(self.model_prefix)
+
             self.tokenizer = tk.get_encoding(self.tokenizer_name)
 
-            logger.info(f"Model: {self.model_name}")
-            logger.info(f"Tokenizer: {self.tokenizer_name}")
-
-    @staticmethod
-    def compute_chars(prompt: str) -> int:
-        """Compute the number of characters in a prompt."""
-        return len(prompt)
-
-    @staticmethod
-    def compute_tokens(prompt: str, tokenizer: tk.Encoding) -> int:
-        """Compute the number of tokens in a prompt."""
-        return len(tokenizer.encode(prompt).ids)
+            logger.debug(f"Model: {self.model_name}") if os.getenv("DEBUG") else None
+            logger.debug(f"Tokenizer: {self.tokenizer_name}")

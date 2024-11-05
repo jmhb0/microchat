@@ -1,6 +1,0 @@
-stages:
-  add_data:
-    desc: Track microchat.csv data.
-    cmd: echo "Adding data"
-    deps:
-    - ./data/processed/microchat.csv
