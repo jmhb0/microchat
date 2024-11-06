@@ -204,6 +204,60 @@ def organize_omnimed_vqa(file_path, dataset_name='omnimed_vqa_part1'):
             q_count += 1
     return query_qs, all_qs
 
+def organize_mmmu_pro(dataset_name='mmmu_pro'):
+    ds = load_dataset("MMMU/MMMU_Pro", "standard (4 options)")['test']
+    all_letters = np.array(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    for q in tqdm(ds):
+        letter_answer = q['answer']
+        options = ast.literal_eval(q['options'])
+        # needed bc somethings questions have more than 5 options
+        these_letters = all_letters[np.arange(len(options))]
+        correct_idx = np.where((these_letters == letter_answer))[0].item()
+        correct_answer = options[correct_idx]
+        q_info = {'question_stem': q['question'],
+            'correct_answer': correct_answer,
+            'dataset': dataset_name,
+            'id': q['id'],
+            'topic_difficulty': q['topic_difficulty'],
+            'subject': q['subject']}
+        query_qs.append(q_info)
+    return query_qs, all_qs
+
+
+def organize_mmmu(dataset_name='mmmu', set_name='test'):
+    subsets =  ['Accounting', 'Agriculture', 'Architecture_and_Engineering',
+                'Art', 'Art_Theory', 'Basic_Medical_Science', 'Biology',
+                'Chemistry', 'Clinical_Medicine', 'Computer_Science', 'Design',
+                'Diagnostics_and_Laboratory_Medicine', 'Economics', 'Electronics',
+                'Energy_and_Power', 'Finance', 'Geography', 'History', 'Literature',
+                'Manage', 'Marketing', 'Materials', 'Math', 'Mechanical_Engineering',
+                'Music', 'Pharmacy', 'Physics', 'Psychology', 'Public_Health', 'Sociology']
+    all_letters = np.array(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
+    for subset in tqdm(subsets):
+        ds = load_dataset("MMMU/MMMU", subset)[set_name]
+        all_qs = None # no need bc doesn't have template qs
+        query_qs = []
+        for q in ds:
+            if set_name != 'test':
+                letter_answer = q['answer']
+                options = ast.literal_eval(q['options'])
+                # needed bc somethings questions have more than 5 options
+                these_letters = all_letters[np.arange(len(options))]
+                correct_idx = np.where((these_letters == letter_answer))[0].item()
+                correct_answer = options[correct_idx]
+            else:
+                correct_answer = '?'
+            q_info = {'question_stem': q['question'],
+                'correct_answer': correct_answer,
+                'dataset': dataset_name,
+                'id': q['id'],
+                'topic_difficulty': q['topic_difficulty'],
+                'subject': subset}
+            query_qs.append(q_info)
+    return query_qs, all_qs
+
 def parse_dataset(dataset_name, save_path, file_path=None):
     if os.path.exists(save_path):
         data = np.load(save_path, allow_pickle=True)
@@ -216,6 +270,10 @@ def parse_dataset(dataset_name, save_path, file_path=None):
         query_qs, all_qs = organize_ours(file_path, dataset_name)
     elif 'omnimed_vqa' in dataset_name:
         query_qs, all_qs = organize_omnimed_vqa(file_path, dataset_name)
+    elif dataset_name == 'mmmu_pro':
+        query_qs, all_qs = organize_mmmu_pro(dataset_name)
+    elif dataset_name == 'mmmu':
+        query_qs, all_qs = organize_mmmu(dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)

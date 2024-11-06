@@ -728,8 +728,12 @@ def run(df: pd.DataFrame,
 
     # Prepare function args for all the questions
     func_args = []
-    for idx_test, row in df.iterrows():
-        log_str = f"question_{idx_test}"
+    key_questions = df['key_question']
+    for key_question in key_questions:
+        row = df[df['key_question']==key_question]
+        assert len(row)==1
+        row = row.iloc[0]
+        log_str = f"question_{key_question}"
 
         question_stem = row['question']
         choices_dict = ast.literal_eval(row['choices'])

@@ -187,7 +187,6 @@ def get_refined_bot_mcqs(name, run_number):
     # first recover the results csv
     # get the old csv, and add accuracy results to it
     f_results_ = glob.glob(f"{dir_rewrite}/sum_run_{run_number:04d}*_sorted*")
-    assert len(f_results_) == 1
     f_results = f_results_[0]
     df_results = pd.read_csv(f_results)
     df_results['question_key'] = [
@@ -199,25 +198,25 @@ def get_refined_bot_mcqs(name, run_number):
     assert len(dirs) == 1
     dirs_rewrite_qs = dirs[0]
     dirs_questions = glob.glob(f"{dirs_rewrite_qs}/question_*")
-    idxs_question = [int(Path(d).stem.split("_")[1]) for d in dirs_questions]
-    idxs_question = sorted(idxs_question)
+    keys_question = [int(Path(d).stem.split("_")[1]) for d in dirs_questions]
+    keys_question = sorted(keys_question)
 
     # get the question mcqs
     mcqs = []
     mcqs_question = []
     mcqs_choices = []
-    for idx_question in idxs_question:
-        row_ = df_results[df_results['key_question'] == idx_question]
+    for key_question in keys_question:
+        row_ = df_results[df_results['key_question'] == key_question]
         assert len(row_) == 1
         row = row_.iloc[0]
-        assert row['key_question'] == idx_question
+        assert row['key_question'] == key_question
 
         code = row['code']
         if 'SUCCESS' not in code:
-            file = f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter_0.json"
+            file = f"{dirs_rewrite_qs}/question_{key_question}/0_5_qa_iter_0.json"
         else:
             files = glob.glob(
-                f"{dirs_rewrite_qs}/question_{idx_question}/0_5_qa_iter*")
+                f"{dirs_rewrite_qs}/question_{key_question}/0_5_qa_iter*")
             nums = [int(Path(f).stem.split("_")[4]) for f in files]
             file = files[np.argmax(nums)]
         with open(file, 'r') as fp:
@@ -230,7 +229,7 @@ def get_refined_bot_mcqs(name, run_number):
             dict(choices=mcq['choices'], correct_index=mcq['correct_index'])
         })
 
-    return mcqs, mcqs_question, mcqs_choices, idxs_question, df_results
+    return mcqs, mcqs_question, mcqs_choices, keys_question, df_results
 
 
 def _get_filenames_from_key(key, ):
@@ -308,11 +307,11 @@ def exp_1103_test150_best_5():
     run_nums = [1, 1, 1, 1, 2]
     for (seed, run_number) in zip(seeds, run_nums):
         df, _, name = run_experiments.exp_1103_test150(seed=seed)
-        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
+        mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
             name, run_number)
         df_results['mcqs'] = mcqs
         df_results_lst.append(df_results)
-        assert np.array_equal(df['key_question'].values, idxs_question)
+        assert np.array_equal(df['key_question'].values, keys_question)
 
     df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
     mcqs = df_choose_qs.values
@@ -383,6 +382,26 @@ def exp_1103_test150_multieval_150_best4(multi_eval=3):
 
 
 
+def exp_1105_test150_dspy_best():
+    name = "mcqs_1103_test150_multieval_150_best_5"
+    seeds = [0, 1, 2, 3,4]
+    run_nums = [1,1,1,1]
+   
+    for (seed, run_number) in zip(seeds, run_nums):
+        df, _, name = run_experiments.exp_1105_test150_dspy(seed=seed)
+        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(
+            name, run_number)
+        df_results['mcqs'] = mcqs
+        df_results_lst.append(df_results)
+        assert np.array_equal(df['key_question'].values, idxs_question)
+
+    df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+    mcqs = df_choose_qs.values
+
+    return df, df_results, mcqs, name, run_number
+
+
+
 
 if __name__ == "__main__":
 
@@ -392,20 +411,42 @@ if __name__ == "__main__":
     # if 0: 
     if 1: 
         # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
-        df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
+        # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
         # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_o1mini_best_5()
         # df_questions, df_results, mcqs, name, run_number = exp_1103_k2_test150_best()
+        df_questions, df_results, mcqs, name, run_number = exp_1105_test150_dspy_best()
+        
 
     else:
-        run_number = 17
         run_number = 1
         seed = 0
-        df_questions, _, name = run_experiments.exp_1103_test150_o1mini(seed=seed)
+
+        ## a single og experiment
+        # df_questions, _, name = run_experiments.exp_1103_test150(seed=seed)
+        # df_questions, _, name = run_experiments.exp_1103_test150_o1mini(seed=seed)
         # df_questions, _, name = run_experiments.exp_1103_test150_multieval_150(seed=seed)
-        mcqs, mcqs_question, mcqs_choices, idxs_question, df_results = get_refined_bot_mcqs(name, run_number)
+        df_questions, _, name = run_experiments.exp_1105_test150_dspy(seed=seed) # dspy
+
+        # get the mcqs
+        mcqs, _, _, idxs_question, df_results = get_refined_bot_mcqs(name, run_number)
+        ipdb.set_trace()
+
+        # doing the 673 filtering
+        # if 1: 
+        #     ilocs = [i for (i, idx) in enumerate(df_questions.index) if idx <= 673]
+        #     df_questions = df_questions.iloc[ilocs]
+        #     df_results = df_results.iloc[ilocs]
+        #     mcqs = [mcqs[i] for i in ilocs]
+        #     # ipdb.set_trace()
+        #     # pass
+
 
         df_results['mcqs'] = mcqs
         assert np.array_equal(df_questions['key_question'].values, idxs_question)
+        # print("*" * 80)
+        # print(f"warning ... idxs_question doesn't quite match {len(df_questions)}")
+        # print("*" * 80)
+
 
     model = "gpt-4o-2024-08-06"
     do_language_only = True
@@ -438,6 +479,8 @@ if __name__ == "__main__":
         df_questions['pred_cot_no_img'] = msgs
 
     # merge the quesitons and results df
+    df_results['key_question'] = df_results['key_question'].astype(str)
+    df_questions['key_question'] = df_questions['key_question'].astype(str)
     df_eval = df_questions.merge(df_results,
                             on="key_question",
                             suffixes=('_q', '_r'))
@@ -449,6 +492,7 @@ if __name__ == "__main__":
         dict(choices=m['choices'], correct_index=m['correct_index'])
         for m in mcqs
     ]
+    ipdb.set_trace()
 
     # save it
     dir_results_parent = Path(f"benchmark/refine_bot/results/eval")
