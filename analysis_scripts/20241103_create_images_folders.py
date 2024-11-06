@@ -78,7 +78,6 @@ for key_image, row in df_imgs.iterrows():
     #     continue
 
 f_save_imgs = dir_results_parent / "images.pkl"
-ipdb.set_trace()
 lookup_images = dict(zip(idxs, imgs_all))
 with open(f_save_imgs, "wb") as fp:
     pickle.dump(lookup_images, fp)
@@ -129,6 +128,8 @@ def create_image_pdf(output_path, key_image, images, context_text=None, page_siz
     
     # Process each image
     for idx, img_array in enumerate(images):
+        if idx < 70 or idx > 90:
+            continue
         # Create a temporary file for each image
         temp_path = str(Path(output_path).parent / f"temp_{idx}.png")
         
@@ -191,27 +192,26 @@ def create_image_pdf(output_path, key_image, images, context_text=None, page_siz
     # Save PDF
     c.save()
 
-def create_image_grid(images):
+def create_image_grid(images, target_height=800):
     """
-    Create a grid of images with similar scale by resizing them to a consistent height
-    while preserving aspect ratios. For 2 images, places them side by side.
+    Create a high-resolution grid of images while preserving aspect ratios.
+    For 2 images, places them side by side.
     
     Args:
         images: List of numpy arrays of shape (H,W,3) with potentially different dimensions
+        target_height: Target height for each image in pixels (default: 800)
         
     Returns:
         grid: Numpy array containing the arranged images in a grid
     """
     import numpy as np
     from math import ceil, sqrt
+    import cv2
     
     # Determine number of images
     n_images = len(images)
     if n_images == 0:
         return None
-    
-    # Define target height for all images
-    target_height = 224  # You can adjust this value based on your needs
     
     # Resize images to have the same height while preserving aspect ratio
     resized_images = []
@@ -219,8 +219,9 @@ def create_image_grid(images):
         h, w = img.shape[:2]
         aspect_ratio = w / h
         new_width = int(target_height * aspect_ratio)
-        import cv2
-        resized = cv2.resize(img, (new_width, target_height), interpolation=cv2.INTER_AREA)
+        # Use INTER_LANCZOS4 for high-quality downscaling
+        resized = cv2.resize(img, (new_width, target_height), 
+                           interpolation=cv2.INTER_LANCZOS4)
         resized_images.append(resized)
     
     # Special handling for 2 images - put them side by side
@@ -246,8 +247,11 @@ def create_image_grid(images):
     # Find maximum width among resized images
     max_width = max(img.shape[1] for img in resized_images)
     
-    # Create empty grid
-    grid = np.zeros((grid_height * target_height, grid_width * max_width, 3), dtype=np.uint8)
+    # Create empty grid with padding between images
+    padding = 20  # Pixels of padding between images
+    grid_total_height = grid_height * target_height + (grid_height - 1) * padding
+    grid_total_width = grid_width * max_width + (grid_width - 1) * padding
+    grid = np.zeros((grid_total_height, grid_total_width, 3), dtype=np.uint8)
     
     # Place images in grid
     for idx, img in enumerate(resized_images):
@@ -257,15 +261,16 @@ def create_image_grid(images):
         # Calculate centering offset for images narrower than max_width
         width_offset = (max_width - img.shape[1]) // 2
         
-        # Place image
-        y_start = i * target_height
-        y_end = (i + 1) * target_height
-        x_start = j * max_width + width_offset
+        # Calculate positions including padding
+        y_start = i * (target_height + padding)
+        y_end = y_start + target_height
+        x_start = j * (max_width + padding) + width_offset
         x_end = x_start + img.shape[1]
         
         grid[y_start:y_end, x_start:x_end] = img
     
     return grid
+
 
 grids = []
 for (key_image, imgs, context) in zip(idxs, imgs_all, contexts):
@@ -284,11 +289,12 @@ for (key_image, imgs, context) in zip(idxs, imgs_all, contexts):
     grid = create_image_grid(imgs)
     fname = dir_results_grids / f"grid_{key_image:03d}.png"
     Image.fromarray(grid).save(fname)
+    # ipdb.set_trace()
 
-    grids.append(grid)
+    # grids.append(grid)
 
 # now make a super-grid 
-supergrid = create_image_grid(grids)
+# supergrid = create_image_grid(grids)
 Image.fromarray(supergrid).save(dir_results_parent / "supergrid.png")
 
 ipdb.set_trace()

@@ -23,6 +23,7 @@ model_gpt4omini = "gpt-4o-mini-2024-07-18"
 lookup_dfs = {
  "1103_naive_kq3_kc9": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=1999709323&single=true&output=csv",
  "dspy_o1-mini_CoTRAG" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=2096678925&single=true&output=csv",
+ "dspy_o1-mini_CoTRAG_FULL_nov5" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=1953831301&single=true&output=csv"
 }
 
 max_iters = 4
@@ -99,6 +100,7 @@ def get_df_from_key(key, overwrite=False):
     if 'dspy' in key:
         assert 'question' not in df.columns
         assert 'choices' not in df.columns
+        # df['question_original'] = df['question'].copy()
 
         df['question'] = df['revised_question']
         assert [s[:10] == "Question\n" for s in df['revised_question']]
@@ -106,7 +108,6 @@ def get_df_from_key(key, overwrite=False):
         df['revised_question'].iloc[0][:10]
 
         df['options'] = [ast.literal_eval(op) for op in df['options']]
-        # ipdb.set_trace()
         df['choices'] = [{
             'choices': ops,
             'correct_index': c
@@ -127,7 +128,7 @@ def _download_csv(url, output_path, overwrite=False):
         response.raise_for_status()
         with open(output_path, 'wb') as f:
             f.write(response.content)
-        print("CSV downloaded and saved at:", output_path)
+        print("Downloading CSV from:", output_path)
     else:
         print("Retrieved cached CSV from:", output_path)
 
@@ -188,6 +189,7 @@ def exp_1103_test150_o1mini(seed):
 
     for k in ('eval', 'reflect', 'rewrite', 'check_rewrite'):
         cfg[k]['model'] = model_gpt4omini
+        raise "wrong model specified, look at exp_1105_test150_dspy_o1mini"
     name += f"_o1mini_{seed}"
 
     return df, cfg, name
@@ -225,6 +227,37 @@ def exp_1105_test150_dspy(seed):
 
     return df, cfg, name
 
+def exp_1105_dspy_full(seed):
+    """ The full dataset coming out of stage 1 dspy optimiztion process. """
+    # configs
+    name = f"dspy_full_nov5_{seed}"
+    cfg = cfg_4o_k1
+    cfg['seed'] = seed
+
+    # get dataset
+    df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+    
+    return df, cfg, name
+
+
+def exp_1105_test150_dspy_o1mini(seed):
+    """ The random sample 150 """
+    # configs
+    name = f"exp_1105_test150_dspy_o1mini_seed_{seed}"
+    cfg = cfg_4o_k1
+    cfg['seed'] = seed
+    for k in ('eval', 'reflect', 'rewrite', 'check_rewrite'):
+        cfg[k]['model'] = model_o1mini
+    for k in ('rewrite', 'check_rewrite'):
+        cfg[k]['strucured_output_key'] = 0
+
+    # get dataset
+    df = get_df_from_key("dspy_o1-mini_CoTRAG", overwrite=False)
+    keys_question = _get_key_questions_sample()
+    df = df[df['key_question'].isin(keys_question)]
+
+    return df, cfg, name
+
 
 def _get_data_october(questions_source):
     """ 
@@ -253,7 +286,7 @@ if __name__ == "__main__":
     dir_results_parent = Path(__file__).parent / "results" / Path(
         __file__).stem
     dir_results_parent.mkdir(exist_ok=True, parents=True)
-    do_multiprocessing = False
+    # do_multiprocessing = False
     do_multiprocessing = True
 
     ## run this experiment
@@ -266,12 +299,18 @@ if __name__ == "__main__":
     # df, cfg, name = exp_1103_test150_o1mini(seed=0)
 
     # if 1:
-    # for seed in [0,]:
-    for seed in [0, 1, 2, 3, 4]:
-        df, cfg, name = exp_1105_test150_dspy(seed=seed)
-    #     df, cfg, name = exp_1103_test150_multieval_150(seed=seed, multi_eval=3)
-    #     df, cfg, name = exp_1103_test150_o1mini(seed=seed)
-    #     df, cfg, name = exp_1103_k2_test150(seed=seed)
+    for seed in [1,]:
+    # for seed in [0, 1]:
+    # for seed in [0, 1, 2, 3, 4]:
+        # df, cfg, name = exp_1105_test150_dspy_o1mini(seed=seed)
+        
+        # df, cfg, name = exp_1103_test150_multieval_150(seed=seed, multi_eval=3)
+        # df, cfg, name = exp_1103_test150_o1mini(seed=seed)
+        # df, cfg, name = exp_1103_k2_test150(seed=seed)
+        # df, cfg, name = exp_1105_test150_dspy(seed=seed)
+        df, cfg, name = exp_1105_dspy_full(seed=seed)
+        # ipdb.set_trace()
+        pass 
 
         dir_results = dir_results_parent / f"{name}"
         dir_results.mkdir(exist_ok=True, parents=True)
