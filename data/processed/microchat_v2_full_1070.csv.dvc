@@ -1,0 +1,5 @@
+outs:
+- md5: 77594d2806033d1ceac3d76dfade0ec1
+  size: 1125435
+  hash: md5
+  path: microchat_v2_full_1070.csv
