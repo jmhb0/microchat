@@ -52,7 +52,7 @@ except ImportError as e:
 @click.argument("dataset_name", type=click.STRING)  # blooms.csv
 @click.option("--model", type=click.STRING, default="o1-mini")
 @click.option("--teacher-model", type=click.STRING, default="o1-mini")
-@click.option("--retrieval-model", type=click.STRING, default="wiki17_abstracts")
+@click.option("--retrieval-model", type=click.STRING, default=None) # "wiki17_abstracts"
 @click.option("--optimizer", type=click.STRING, default="miprov2")
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, dir_okay=True, path_type=Path)
