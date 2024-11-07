@@ -15,7 +15,7 @@ import dspy
 import tiktoken as tk
 from microchat.metrics.token_metrics import compute_token_metric
 
-from microchat.models.base_signatures import SelfAssessBlooms, CheckSimilar
+from microchat.models.base_signatures import SelfAssessBlooms, CheckSimilar, CheckFlaws
 from microchat.models.dspy_modules import re_blooms_compiled, blooms_dict
 from microchat.models.model_factory import create_model
 from microchat.utils.process_text import process_blooms, compute_tokens, compute_chars
@@ -43,25 +43,25 @@ re_parse_options = re.compile(
 
 re_parse_question = re.compile(
     r"(?:\*\*?(?:Revised\s+)?Question:\*\*\n+)"  # Matches "Question" label with optional "Revised"
-    r"['`]{0,3}(?P<question>.*?)['`]{0,3}"                    # Captures the question within triple backticks
-    r"\n+\n?\*\*Answer Choices:\*\*\n"            # Matches "Answer Choices" label
-    r"(?P<choices>(?:[A-E]\) .+?(?:\s+\n|$))+)"    # Captures choices A-D with double spaces at line end
-    r"\n+\*?\*?Correct answer:\*?\*?\s+(?P<correct>[A-E]\)\.?\s?)",  # Matches "Correct answer" label and text
-    re.IGNORECASE | re.DOTALL                                    # Enables multi-line matching for `?P<question>`
+    r"['`]{0,3}(?P<question>.*?)['`]{0,3}"  # Captures the question within triple backticks
+    r"\n+\n?\*\*Answer Choices:\*\*\n"  # Matches "Answer Choices" label
+    r"(?P<choices>(?:[A-E]\) .+?(?:\s+\n|$))+)",  # Captures choices A-D with double spaces at line end
+    # r"\n+\*?\*?Correct answer:\*?\*?\s?(?P<correct>[A-D]\) .+)",  # Matches "Correct answer" label and text
+    re.IGNORECASE | re.DOTALL,  # Enables multi-line matching for `?P<question>`
 )
 
 re_parse_answer = re.compile(
     r".*\n+\s*\**(?:Correct\s+)?Answer:\**\s*(?P<correct_option>\(?[A-E]\)?[.)]?)?\s*(?P<correct_answer>.*)",
-    re.IGNORECASE | re.DOTALL
+    re.IGNORECASE | re.DOTALL,
 )
 
 re_parse_prediction = re.compile(
-    r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
+    r"(?=Question:\n+\n?)?['`]{0,3}(?P<question>.*?)(?=\n\nA\))"  # Capture the question up to 'A)' marking the first option
     r"\n+A\)\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A with flexible whitespace handling
     r"B\)\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"C\)\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"D\)\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
-    r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)",  # Capture correct answer with flexible capitalization
+    r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)['`]{0,3}?",  # Capture correct answer with flexible capitalization
     re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
 )
 re_parse_prediction_2 = re.compile(
