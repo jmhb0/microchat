@@ -4,8 +4,9 @@
 This module defines the MCQ model using Pydantic to interact with DSPy examples and modules.
 It provides methods for prediction, cleaning answers, and extracting multiple-choice options.
 """
-import os
+
 import re
+from pathlib import Path
 
 import numpy as np
 from pydantic import BaseModel, Field, field_validator
@@ -16,7 +17,7 @@ import tiktoken as tk
 from microchat.metrics.token_metrics import compute_token_metric
 
 from microchat.models.base_signatures import SelfAssessBlooms, CheckSimilar, CheckFlaws
-from microchat.models.dspy_modules import re_blooms_compiled, blooms_dict
+from microchat.models.dspy_modules import re_blooms_compiled, blooms_dict, CoTRAG
 from microchat.models.model_factory import create_model
 from microchat.utils.process_text import process_blooms, compute_tokens, compute_chars
 
@@ -83,24 +84,34 @@ re_parse_prediction_3 = re.compile(
     re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
 )
 re_parse_prediction_4 = re.compile(
+    r"(?:\*?\*?Revised\s+)?Question(?:\s?\d?)?:\s*['`]{0,3}(?P<question>.*?)(?=\n\n\*?A\))"
+    r"\n+\*?A\)\*?\s?(?P<option_a>.*?)(?:\s{2,}|\n+)"  # Capture option A
+    r"\*?B\)\*?\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
+    r"\*?C\)\*?\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
+    r"\*?D\)\*?\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
+    r"(?:\*?E\)\*?\s?(?P<option_e>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option E
+    r"\n+\*?(?:Revised\s)?[Cc]orrect\s[Aa]nswer:\*?\s?(?P<correct_option>[A-E])\)\s?(?P<correct_answer>.*)['`]{0,3}",
+    re.IGNORECASE | re.DOTALL
+)
+re_parse_prediction_5 = re.compile(
     r"(?:\*?\*?Revised\s+)?Question(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<question>.*?)['`]{0,3}"  # Capture "Revised Question" with optional asterisks and backticks
     r"\n+\n*(?:\*?\*?Revised\s+)?Answer(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<correct_answer>.*?)['`]{0,3}",  # Capture "Revised Answer" with optional asterisks and backticks
     re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
 )
-re_parse_prediction_5 = re.compile(
+re_parse_prediction_6 = re.compile(
     r"(?:Question:\s*)?(?P<question>.*?)(?=\n\n(Revised|Correct)\s?Answer:)"  # Optional "Question:" prefix and captures question up to "Answer" prefix
     r"\n\n(?:Revised|Correct)\s?Answer:\s*\n?(?P<correct_answer>.*)",  # Matches "Correct Answer:" or "Revised Answer:" followed by answer text
     re.IGNORECASE
     | re.DOTALL,  # Allows case-insensitive matching and multi-line capture
 )
-re_parse_prediction_6 = re.compile(
+re_parse_prediction_7 = re.compile(
     r"(?<=\*\*Question:\*\*\n\n)?(?P<question>.*?)(?=\n\n(?:[Nn]o|[Yy]es|[Aa]\)))"  # Capture question up to an answer indicator (No, Yes, or A))
     r"\n\n(?:[Nn]o|[Yy]es|A\))\s?(?P<correct_answer>.*)",  # Match answer prefix (No, Yes, or A)) and capture answer text
     re.IGNORECASE | re.DOTALL,  # Allows case-insensitive and multi-line matching
 )
 
 
-DEFAULT_TEACHER = create_model("o1-mini")
+DEFAULT_TEACHER = create_model("o1-mini") # "o1-preview"
 
 
 class MCQ(BaseModel):
@@ -167,9 +178,7 @@ class MCQ(BaseModel):
 
     def get_tokens(self, original: bool, field: str) -> int:
         if original:
-            return self.compute_tokens(
-                self.example_dict.get(field, ""), self.tokenizer
-            )
+            return self.compute_tokens(self.example_dict.get(field, ""), self.tokenizer)
         else:
             return self.compute_tokens(
                 self.prediction_dict.get(field, ""), self.tokenizer
@@ -200,6 +209,7 @@ class MCQ(BaseModel):
                 "similarity": float(match),
                 "formatted": float(match),
                 "extraneous": 1 - float(match),
+                "reasoning": None,
             }
 
         # check for semantic similarity of the question
@@ -212,10 +222,17 @@ class MCQ(BaseModel):
             f"----------------------------------------\n"
             f"Revised question: {temp_pred.question}Revised answer: {temp_pred.answer}\n"
         )
-        with dspy.settings.context(lm=DEFAULT_TEACHER.lm):
-            result = dspy.ChainOfThought(CheckSimilar)(
-                context=context, question=question_str
-            )
+        self_assess_str = (
+            f"{self.example.question}\n"
+            "----------------------------------------\n"
+            "Revised:\n"
+            f"{self.prediction.answer}"
+        )
+        #### Original process check similarity
+        # with dspy.settings.context(lm=DEFAULT_TEACHER.lm):
+        result = dspy.ChainOfThought(CheckSimilar)(
+            context=context, question=self_assess_str #question_str
+        )
 
         # clean text outputs
         similarity = re_clean_text.sub("", result.similarity).strip()
@@ -224,6 +241,7 @@ class MCQ(BaseModel):
         formatted = re_true.sub("1", formatted)
         extraneous = re_clean_text.sub("", result.extraneous).strip()
         extraneous = re_true.sub("1", extraneous)
+
         try:
             similarity = float(eval(similarity))
             formatted = float(eval(formatted))
@@ -238,6 +256,7 @@ class MCQ(BaseModel):
             "similarity": float(similarity),
             "formatted": float(formatted),
             "extraneous": 1 - float(extraneous),
+            "reasoning": result.reasoning,
         }
 
     def model_post_init(self, __context: Any) -> None:
@@ -265,7 +284,15 @@ class MCQ(BaseModel):
 
         # process the prediction
         pred_match = None
-        for compiled_regex in [re_parse_prediction, re_parse_prediction_2, re_parse_prediction_3, re_parse_prediction_4, re_parse_prediction_5, re_parse_prediction_6]:
+        for idx, compiled_regex in enumerate([
+            re_parse_prediction_4,
+            re_parse_prediction,
+            re_parse_prediction_2,
+            re_parse_prediction_3,
+            re_parse_prediction_5,
+            re_parse_prediction_6,
+            re_parse_prediction_7,
+        ]):
             pred_match = compiled_regex.search(self.prediction.answer)
             if pred_match:
                 break
@@ -280,15 +307,7 @@ class MCQ(BaseModel):
                 self.prediction_dict["correct_answer"] = answer.group("correct_answer")
                 self.prediction_dict["correct_option"] = answer.group("correct_option")
 
-            if options := re_parse_options.findall(self.prediction.answer):
-                # convert to list and strip leading \* from the options
-                options = [(char, text.strip("*").strip()) for char, text in options]
-                # convert to dict
-                option_dict = {
-                    f"option_{char.lower()}": text for char, text in options if text
-                }
-            elif options_1:
-                pass
+
 
             self.errors += 1
             logger.warning("Prediction does not match the expected format.")
@@ -317,19 +336,24 @@ class MCQ(BaseModel):
             pred_options = [elem[1] for elem in pred_options]
             pred_answer = re_parse_answer.match(self.prediction.answer)
             if pred_answer is not None:
-                pred_answer = re_clean_text.sub("", pred_answer.group("correct_answer")).strip()
+                pred_answer = re_clean_text.sub(
+                    "", pred_answer.group("correct_answer")
+                ).strip()
             else:
                 logger.warning("Correct answer does not match the expected format.")
                 self.errors += 1
 
-
             if self.prediction_dict.get("correct_answer").strip() != pred_answer:
-                if re_remove_letter.sub("",self.prediction_dict.get("correct_answer").strip()) == pred_answer:
+                if (
+                    re_remove_letter.sub(
+                        "", self.prediction_dict.get("correct_answer").strip()
+                    )
+                    == pred_answer
+                ):
                     self.prediction_dict["correct_answer"] = pred_answer
                 else:
                     logger.warning("Correct answer does not match the expected format.")
                     self.errors += 1
-
 
         self.prediction_dict["options"] = pred_options
         pred_answer = self.prediction_dict.get("correct_answer")
@@ -405,22 +429,26 @@ class MCQ(BaseModel):
             # compute metric for token ratio, want to have ratio near 1
             option_token_ratio = np.mean(token_ratio)
 
-        #
+
         try:
             self.metrics = self.compute_metrics(
                 question_key="question", answer_key="correct_answer"
             )
-        except Exception as e:
-            logger.error(f"Error in computing metrics: {e}")
+        except:
+            logger.warning("Error in computing metrics:")
+            logger.warning(f"Example: {self.example}")
+            logger.warning(f"Prediction: {self.prediction}")
             self.metrics = {
                 "similarity": 0,
                 "formatted": 0,
                 "extraneous": 0,
+                "reasoning": None,
             }
 
         self.metrics["option_token_ratio"] = option_token_ratio
         self.metrics["answer_token_metric"] = ans_token_metric
         self.metrics["errors"] = 1 - (self.errors / 2)
+        self.metrics["reasoning"] = self.metrics.get("reasoning")
 
 
 class Blooms(BaseModel):
@@ -435,6 +463,8 @@ class Blooms(BaseModel):
     teacher_model: Optional[dspy.LM] = None
 
     #
+    gt_level: Optional[int] = None
+    gt_bloom: Optional[str] = None
     blooms_level: Optional[int] = None
     blooms_name: Optional[str] = None
     blooms_confidence: Optional[float] = None
@@ -480,7 +510,7 @@ class Blooms(BaseModel):
     ) -> Tuple[int, str]:
         return process_blooms(answer, reference_dict)
 
-    def predict(self) -> dspy.Prediction:
+    def predict(self, return_reasoning: bool = False) -> dspy.Prediction:
         """
         Predict the answer using the DSPy module.
         """
@@ -488,7 +518,7 @@ class Blooms(BaseModel):
         #     logger.debug(f"Predicting answer for question: {self.example.question}")
 
         try:
-            response = self.module(self.example.question)
+            response = self.module(self.example.question, return_reasoning=return_reasoning)
             if response is None:
                 logger.error(f"Prediction failed for question: {self.example.question}")
 
@@ -522,8 +552,13 @@ class Blooms(BaseModel):
 
         gt_model = [elem.strip() for elem in gt_model]
         gt_level, gt_bloom = self._process_answer(self.example.answer, blooms_dict)
+        gt_level = gt_level if gt_level > 0 else self.example.blooms_level
+        gt_bloom = gt_bloom or self.example.answer
+
+        self.gt_level = gt_level
+        self.gt_bloom = gt_bloom
         # predict blooms the example
-        response = self.predict()
+        response = self.predict(return_reasoning=True)
 
         # set the context for the response
         # note that the context is manually set to be a curated list of Bloom's
@@ -557,14 +592,24 @@ class Blooms(BaseModel):
 
         # change context manager to allow self-assessment by a teacher model
         # logger.debug(f"Original model: {dspy.settings.lm.model_name}")
+        model_dir = Path(PROJECT_ROOT).joinpath("models/dspy_compiled/blooms/")
         with dspy.settings.context(lm=self.teacher_model):
             # logger.debug(f"Model: {dspy.settings.lm.model_name}")
             rev_model = dspy.settings.lm.model_name
-            assess_response = dspy.ChainOfThought(SelfAssessBlooms)(
-                question=self.self_check_question, context=self.context
+            teacher_module = CoTRAG(context="blooms", return_reasoning=True) # context sets signature
+            teacher_module.name = teacher_module.__class__.__name__
+            model_filepath = model_dir.joinpath(f"{self.teacher_model.model_name}_{teacher_module.name}_{teacher_module.signature_name}.json")
+            if model_filepath.exists():
+                teacher_module.load(model_filepath)
+                teacher_module.name = teacher_module.__class__.__name__
+            else:
+                logger.error(f"Model file not found: {model_filepath}")
+
+            assess_response = teacher_module(
+                question=self.self_check_question #, context=self.context
             )
 
-        # logger.debug(f"Restored model: {dspy.settings.lm.model_name}")
+        # process
         rev_level, rev_bloom = self._process_answer(assess_response.answer, blooms_dict)
 
         #
@@ -597,11 +642,69 @@ class Blooms(BaseModel):
             self.blooms_source = " & ".join([init_model, rev_model])
             self.blooms_reasoning = assess_response.reasoning
         else:
-            # if none of the levels match, use the ground truth level
-            logger.error(
-                f"Ground truth, initial prediction, and self-assessment levels do not match. {gt_level} != {init_level} != {rev_level}"
+            tiebreak_question = (
+                "Multiple LLM models evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
+                f"{self.example.question}\n"
+                f"One model predicted '{gt_bloom.capitalize()}' (Level {gt_level}) with the following reasoning: {self.example.blooms_reasoning}\n"
+                f"A second model predicted '{init_bloom.capitalize()}' (Level {init_level}) with the following reasoning: {response.reasoning}\n\n"
+                f"A third model predicted '{rev_bloom.capitalize()}' (Level {rev_level}) with the following reasoning: {assess_response.reasoning}\n\n"
+                "# Independent Assessment of Bloom's Taxonomy Level\n"
+                "Provide an independent assessment of the most appropriate Bloom's Taxonomy level for the question below. Explain whether you agree or disagree with previous predictions, and why."
+                "When evaluating between Comprehension (Level 2) and Application (Level 3) or higher levels, consider:"
+                "  - Does the question involve straightforward identification without broader context?"
+                "  - Does it require advanced or non-obvious identification?"
+                "  - Does it involve application or connection to a broader context?"
+                "  - Is it applied to a new or challenging setting?"
+                "  - Does it require deep understanding or drawing conclusions that are not obvious?\n"
+                f"{self.example.question}\n"
+                f"Bloom's:"
             )
-            self.blooms_confidence = 0
+            # o1-preview judge
+            oracle_model = create_model("o1-preview").lm
+
+            # change context manager to allow self-assessment by a teacher model
+            logger.info(f"Mismatched Bloom's predictions:\nGT:\t\t{gt_level}\n{dspy.settings.lm.model_name}:\t{init_level}\n{rev_model}:\t{rev_level}")
+            logger.info(f"Tiebreaker model: {oracle_model.model_name}")
+            with dspy.settings.context(lm=oracle_model):
+                # logger.debug(f"Model: {dspy.settings.lm.model_name}")
+                oracle_module = CoTRAG(context="blooms", return_reasoning=True)
+                oracle_module.name = teacher_module.__class__.__name__
+
+                final_response = oracle_module(
+                    question=tiebreak_question
+                )
+
+            # process
+            final_level, final_bloom = self._process_answer(final_response.answer, blooms_dict)
+
+            if final_level == gt_level:
+                self.blooms_level = final_level
+                self.blooms_name = final_bloom
+                self.blooms_confidence = 2 / 4
+                self.blooms_source = " & ".join(gt_model + [oracle_model.model_name])
+                self.blooms_reasoning = final_response.reasoning
+            elif final_level == init_level:
+                self.blooms_level = final_level
+                self.blooms_name = final_bloom
+                self.blooms_confidence = 2 / 4
+                self.blooms_source = " & ".join([init_model, oracle_model.model_name])
+                self.blooms_reasoning = final_response.reasoning
+            elif final_level == rev_level:
+                self.blooms_level = final_level
+                self.blooms_name = final_bloom
+                self.blooms_confidence = 2 / 4
+                self.blooms_source = " & ".join([rev_model, oracle_model.model_name])
+                self.blooms_reasoning = final_response.reasoning
+            else:
+                logger.warning(f"No agreement between models: {gt_model}, {init_model}, {rev_model}, {oracle_model.model_name}")
+                logger.warning(f"{oracle_model.model_name} reasoning: {final_response.reasoning}")
+                self.blooms_level = final_level
+                self.blooms_name = final_bloom
+                self.blooms_confidence = 1 / 4
+                self.blooms_source = oracle_model.model_name
+                self.blooms_reasoning = f"No agreement between models: {gt_model}, {init_model}, {rev_model}, {oracle_model.model_name}"
+                self.blooms_reasoning += f"\n\n{oracle_model.model_name} reasoning: {final_response.reasoning}"
+                logger.info(self.blooms_reasoning)
 
         # rename self.blooms_name to a standard name
         rename_dict = {

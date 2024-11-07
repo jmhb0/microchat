@@ -37,10 +37,8 @@ except ImportError as e:
 
 @click.command()
 @click.argument("dataset_name", type=click.STRING)
-@click.option(
-    "--model", type=click.STRING, default="o1-mini"
-)  # "gpt-4o-mini") # gpt-4o
-@click.option("--teacher-model", type=click.STRING, default="gpt-4o")
+@click.option("--model", type=click.STRING, default="gpt-4o-mini")
+@click.option("--teacher-model", type=click.STRING, default="o1-mini")
 @click.option("--retrieval-model", type=click.STRING, default="wiki17_abstracts")
 @click.option("--optimizer", type=click.STRING, default="bootstrap_random")
 @click.option(
