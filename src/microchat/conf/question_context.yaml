@@ -176,6 +176,64 @@ blooms:
       "How would you design a follow-up study to test your hypothesis?"
       "Predict the outcome of disease progression based on the evidence."
       "How can a model be constructed to change our understanding of this tissue?"
+  summary_blooms_biomedical_image_multiple_choice: |
+    # Summary of Revised Bloom's classification for biomedical multiple-choice image questions:
+    Level 1: Recall
+        - Focus: Remembering basic facts, definitions, and identifying objects in images.
+        - Skills Assessed: Identify, Recall, List, Recognize, Label.
+        - Characteristics: Requires simple information recall or image recognition.
+        - Example Question Stems:
+            "What is...?"
+            "Identify the..."
+            "List the characteristics of..."
+        - Examples:
+            "Identify the parts of a eukaryotic cell."
+            "What is the cellular structure shown in this image?"
+
+    Level 2: Comprehension (Understand)
+        - Focus: Understanding concepts; interpreting images without broader context; explaining in one's own words.
+        - Skills Assessed: Describe, Explain, Classify, Locate.
+        - Characteristics: Requires understanding of concepts or terms; simple image interpretation.
+        - Example Question Stems:
+            "How would you classify...?"
+            "Explain the significance of..."
+        - Examples:
+            "Describe nuclear transport to a layperson."
+            "Explain the significance of the staining pattern observed."
+
+    Level 3: Application
+        - Focus: Applying knowledge to new situations; advanced visual identification; predicting outcomes.
+        - Skills Assessed: Apply, Connect, Predict.
+        - Characteristics: Applying knowledge to new contexts; predicting outcomes of changes.
+        - Example Question Stems:
+            "How would you use your knowledge to...?"
+            "What would result if...?"
+        - Examples:
+            "Predict what happens to X if Y increases."
+            "What would result if the highlighted area was damaged?"
+
+    Level 4: Analysis
+        - Focus: Analyzing comprehensive knowledge; connecting structure and function; interpreting data.
+        - Skills Assessed: Analyze, Infer, Advanced Classification.
+        - Characteristics: Requires data interpretation; drawing conclusions.
+        - Example Question Stems:
+            "What conclusions can you draw about...?"
+            "How can you distinguish between...?"
+        - Examples:
+            "Interpret data, graphs, or figures."
+            "Why do you think these structural changes have occurred?"
+
+    Level 5: Synthesis/Evaluation
+        - Focus: Predicting relationships; judging and critiquing in new situations; scientific or clinical judgment.
+        - Skills Assessed: Predict, Judge, Critique, Decide, Evaluate, Synthesize, Create.
+        - Characteristics: Assessing information relative to arguments; developing hypotheses; designing experiments.
+        - Example Question Stems:
+            "What changes would you make to...?"
+            "Predict the outcome of..."
+        - Examples:
+            "Develop a hypothesis."
+            "Design an experiment."
+            "How would you improve patient outcomes based on these findings?"
   blooms_biology_histology_image: |
     # Revised Bloom's classification applied to biology or histology multiple-choice image questions:
     Level 1: Recall

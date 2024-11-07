@@ -18,6 +18,7 @@ class DatasetType(Enum):
     hotpotqa = HotPotQAWrapper()
     scieval = SciEvalWrapper()
     microchat = MicroChatWrapper()  # expecting file $DATA_ROOT/microchat.csv
+    microchat_v2 = MicroChatV2Wrapper()  # expecting file $DATA_ROOT/microchat_v2.csv
     mol_bio_cell = Mol_Bio_CellWrapper()
     microbench = MicroBenchWrapper()
     blooms = BloomsWrapper()
