@@ -123,22 +123,28 @@ def create_questions_dframe(df, df_people, lookup_image_to_person):
     df_questions['key_person'] = df_questions['key_image'].map(
         lookup_image_to_person)
 
+    # Sort the DataFrame by key_image and then by question_number
+    df_questions_sorted = df_questions.sort_values(
+        ['key_image', 'question_number'])
+
+    df_questions_sorted = df_questions_sorted.reset_index(drop=True).rename_axis('key_question')
+
     # create the lookups
-    lookup_person_to_questions = df_questions.reset_index().groupby(
-        'key_person')['index'].apply(list).to_dict()
-    lookup_question_to_person = df_questions['key_person'].to_dict()
+    key_peoples = df_questions_sorted['key_person'].unique()
+    lookup_person_to_questions = {int(k) : [] for k in key_peoples}
+    lookup_question_to_person = {}
+
+    for i, row in df_questions_sorted.iterrows():
+        key_question = row.name
+        key_person = row['key_person']
+        lookup_person_to_questions[key_person].append(key_question)
+        lookup_question_to_person[key_question] = key_person
 
     # add a count to the people dataframe
     df_people['num_submitted_questions'] = pd.Series({
         person_id: len(questions)
         for person_id, questions in lookup_person_to_questions.items()
     })
-
-    # Sort the DataFrame by key_image and then by question_number
-    df_questions_sorted = df_questions.sort_values(
-        ['key_image', 'question_number'])
-
-    df_questions_sorted = df_questions_sorted.reset_index(drop=True).rename_axis('key_question')
 
     return df_questions_sorted, df_people, lookup_person_to_questions, lookup_question_to_person
 

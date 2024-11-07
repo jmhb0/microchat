@@ -128,6 +128,7 @@ def eval_qa(df_questions,
         # save the indexes
         idxs.append(key_question)
 
+    print("Lets check the size of the images ")
     assert len(batch_prompts_text) == len(idxs)
     if key_prompt_eval == 0:
         assert len(batch_prompts_text) == len(batch_prompts_imgs)
@@ -383,7 +384,6 @@ def exp_1103_test150_multieval_150_best4(multi_eval=3):
 
 
 def exp_1105_test150_dspy_best():
-    name = "mcqs_1103_test150_multieval_150_best_5"
     seeds = [0, 1, 2, 3,4]
     run_nums = [1,1,1,1]
    
@@ -398,6 +398,9 @@ def exp_1105_test150_dspy_best():
     df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
     mcqs = df_choose_qs.values
 
+    name = "exp_1105_test150_dspy_150_best_5"
+
+
     return df, df_results, mcqs, name, run_number
 
 
@@ -407,9 +410,10 @@ if __name__ == "__main__":
 
     # config of whats in the other script
     df_results_lst = []
+    seed_eval = 2
 
-    # if 0: 
-    if 1: 
+    if 0: 
+    # if 1: 
         # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
         # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
         # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_o1mini_best_5()
@@ -425,11 +429,13 @@ if __name__ == "__main__":
         # df_questions, _, name = run_experiments.exp_1103_test150(seed=seed)
         # df_questions, _, name = run_experiments.exp_1103_test150_o1mini(seed=seed)
         # df_questions, _, name = run_experiments.exp_1103_test150_multieval_150(seed=seed)
-        df_questions, _, name = run_experiments.exp_1105_test150_dspy(seed=seed) # dspy
+        # df_questions, _, name = run_experiments.exp_1105_test150_dspy(seed=seed) # dspy
+        # df_questions, _, name = run_experiments.exp_1105_test150_dspy_o1mini(seed=seed) # dspy
+        df_questions, _, name = run_experiments.exp_1105_dspy_full(seed=seed) # dspy        
+        df_questions, _, name = run_experiments.exp_1105_dspy_full(seed=0) # dspy        
 
         # get the mcqs
         mcqs, _, _, idxs_question, df_results = get_refined_bot_mcqs(name, run_number)
-        ipdb.set_trace()
 
         # doing the 673 filtering
         # if 1: 
@@ -454,7 +460,7 @@ if __name__ == "__main__":
     key_prompt_eval = 0
 
     df_questions, msgs, preds, gts, cache_images = eval_qa(
-        df_questions, mcqs, key_prompt_eval=key_prompt_eval, seed=0, model=model)
+        df_questions, mcqs, key_prompt_eval=key_prompt_eval, seed=seed_eval, model=model)
     acc = (gts == preds).sum() / len(gts)
     print(f"Acc VQA {acc:.4f} on {len(gts)} samples")
 
@@ -469,7 +475,7 @@ if __name__ == "__main__":
         df_questions, msgs, preds, gts, _ = eval_qa(df_questions,
                                             mcqs,
                                             key_prompt_eval=key_prompt_eval,
-                                            seed=0,
+                                            seed=seed_eval,
                                             model=model)
         acc = (gts == preds).sum() / len(gts)
         print(f"Acc VQA, no image {acc:.1f}")
@@ -492,14 +498,15 @@ if __name__ == "__main__":
         dict(choices=m['choices'], correct_index=m['correct_index'])
         for m in mcqs
     ]
-    ipdb.set_trace()
 
     # save it
     dir_results_parent = Path(f"benchmark/refine_bot/results/eval")
     dir_results_parent.mkdir(exist_ok=True)
-    f_save = dir_results_parent / f"{name}.csv"
+    f_save = dir_results_parent / f"{name}_evalseed{seed_eval}.csv"
     print(f"Saving question-level eval to {f_save}")
     df_eval.to_csv(f_save, index=False)
+    ipdb.set_trace()
+    pass
 
 
 
