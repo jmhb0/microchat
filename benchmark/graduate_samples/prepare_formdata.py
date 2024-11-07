@@ -92,8 +92,8 @@ def create_form_datasets_perperson(df, dir_people_out):
 
         mcq_strs = []
         for i, row in df_subset.iterrows():
-            choices = ast.literal_eval(row["choices"])
-            mcq_str = _stringify_mcq_for_logging(row["question"],
+            choices = ast.literal_eval(row["choices_postbot"])
+            mcq_str = _stringify_mcq_for_logging(row["question_postbot"],
                                                  choices["choices"],
                                                  choices["correct_index"])
             correct_answer = choices["choices"][choices["correct_index"]]
