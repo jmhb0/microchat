@@ -1,0 +1,6 @@
+outs:
+- md5: efcc7466be1cbbbc8ab2ebeb0d8a0891.dir
+  size: 130832
+  nfiles: 5
+  hash: md5
+  path: blooms
