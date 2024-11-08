@@ -14,6 +14,8 @@ from typing import List, Dict, Optional, Any, Tuple
 from loguru import logger
 import dspy
 import tiktoken as tk
+
+from microchat import PROJECT_ROOT
 from microchat.metrics.token_metrics import compute_token_metric
 
 from microchat.models.base_signatures import SelfAssessBlooms, CheckSimilar, CheckFlaws
@@ -569,7 +571,11 @@ class Blooms(BaseModel):
         # process the response
         init_model = dspy.settings.lm.model_name
         init_level, init_bloom = self._process_answer(response.answer, blooms_dict)
-        #
+        # correct for null
+        init_level = init_level or "Unknown"
+        init_bloom = init_bloom or response.answer
+
+        # set the self-check question
         self.self_check_question = (
             "Multiple LLM models evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
             f"{self.example.question}\n"
@@ -611,6 +617,9 @@ class Blooms(BaseModel):
 
         # process
         rev_level, rev_bloom = self._process_answer(assess_response.answer, blooms_dict)
+        # correct for null
+        rev_level = rev_level or "Unknown"
+        rev_bloom = rev_bloom or assess_response.answer
 
         #
         if gt_level == init_level and gt_level == rev_level:
@@ -634,8 +643,9 @@ class Blooms(BaseModel):
             self.blooms_confidence = 2 / 3
             self.blooms_source = " & ".join(gt_model + [rev_model])
             self.blooms_reasoning = assess_response.reasoning
-        elif rev_level == init_level:
+        elif rev_level == init_level and abs(gt_level - rev_level) == 1:
             # if the self-assessment and initial levels match, use the self-assessment level
+            # if the ground truth level is one level higher or lower
             self.blooms_level = init_level
             self.blooms_name = init_bloom
             self.blooms_confidence = 2 / 3
