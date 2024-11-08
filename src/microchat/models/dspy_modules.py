@@ -52,8 +52,8 @@ class BaseRAG(dspy.Module):
             shuffle(temp_context)
             self.context = temp_context
         elif self.kwargs.get("context") == "blooms" or "blooms" in self.kwargs.get(
-            "context"
-        , []):
+            "context", []
+        ):
             # gpt-4o-mini with SelfAssessBlooms is better default
             self.signature = SelfAssessBlooms
             temp_context = self._format_context(context["blooms"])
@@ -97,7 +97,9 @@ class CoTRAG(BaseRAG):
 
         if return_reasoning or self.return_reasoning:
             return dspy.Prediction(
-                context=context, answer=prediction.answer, reasoning=prediction.reasoning
+                context=context,
+                answer=prediction.answer,
+                reasoning=prediction.reasoning,
             )
         else:
             return dspy.Prediction(context=context, answer=prediction.answer)
