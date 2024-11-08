@@ -53,7 +53,7 @@ class BaseRAG(dspy.Module):
             self.context = temp_context
         elif self.kwargs.get("context") == "blooms" or "blooms" in self.kwargs.get(
             "context"
-        ):
+        , []):
             # gpt-4o-mini with SelfAssessBlooms is better default
             self.signature = SelfAssessBlooms
             temp_context = self._format_context(context["blooms"])
@@ -81,8 +81,9 @@ class CoTRAG(BaseRAG):
         """Initialize the CoTRAG module with specified context and passages."""
         super().__init__(num_passages=num_passages, **kwargs)
         self.generate_answer = dspy.ChainOfThought(self.signature)
+        self.return_reasoning = kwargs.get("return_reasoning", False)
 
-    def forward(self, question: str):
+    def forward(self, question: str, return_reasoning: bool = False):
         """Forward method for processing the question through the RAG pipeline."""
         if self.retrieve:
             self.context = self.retrieve(question).passages
@@ -94,7 +95,12 @@ class CoTRAG(BaseRAG):
 
         prediction = self.generate_answer(context=context, question=question)
 
-        return dspy.Prediction(context=context, answer=prediction.answer)
+        if return_reasoning or self.return_reasoning:
+            return dspy.Prediction(
+                context=context, answer=prediction.answer, reasoning=prediction.reasoning
+            )
+        else:
+            return dspy.Prediction(context=context, answer=prediction.answer)
 
 
 class CoTMultiHopRAG(BaseRAG):
