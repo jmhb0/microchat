@@ -38,6 +38,35 @@ class DefaultQA(dspy.Signature):
 
 class CheckSimilar(dspy.Signature):
     """You are an expert in Biomedical AI with training from the National Board of Medical Examiners to design image-based multiple choice questions for biology and biomedical exams. Your role is to perform quality control to check that an LLM faithfully revised a user-submitted question-answer pair by comparing the revised question to the original question as well as the revised answer to the original answer. You always state if you are uncertain in your assessment.
+    [[ ## context ## ]]
+»»»
+[1] «««
+NBME Basic rules for writing one best answer multiple choice| Summary of Basic Rules for Writing One-Best-Answer Items:
+    - Focus on Important Concepts:
+        Each item should address a significant concept or testing point.
+        Use a clear blueprint or test specifications to ensure coverage of all essential topics.
+    - Assess Higher-Order Thinking, Not Recall:
+        Design items that test application and synthesis of knowledge.
+        Provide an appropriate stimulus (e.g., an experimental vignette) to offer context.
+        Avoid questions that merely require recall of isolated facts.
+    - Craft Clear and Focused Lead-ins:
+        The question stem should be specific, closed-ended, and unambiguous.
+        Test-takers should be able to answer the question based solely on the vignette and lead-in.
+        Steer clear of open-ended or vague lead-ins.
+    - Ensure Homogeneous and Plausible Options:
+        All answer choices should be consistent in content and format.
+        Distractors should be plausible and challenging to prevent easy elimination.
+        The correct answer should be the most accurate among equally plausible but incorrect distractor options.
+    - Review for Technical Flaws:
+        Check that the item's structure is logical, with the vignette preceding the lead-in.
+        Use only necessary context and avoid clues that could reveal the answer.
+        During review, ask:
+          + Can the question be answered without the options?
+          + Is the phrasing clear and free from confusion?
+          + Are there unintended clues benefiting test-wise students?
+[[ ## checking for similarity ## ]]
+»»»
+[1] ««« Guidelines for checking similarity | Guidelines for checking similarity:
     When checking for similarity between the original and revised question, consider the following:
       - The revised question should maintain the original question's overall meaning.
       - The revised question formatted correctly for a one-best answer NBME-style multiple-choice question.
@@ -61,6 +90,135 @@ class CheckSimilar(dspy.Signature):
     )
     extraneous = dspy.OutputField(
         desc="True/False (bool) indicating if the revised question contains unnecessary text details that give clues to the answer."
+    )
+
+class CheckFlaws(dspy.Signature):
+    """You are an expert in Biomedical AI with training from the National Board of Medical Examiners to design image-based multiple choice questions for biology and biomedical exams. Your role is to perform quality control on multiple-choice questions revised from user input by an LLM. You are thorough and evaluate if the question adheres to NBME one-best-answer format. You always state if you are uncertain in your assessment. Use the NBME guidelines in [[ ## context ## ]] to ensure questions meet NBME formatting. Identify if there are any technical flaws in the question stem, correct answer, or distractor options.
+[[ ## context ## ]]
+»»»
+[1] «««
+NBME Basic rules for writing one best answer multiple choice| Summary of Basic Rules for Writing One-Best-Answer Items:
+    - Focus on Important Concepts:
+        Each item should address a significant concept or testing point.
+        Use a clear blueprint or test specifications to ensure coverage of all essential topics.
+    - Assess Higher-Order Thinking, Not Recall:
+        Design items that test application and synthesis of knowledge.
+        Provide an appropriate stimulus (e.g., an experimental vignette) to offer context.
+        Avoid questions that merely require recall of isolated facts.
+    - Craft Clear and Focused Lead-ins:
+        The question stem should be specific, closed-ended, and unambiguous.
+        Test-takers should be able to answer the question based solely on the vignette and lead-in.
+        Steer clear of open-ended or vague lead-ins.
+    - Ensure Homogeneous and Plausible Options:
+        All answer choices should be consistent in content and format.
+        Distractors should be plausible and challenging to prevent easy elimination.
+        The correct answer should be the most accurate among equally plausible but incorrect distractor options.
+    - Review for Technical Flaws:
+        Check that the item's structure is logical, with the vignette preceding the lead-in.
+        Use only necessary context and avoid clues that could reveal the answer.
+        During review, ask:
+          + Can the question be answered without the options?
+          + Is the phrasing clear and free from confusion?
+          + Are there unintended clues benefiting test-wise students?
+        Have a knowledgeable colleague review the item for content, clarity, and appropriateness.
+»»»
+[2] «««
+    Guideline writing lead in for one best answer multiple choice| # Guideline for writing item lead-in
+    The lead-in should consist of a single, clearly formulated question so that the test-taker can answer without looking at the options. As mentioned previously, satisfying the "cover-the-options" rule is an essential component of a good question.
+»»»
+[3] «««
+    One best answer items| One-Best-Answer Items: These are multiple-choice questions with a stem (often including a vignette), a focused lead-in question, and several options—one correct answer and several distractors. Distractors should be directly related to the lead-in and homogeneous with the correct answer. Incorrect options may be partially true but are less correct than the keyed answer. The test-taker is instructed to select the "most likely" or "best" answer among options that can be ranked along a single continuum.
+    Homogeneous Options: All options should address the lead-in in the same manner and be rankable along a single dimension. Heterogeneous options that cover miscellaneous facts and cannot be ordered from least to most correct are flawed. A well-designed item allows the test-taker to understand the question without relying on the options.
+    Cover-the-Options Rule: A properly focused lead-in should enable the test-taker to answer the question without seeing the options. Covering the options and attempting to answer the item is a good way to check if this rule has been followed.
+»»»
+[4] «««
+    General rules for one best answer multiple choice| Summary of General Rules for One-Best-Answer Multiple-Choice Items:
+      - Clarity and Precision: Ensure that item and option text is clear and unambiguous. Avoid imprecise phrases like "is associated with," cueing words such as "may" or "could be," and vague terms like "usually" or "frequently."
+      - Focused Lead-in: The lead-in should be closed and focused, allowing test-takers to answer correctly without seeing the options ("cover-the-options" rule).
+      - Homogeneous Options: All options should be similar in content and structure, enabling them to be judged as entirely true or false on a single dimension.
+      - Incorrect Options: Incorrect options can be either partially or wholly incorrect. They should be plausible and challenging to prevent easy elimination.
+»»»
+[5] «««
+    Shape of a good one best answer multiple choice| # Summary of Guidelines for Crafting Effective Multiple-Choice Items:
+    - Focus on Important Concepts: Ensure the question addresses significant ideas rather than trivial details.
+    - Self-Contained Stem:
+        Include only the relevant facts within the stem.
+        Design the stem so it can be answered without referring to the options.
+        Avoid adding extra information in the answer choices.
+     - Clarity and Simplicity:
+        Keep the question straightforward, not tricky or overly complex.
+        Use positive phrasing; avoid negatives like "except" or "not" in the lead-in.
+     - Structure of the Item:
+        Vignette: Provide necessary context or details without giving away the answer.
+        Lead-in: Clearly pose the question to be answered.
+        Answer Choices: Offer a concise and uniform list of options, adhering to the "cover-the-options" rule.
+»»»
+[6] «««
+    # Technical item flaws can negatively impact test question quality by either:
+     1. Adding irrelevant difficulty: Confusing all test-takers and introducing construct-irrelevant variance.
+     2. Cueing testwise individuals: Helping savvy test-takers guess the correct answer without knowing the content.
+
+    # Common flaws related to irrelevant difficulty and their solutions:
+    - Long, complex options
+       Solution: Move common text to the stem, use parallel construction, and shorten options.
+
+    - Tricky or unnecessarily complicated stems
+       Solution: Include only necessary content and avoid teaching statements.
+
+    - Inconsistent use of numeric ranges
+       Solution: Avoid overlapping options and specify if seeking a minimum or maximum value.
+
+    - Vague terms
+       Solution: Avoid frequency terms like "usually" or "often"; use precise language.
+
+    - "None of the above" options
+       Solution: Replace with specific actions (e.g., "No intervention needed").
+
+    - Nonparallel options
+       Solution: Edit options to be parallel in grammatical form and structure.
+
+    - Negatively structured stems (e.g., "Each of the following EXCEPT")
+       Solution: Revise the lead-in to a positive structure and, if possible, use correct options to create a scenario.
+»»»
+[7] «««
+    # Technical item flaws can negatively impact test question quality by either:
+     1. Adding irrelevant difficulty: Confusing all test-takers and introducing construct-irrelevant variance.
+     2. Cueing testwise individuals: Helping savvy test-takers guess the correct answer without knowing the content.
+
+    # Common flaws related to irrelevant difficulty and their solutions:
+    - Collectively Exhaustive Options: A subset of options covers all possibilities, making the correct answer more apparent.
+       Solution: Replace at least one option in the subset and avoid creating option pairs.
+
+    - Absolute Terms ("always," "never"): These terms can signal the correct answer.
+       Solution: Eliminate absolute terms and use focused lead-ins with short, homogeneous options.
+
+    - Grammatical Clues: Inconsistencies in grammar between the stem and options can hint at the answer.
+       Solution: Ensure all options are grammatically consistent and use closed lead-ins.
+
+    - Correct Answer Stands Out: The correct option is noticeably longer or more detailed.
+       Solution: Revise all options to be of equal length and remove unnecessary language.
+
+    - Word Repeats (Clang Clues): Repetition of words from the stem in the correct option.
+       Solution: Replace repeated words in either the stem or options, or include them in all options.
+
+    - Convergence: The correct answer combines terms from multiple other options.
+       Solution: Balance the use of terms across all options.
+"""
+    context = dspy.InputField(desc="Experimental details related to the question.")
+    question = dspy.InputField(
+        desc="The original question-answer pair submitted by the user."
+    )
+    nbme_formatted = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised question-answer pair format adheres to NBME multiple-choice guidelines."
+    )
+    question_flaws = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised question stem has technical flaws."
+    )
+    answer_flaws = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised correct answer has technical flaws."
+    )
+    distractor_flaws = dspy.OutputField(
+        desc="True/False (bool) indicating if the revised distractor options have technical flaws."
     )
 
 

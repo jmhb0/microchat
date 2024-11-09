@@ -11,13 +11,12 @@ from dotenv import load_dotenv
 from loguru import logger
 
 import dspy
-from dspy.evaluate.evaluate import Evaluate
 from tqdm import tqdm
 
 from microchat import PROJECT_ROOT
 from microchat.custom_datasets.dataset_factory import create_dataset
 from microchat.fileio.dataframe.readers import df_loader
-from microchat.models.dspy_modules import CoTSelfCorrectRAG
+from microchat.models.dspy_modules import CoTRAG
 from microchat.models.model_factory import create_model
 from microchat.mc_questions.mcq import MCQ, Blooms
 from microchat.teleprompters.teleprompter_factory import create_optimizer
@@ -37,10 +36,8 @@ except ImportError as e:
 
 @click.command()
 @click.argument("dataset_name", type=click.STRING)
-@click.option(
-    "--model", type=click.STRING, default="o1-mini"
-)  # "gpt-4o-mini") # gpt-4o
-@click.option("--teacher-model", type=click.STRING, default="gpt-4o")
+@click.option("--model", type=click.STRING, default="gpt-4o-mini")
+@click.option("--teacher-model", type=click.STRING, default="o1-mini")
 @click.option("--retrieval-model", type=click.STRING, default="wiki17_abstracts")
 @click.option("--optimizer", type=click.STRING, default="bootstrap_random")
 @click.option(
@@ -137,20 +134,29 @@ def main(
     logger.info(f"Train question: {train_example.question}")
     logger.info(f"Train answer: {train_example.answer}")
 
-    # Set up a basic teleprompter, which will compile our RAG program.
-    optimizer, metric = create_optimizer(optimizer, teacher_model=teacher_model)
-
     # create module
-    module = CoTSelfCorrectRAG(context=task)
+    model_dir = Path(PROJECT_ROOT).joinpath("models/dspy_compiled/blooms/")
+    module = CoTRAG(context=task)
+    module.name = module.__class__.__name__
+    model_filepath = model_dir.joinpath(f"{model.model_name}_{module.name}_{module.signature_name}.json")
+    if model_filepath.exists():
+        logger.info(f"Loading trained model {model_filepath.stem}")
+        module.load(model_filepath)
+    else:
+        logger.error(f"Model {model_filepath} not found.")
+
 
     ## hack:  temp code to loop over all examples to get consensus Bloom's category
     # loop over trainset and save response.answer to output_list, which will be new
     # consensus label
+    start_idx = 0
     teacher_model = create_model(teacher_model).lm
     output_list = []
     for idx, example in tqdm(
         enumerate(trainset + devset), total=len(trainset + devset)
     ):
+        if idx < start_idx:
+            continue
         # get consensus blooms
         # the initial label was from MicroChat-MC
         # this loop will use predict using o1-mini and self-assess
@@ -180,9 +186,27 @@ def main(
                     "blooms_reasoning": response.blooms_reasoning,
                 }
             )
+            if idx % 5 == 0:
+                logger.info(
+                    f"Example {idx}:\nGT\t{response.gt_level}\nPred\t{response.blooms_level} ({response.blooms_confidence:.2f})"
+                )
+                output_file = output_dir.joinpath(f"blooms_classification_finetuning_v2_temp.csv")
+                temp_output_df = pd.DataFrame(output_list)
+                temp_output_df.to_csv(
+                    output_file,
+                    index=False,
+                    mode="a",
+                )
         except Exception as e:
             logger.error(
                 f"Error with example {example.key_image} {example.key_question}: {e}"
+            )
+            output_file = output_dir.joinpath(f"blooms_classification_finetuning_v2_temp.csv")
+            temp_output_df = pd.DataFrame(output_list)
+            temp_output_df.to_csv(
+                output_file,
+                index=False,
+                mode="a",
             )
 
     # convert to df

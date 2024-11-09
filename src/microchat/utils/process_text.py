@@ -26,7 +26,7 @@ def process_blooms(
     answer: str, reference_dict: Optional[dict] = blooms_dict
 ) -> Tuple[int, str]:
     # extract the blooms level from the response
-    blooms_name = None
+    blooms_name = answer  # default to the answer if not found
     blooms_level = -1
     if match := re_blooms_compiled.search(answer):
         blooms_name = match.group().lower()
@@ -35,7 +35,7 @@ def process_blooms(
             level for level, names in reference_dict.items() if blooms_name in names
         )
     else:
-        logger.warning(f"Bloom's taxonomy level found in answer: {answer}")
+        logger.warning(f"Bloom's taxonomy level not found: {answer}")
 
     return blooms_level, blooms_name
 
