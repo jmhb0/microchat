@@ -33,7 +33,6 @@ sys.path.insert(0, ".")
 from cache import cache_utils
 # from cache import cache_utils_redis as cache_utils
 
-client = openai.OpenAI()
 cache_openai = lmdb.open("cache/cache_openai", map_size=int(1e12))
 cache_openai_full = lmdb.open("cache/cache_openai_full",
                               map_size=int(1e12))  # workaround
@@ -73,6 +72,7 @@ def call_gpt(
     overwrite_cache: bool = False,
     debug=None,
     verbose=True,
+    api='openai',
     # if json_mode=True, and not json decodable, retry this many time
     num_retries: int = 3):
     """ 
@@ -88,10 +88,20 @@ def call_gpt(
     seed (int): doesnt actually work with openai API atm, but it is in the 
         cache key, so changing it will force the API to be called again
     """
+
+    # config the client based on `api` parameter
+    if api=="openai":
+        base_url="https://api.openai.com/v1"
+        api_key=os.getenv("OPENAI_API_KEY")
+    elif api in ("anthropic", "gemini"): 
+        base_url = "https://openrouter.ai/api/v1" 
+        api_key=os.getenv("OPENROUTER_API_KEY")
+    client = openai.OpenAI(base_url=base_url, api_key=api_key)
+
     global HITS, MISSES
+
     if verbose:
         print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
-
 
     # response format
     if response_format:
@@ -294,7 +304,8 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4o": 5,
         "gpt-4-turbo": 10,
         "gpt-4": 30,
-        "gpt-3.5-turbo": 0.5
+        "gpt-3.5-turbo": 0.5,
+        'anthropic/claude-3.5-sonnet' : 3,
     }
     prices_per_million_output = {
         "o1": 60,
@@ -303,7 +314,8 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4o": 15,
         "gpt-4-turbo": 30,
         "gpt-4": 60,
-        "gpt-3.5-turbo": 1.5
+        "gpt-3.5-turbo": 1.5,
+        'anthropic/claude-3.5-sonnet' : 15,
     }
     if "o1-preview" in model:
         key = "o1"
@@ -319,8 +331,10 @@ def compute_api_call_cost(prompt_tokens: int,
         key = "gpt-4"
     elif 'gpt-3.5-turbo' in model:
         key = "gpt-3.5-turbo"
+    elif 'claude-3.5-sonnet' in model:
+        key = 'anthropic/claude-3.5-sonnet'
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Did not record prices for model {model}")
 
     price = prompt_tokens * prices_per_million_input[
         key] + completion_tokens * prices_per_million_output[key]
@@ -341,6 +355,8 @@ def test_basic():
                     overwrite_cache=overwrite_cache,
                     json_mode=False)
     msg = res[0]
+    ipdb.set_trace()
+    pass
 
 def test_system_prompt():
     model = "gpt-4o-mini"
@@ -387,14 +403,14 @@ def test_conversation():
 
 def test_response_format():
     from pydantic import BaseModel
-    model = "gpt-4o-mini"
-    model = "o1-mini"
-    text0 = "Give 3 conspiracy theories about how Steve Irwin died. Describe briefly."
-    cache = False
-
     class Theories(BaseModel):
         theories: list[str]
         probabilities: list[float]
+    
+    model = "gpt-4o-mini"
+    # model = "o1-mini" # o1-mini fails 
+    text0 = "Give 3 conspiracy theories about how Steve Irwin died. Describe briefly."
+    cache = False
 
     res0 = call_gpt(text0,
                     model=model,
@@ -424,6 +440,20 @@ def test_batch():
     cost = sum([r[1] for r in res])
     print(f"Total cost ${cost:.3f}")
 
+def test_claude():
+    model = "anthropic/claude-3.5-sonnet"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    api = "anthropic"
+    cache = True
+    res0 = call_gpt(text,
+                model=model,
+                cache=cache,
+                api=api,
+                json_mode=False) 
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
+
 
 # basic testing
 if __name__ == "__main__":
@@ -432,11 +462,11 @@ if __name__ == "__main__":
     sys.path.insert(0, "..")
     sys.path.insert(0, ".")
 
-    # test_basic()
+    test_basic()
     test_system_prompt()
-    ipdb.set_trace()
     test_batch()
     test_conversation()
     test_response_format()
+    test_claude()
 
 
