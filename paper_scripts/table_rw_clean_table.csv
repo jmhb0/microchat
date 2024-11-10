@@ -1,0 +1,9 @@
+Benchmark,difficulty level,reasoning classes,domain,source,curation,taxonomy,open-source,metadata,multi-image comp.,"size (close, multimodal, microscopy)","Size (closed, multimodal)",total
+MicroVQA,research,1,microscopy,original,"M, A",1,1,"type, modality, organism, research area",1,1050,1050,1050
+PathVQA,graduate,0,pathology,texbooks,template Qs,0,1,0,0,16334,16334,32799
+OmnimedVQA,graduate,0,medical,existing DB,template Qs,0,1,"types, modality",0,4196,127995,127995
+Microbench,graduate,0,microscopy,existing DB,"existing, M, template Qs",1,1,"modality, type",0,17235,17235,17235
+LabBench,graduate,0,biology,webscraped,"template Qs, M",0,1,0,1,0,181,2400
+MMMU,college,0,general,"textbooks, web QA, original","existing, M, A",1,1,type ,1,0,11264,11550
+MMMU Pro,college,0,general,existing DB,"existing, M, A",1,1,type,1,0,1730,3460
+Science QA,school,0,science,existing DB,existing,1,1,"type, domain",0,0,16864,21208
