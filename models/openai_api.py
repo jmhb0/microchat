@@ -1,4 +1,5 @@
 """
+python -m ipdb models/openai_api.py 
 Functions for calling api
 Needs to have set OPENAI_API_KEY.
 Models: https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo
@@ -13,15 +14,17 @@ import numpy as np
 import os
 import io
 import shutil
-from typing import List
+from typing import List, Tuple
 import lmdb
 import json
 import sys
 import logging
 import concurrent.futures
 from threading import Lock
+from functools import lru_cache
 import time
 from tqdm import tqdm
+import pickle
 
 import sys
 
@@ -33,7 +36,6 @@ sys.path.insert(0, ".")
 from cache import cache_utils
 # from cache import cache_utils_redis as cache_utils
 
-client = openai.OpenAI()
 cache_openai = lmdb.open("cache/cache_openai", map_size=int(1e12))
 cache_openai_full = lmdb.open("cache/cache_openai_full",
                               map_size=int(1e12))  # workaround
@@ -73,6 +75,7 @@ def call_gpt(
     overwrite_cache: bool = False,
     debug=None,
     verbose=True,
+    api='openai',
     # if json_mode=True, and not json decodable, retry this many time
     num_retries: int = 3):
     """ 
@@ -88,10 +91,25 @@ def call_gpt(
     seed (int): doesnt actually work with openai API atm, but it is in the 
         cache key, so changing it will force the API to be called again
     """
+
+    # config the client based on `api` parameter
+    if api == "openai":
+        base_url = "https://api.openai.com/v1"
+        api_key = os.getenv("OPENAI_API_KEY")
+    elif api in ("openrouter", "openrouter"):
+        base_url = "https://openrouter.ai/api/v1"
+        api_key = os.getenv("OPENROUTER_API_KEY")
+    elif api == "hyperbolic":
+        base_url = "https://api.hyperbolic.xyz/v1"
+        api_key = os.getenv("HYPERBOLIC_API_KEY")
+    else: 
+        raise NotImplementedError()
+    client = openai.OpenAI(base_url=base_url, api_key=api_key)
+
     global HITS, MISSES
+
     if verbose:
         print(f"\rGPT cache. Hits: {HITS}. Misses: {MISSES}", end="")
-
 
     # response format
     if response_format:
@@ -118,7 +136,6 @@ def call_gpt(
             "text": text,
         },
     ]
-        
 
     # for imgs, put a hash key representation in content for now. If not cahcing,
     # we'll replace this value later (it's because `_encode_image_np` is slow)
@@ -154,15 +171,13 @@ def call_gpt(
                 msg = json.loads(msg)
             with cache_lock:
                 HITS += 1
-            conversation = messages + [{
-                "role": "assistant",
-                "content": msg
-            }]
+            conversation = messages + [{"role": "assistant", "content": msg}]
 
             # if the response object was also saved incache_openai_full, get it
             with cache_lock:
-                response_cache = cache_utils.get_from_cache(cache_key, cache_openai_full)
-            if response_cache is not None: 
+                response_cache = cache_utils.get_from_cache(
+                    cache_key, cache_openai_full)
+            if response_cache is not None:
                 response_cache = json.loads(response_cache)
 
             return msg, response_cache, messages, conversation
@@ -175,21 +190,33 @@ def call_gpt(
         assert "imgs_hash_key" in content[-1].keys()
         content.pop()
 
-        base64_imgs = [_encode_image_np(im) for im in imgs]
+        if 'anthropic' in model:
+            imagelst = [Image.fromarray(im) for im in imgs]
+            base64_imgs = ImageList(tuple(imagelst)).to_base64()
+        else:
+            base64_imgs = [_encode_image_np(im) for im in imgs]
+
+        if 'Qwen' in model:
+            base64_imgs = base64_imgs[:4]
+
         for base64_img in base64_imgs:
             content.append({
                 "type": "image_url",
                 "image_url": {
                     "url": f"data:image/jpeg;base64,{base64_img}",
-                    "detail": detail,
+                    # "detail": detail,
                 },
             })
     # not caching, so make the response format pydantic class again, not stringified version of it
     if response_format:
         kwargs['response_format'] = response_format
 
-
+    # if 'anthropic' not in model:
     response = client.beta.chat.completions.parse(**kwargs)
+    # else:         
+    # response = client.chat.completions.create(**kwargs)
+
+
     prompt_tokens = response.usage.prompt_tokens
     completion_tokens = response.usage.completion_tokens
     msg = response.choices[0].message.content
@@ -212,7 +239,7 @@ def call_gpt(
     if json_mode or response_format:
         msg = json.loads(msg)
 
-    return msg, response_cache, messages, conversation 
+    return msg, response_cache, messages, conversation
 
 
 def _encode_image_np(image_np: np.array):
@@ -230,6 +257,7 @@ def call_gpt_batch(texts,
                    json_modes=None,
                    get_meta=True,
                    debug=None,
+                   num_workers=64,
                    **kwargs):
     """ 
     with multithreading
@@ -252,7 +280,7 @@ def call_gpt_batch(texts,
             if debug is not None:
                 all_kwargs[i]['debug'] = debug[i]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=64) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = []
 
         for text, img, _kwargs in zip(texts, imgs, all_kwargs):
@@ -266,7 +294,6 @@ def call_gpt_batch(texts,
     global HITS, MISSES
     HITS, MISSES = 0, 0
     print()
-
 
     if get_meta:
         # compute cost in a way that handles the back-compatibility issue with old cache results
@@ -294,7 +321,10 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4o": 5,
         "gpt-4-turbo": 10,
         "gpt-4": 30,
-        "gpt-3.5-turbo": 0.5
+        "gpt-3.5-turbo": 0.5,
+        'anthropic/claude-3.5-sonnet': 3,
+        'Qwen2-VL-72B-Instruct' : 0.4,
+        "google/gemini-pro-1.5" : 1.25,
     }
     prices_per_million_output = {
         "o1": 60,
@@ -303,7 +333,10 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4o": 15,
         "gpt-4-turbo": 30,
         "gpt-4": 60,
-        "gpt-3.5-turbo": 1.5
+        "gpt-3.5-turbo": 1.5,
+        'anthropic/claude-3.5-sonnet': 15,
+        'Qwen2-VL-72B-Instruct' : 0.4,
+        "google/gemini-pro-1.5" : 5,
     }
     if "o1-preview" in model:
         key = "o1"
@@ -319,14 +352,57 @@ def compute_api_call_cost(prompt_tokens: int,
         key = "gpt-4"
     elif 'gpt-3.5-turbo' in model:
         key = "gpt-3.5-turbo"
+    elif 'claude-3.5-sonnet' in model:
+        key = 'anthropic/claude-3.5-sonnet'
+    elif 'Qwen2-VL-72B-Instruct' in model:
+        key = 'Qwen2-VL-72B-Instruct'
+    elif 'gemini-pro-1.5' in model:
+        key = 'google/gemini-pro-1.5'
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Did not record prices for model {model}")
 
     price = prompt_tokens * prices_per_million_input[
         key] + completion_tokens * prices_per_million_output[key]
     price = price / 1e6
 
     return price
+
+class ImageList:
+    """Handles a list of images with encoding support for base64 conversion.
+
+    Attributes:
+        images (Tuple[Image.Image]): A tuple containing PIL Image objects.
+    """
+
+    images: Tuple[Image.Image]
+    def __init__(self, images):
+        self.images=images
+
+    @staticmethod
+    @lru_cache()  # pickle strings are hashable and can be cached.
+    def _encode(image_pkl: str) -> str:
+        """Encodes a pickled image to a base64 string.
+
+        Args:
+            image_pkl (str): A serialized representation of the image.
+
+        Returns:
+            str: The base64-encoded PNG image.
+        """
+        image: Image.Image = pickle.loads(image_pkl)  # deserialize image
+
+        with io.BytesIO() as buffer:
+            image.save(buffer, format="jpeg")
+            return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+    def to_base64(self) -> Tuple[str]:
+        """Converts the images in the list to base64-encoded PNG format.
+
+        Returns:
+            Tuple[str]: A tuple of base64-encoded strings for each image.
+        """
+        image_pkls = [pickle.dumps(img) for img in self.images]
+        return tuple(ImageList._encode(pkl) for pkl in image_pkls)
 
 
 def test_basic():
@@ -336,11 +412,12 @@ def test_basic():
     # overwrite_cache = False
     cache = True
     res = call_gpt(text,
-                    model=model,
-                    cache=cache,
-                    overwrite_cache=overwrite_cache,
-                    json_mode=False)
+                   model=model,
+                   cache=cache,
+                   overwrite_cache=overwrite_cache,
+                   json_mode=False)
     msg = res[0]
+
 
 def test_system_prompt():
     model = "gpt-4o-mini"
@@ -350,14 +427,12 @@ def test_system_prompt():
     # overwrite_cache = False
     cache = True
     res = call_gpt(text,
-                    system_prompt=system_prompt,
-                    model=model,
-                    cache=cache,
-                    overwrite_cache=overwrite_cache,
-                    json_mode=False)
+                   system_prompt=system_prompt,
+                   model=model,
+                   cache=cache,
+                   overwrite_cache=overwrite_cache,
+                   json_mode=False)
     msg = res[0]
-    ipdb.set_trace()
-    pass
 
 
 def test_conversation():
@@ -387,14 +462,15 @@ def test_conversation():
 
 def test_response_format():
     from pydantic import BaseModel
-    model = "gpt-4o-mini"
-    model = "o1-mini"
-    text0 = "Give 3 conspiracy theories about how Steve Irwin died. Describe briefly."
-    cache = False
 
     class Theories(BaseModel):
         theories: list[str]
         probabilities: list[float]
+
+    model = "gpt-4o-mini"
+    # model = "o1-mini" # o1-mini fails
+    text0 = "Give 3 conspiracy theories about how Steve Irwin died. Describe briefly."
+    cache = False
 
     res0 = call_gpt(text0,
                     model=model,
@@ -409,21 +485,53 @@ def test_response_format():
 def test_batch():
     model = "gpt-4o-mini"
     text = "How did Steve Irwin die? "
-    batch_texts = [text]*10
-    seeds = list(range(10)) # since the text is identical
+    batch_texts = [text] * 10
+    seeds = list(range(10))  # since the text is identical
     overwrite_cache = True
     overwrite_cache = False
     cache = True
     res = call_gpt_batch(batch_texts,
-                    model=model,
-                    cache=cache,
-                    seeds = seeds,
-                    overwrite_cache=overwrite_cache,
-                    json_mode=False)
+                         model=model,
+                         cache=cache,
+                         seeds=seeds,
+                         overwrite_cache=overwrite_cache,
+                         json_mode=False)
     msg = res[0]
     cost = sum([r[1] for r in res])
     print(f"Total cost ${cost:.3f}")
 
+
+def test_claude():
+    model = "anthropic/claude-3.5-sonnet"
+    api = "openrouter"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    cache = False
+    res0 = call_gpt(text, model=model, cache=cache, api=api, json_mode=False)
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
+
+
+def test_gemini():
+    model = "google/gemini-pro-1.5"
+    api = "openrouter"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    cache = False
+    res0 = call_gpt(text, model=model, cache=cache, api=api, json_mode=False)
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
+
+def test_qwen():
+    model = "Qwen/Qwen2-VL-72B-Instruct"
+    api = "hyperbolic"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    # text = "Who makes the best clam chowder?"
+    cache = False
+    res0 = call_gpt(text, model=model, cache=cache, api=api, json_mode=False)
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
 
 # basic testing
 if __name__ == "__main__":
@@ -433,10 +541,11 @@ if __name__ == "__main__":
     sys.path.insert(0, ".")
 
     # test_basic()
-    test_system_prompt()
-    ipdb.set_trace()
-    test_batch()
-    test_conversation()
-    test_response_format()
-
-
+    # test_system_prompt()
+    # test_batch()
+    # test_conversation()
+    # test_response_format()
+    # test_claude()
+    # test_gemini()
+    test_qwen()
+    
