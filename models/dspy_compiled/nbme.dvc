@@ -1,0 +1,6 @@
+outs:
+- md5: f138034510d79b3bf486c911ea2a7d38.dir
+  size: 51344
+  nfiles: 2
+  hash: md5
+  path: nbme

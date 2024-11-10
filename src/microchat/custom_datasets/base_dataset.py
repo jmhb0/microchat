@@ -181,7 +181,7 @@ class CSVDataset(Dataset):
             df["correct_answer"] = df["correct_answer"].fillna("")
 
         # HACK create new column revised question-answer
-        if Path(filepath).stem == "microchat":
+        if "microchat" in Path(filepath).stem:
             # strip ending newline
             df["description"] = (
                 df["question"].copy().apply(lambda x: x.split(r"Question:")[0].strip())

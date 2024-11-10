@@ -463,11 +463,13 @@ if __name__ == "__main__":
         df_questions, mcqs, key_prompt_eval=key_prompt_eval, seed=seed_eval, model=model)
     acc = (gts == preds).sum() / len(gts)
     print(f"Acc VQA {acc:.4f} on {len(gts)} samples")
+    ipdb.set_trace()
 
     df_questions['gt'] = gts
     df_questions['pred'] = preds
     df_questions['pred_correct'] = (preds == gts).astype(int)
     df_questions['pred_cot'] = msgs
+
 
     if do_language_only:
         print(f"\n\nRunning language-only:")
