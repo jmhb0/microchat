@@ -12,18 +12,20 @@ from dotenv import load_dotenv
 
 from loguru import logger
 
-import matplotlib.pyplot as plt
-
-from wordcloud import WordCloud
+import textstat
+import numpy as np
 
 
 @click.command()
-@click.option("--input-file", type=click.Path(dir_okay=False, path_type=Path))
+@click.argument("input-file", type=click.Path(dir_okay=False, path_type=Path))
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, dir_okay=True, path_type=Path)
 )
 @click.option(
-    "--column", default="question", type=str, help="Column to use for wordcloud."
+    "--column",
+    default="revised_question_postbot",
+    type=str,
+    help="Column to use for wordcloud.",
 )
 @click.option(
     "--filter_col",
@@ -31,23 +33,15 @@ from wordcloud import WordCloud
     type=dict,
     help="Filter to apply to the dataframe. {column_name: value}",
 )
-@click.option("--height", default=800, type=int, help="Height of the wordcloud image.")
-@click.option("--width", default=1600, type=int, help="Width of the wordcloud image.")
-@click.option(
-    "--random-seed", default=8675309, type=int, help="Random seed for reproducibility."
-)
-@click.option("--plot", is_flag=True, help="Plot the wordcloud.")
 @click.option("--dry-run", is_flag=True, help="Perform a trial run with no changes.")
 @click.version_option()
 def main(
     input_file: Path,
     output_dir: Optional[Path] = None,
-    column: str = "question_stem",
+    column: str = "revised_question_postbot",
     filter_col: Optional[Dict[Any, Any]] = None,
-    height: int = 800,
-    width: int = 1600,
-    random_seed: int = 8675309,
-    plot: bool = True,
+    lang: str = "en",
+    metric: str = "flesch_kincaid_grade",
     dry_run: bool = False,
 ) -> None:
     """Docstring."""
@@ -62,7 +56,7 @@ def main(
         output_dir = Path(input_file).parent
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir.joinpath(f"{input_file.stem}_wordcloud.png")
+    output_file = output_dir.joinpath(f"{input_file.stem}_difficulty.csv")
 
     project_dir = Path(__file__).parents[2]
     logger.add(
@@ -74,6 +68,8 @@ def main(
     logger.info(f"Input file: {input_file}")
     logger.info(f"Output directory: {output_dir}")
     logger.info(f"Output file: {output_file}")
+    logger.info(f"Column: {column}")
+    logger.info(f"Metric: {metric}")
 
     if dry_run:
         logger.info("Dry run: no changes will be made.")
@@ -83,7 +79,7 @@ def main(
     df = pd.read_csv(input_file)
 
     # filter df
-    if filter_col:
+    if filter_col and isinstance(filter_col, dict):
         logger.info(f"Filtering dataframe with {filter_col}")
         for key, value in filter_col.items():
             if key in df.columns:
@@ -91,20 +87,35 @@ def main(
             else:
                 logger.warning(f"Column {key} not found in the dataframe.")
 
+    # set language
+    textstat.set_lang(lang)
+
     # create text from the column
     if column not in df.columns:
         logger.error(f"Column {column} not found in the dataframe.")
         raise ValueError(f"Column {column} not found in the dataframe.")
 
-    text = " ".join(df[column].tolist())
+    # get metric
+    logger.info(f"Computing text difficulty using metric: {metric}")
 
-    # instantiate
-    wordcloud = WordCloud(
-        width=width, height=height, background_color="white", random_state=random_seed
+    # compute reading difficulty for column
+    df[f"consensus_difficulty"] = df[column].apply(
+        textstat.text_standard, float_output=True
     )
+    df["fk_difficulty"] = df[column].apply(textstat.flesch_kincaid_grade)
+    df["fk_reading_ease"] = df[column].apply(textstat.flesch_reading_ease)
 
-    # generate
-    wordcloud.generate(text)
+    # raise error if any of the values are NaN, inf or -inf or Zero
+    new_cols = ["consensus_difficulty", "fk_difficulty", "fk_reading_ease"]
+    if df[new_cols].isin([np.nan, np.inf, -np.inf, 0]).any().any():
+        logger.error(f"Error: NaN, inf, -inf or Zero values found in the dataframe.")
+        raise ValueError(
+            f"Error: NaN, inf, -inf or Zero values found in the dataframe."
+        )
+
+    logger.info(
+        f"{df[['consensus_difficulty', 'fk_difficulty', 'fk_reading_ease']].describe()}"
+    )
 
     # save image
     if output_file.exists():
@@ -114,14 +125,8 @@ def main(
         )
         logger.warning(f"Overwriting {output_file}...")
 
-    wordcloud.to_file(output_file)
-
-    # plot
-    if plot:
-        plt.figure()
-        plt.imshow(wordcloud, interpolation="bilinear")
-        plt.axis("off")
-        plt.show()
+    # save csv with difficulty values
+    df.to_csv(output_file, index=False)
 
 
 if __name__ == "__main__":

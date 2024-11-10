@@ -233,7 +233,7 @@ class MCQ(BaseModel):
         #### Original process check similarity
         # with dspy.settings.context(lm=DEFAULT_TEACHER.lm):
         result = dspy.ChainOfThought(CheckSimilar)(
-            context=context, question=self_assess_str #question_str
+            context=context, question=self_assess_str  # question_str
         )
 
         # clean text outputs
@@ -430,7 +430,6 @@ class MCQ(BaseModel):
 
             # compute metric for token ratio, want to have ratio near 1
             option_token_ratio = np.mean(token_ratio)
-
 
         try:
             self.metrics = self.compute_metrics(

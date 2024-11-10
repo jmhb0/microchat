@@ -4694,6 +4694,21 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
+name = "pyphen"
+version = "0.17.0"
+description = "Pure Python module to hyphenate text"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pyphen-0.17.0-py3-none-any.whl", hash = "sha256:dad0b2e4aa80f6d70bf06711b2da36c47a756b933c1d0c4cbbab40f643a5958c"},
+    {file = "pyphen-0.17.0.tar.gz", hash = "sha256:1d13acd1ce37a384d7612954ae6c7801bb4c5316da0e2b937b2127ba702a3da4"},
+]
+
+[package.extras]
+doc = ["sphinx", "sphinx_rtd_theme"]
+test = ["pytest", "ruff"]
+
+[[package]]
 name = "pytest"
 version = "8.3.3"
 description = "pytest: simple powerful testing with Python"
@@ -6116,6 +6131,20 @@ doc = ["reno", "sphinx"]
 test = ["pytest", "tornado (>=4.5)", "typeguard"]
 
 [[package]]
+name = "textstat"
+version = "0.7.4"
+description = "Calculate statistical features from text"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "textstat-0.7.4-py3-none-any.whl", hash = "sha256:53a36cbcf4d21312d28cdc5a316917031667a57303e375a184d83fd52b95a407"},
+]
+
+[package.dependencies]
+pyphen = "*"
+setuptools = "*"
+
+[[package]]
 name = "threadpoolctl"
 version = "3.5.0"
 description = "threadpoolctl"
@@ -7367,4 +7396,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "b207b80731f3eafef71eda8d46267fe94cf5cd7a8c062cd78721028ace148739"
+content-hash = "51c5808404badc8efdedb32e993f5c88c2ee9e68fa1760e72ca66255f4a5ffc3"
