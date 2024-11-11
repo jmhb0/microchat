@@ -138,13 +138,14 @@ def main(
     model_dir = Path(PROJECT_ROOT).joinpath("models/dspy_compiled/blooms/")
     module = CoTRAG(context=task)
     module.name = module.__class__.__name__
-    model_filepath = model_dir.joinpath(f"{model.model_name}_{module.name}_{module.signature_name}.json")
+    model_filepath = model_dir.joinpath(
+        f"{model.model_name}_{module.name}_{module.signature_name}.json"
+    )
     if model_filepath.exists():
         logger.info(f"Loading trained model {model_filepath.stem}")
         module.load(model_filepath)
     else:
         logger.error(f"Model {model_filepath} not found.")
-
 
     ## hack:  temp code to loop over all examples to get consensus Bloom's category
     # loop over trainset and save response.answer to output_list, which will be new
@@ -190,7 +191,9 @@ def main(
                 logger.info(
                     f"Example {idx}:\nGT\t{response.gt_level}\nPred\t{response.blooms_level} ({response.blooms_confidence:.2f})"
                 )
-                output_file = output_dir.joinpath(f"blooms_classification_finetuning_v2_temp.csv")
+                output_file = output_dir.joinpath(
+                    f"blooms_classification_finetuning_v2_temp.csv"
+                )
                 temp_output_df = pd.DataFrame(output_list)
                 temp_output_df.to_csv(
                     output_file,
@@ -201,7 +204,9 @@ def main(
             logger.error(
                 f"Error with example {example.key_image} {example.key_question}: {e}"
             )
-            output_file = output_dir.joinpath(f"blooms_classification_finetuning_v2_temp.csv")
+            output_file = output_dir.joinpath(
+                f"blooms_classification_finetuning_v2_temp.csv"
+            )
             temp_output_df = pd.DataFrame(output_list)
             temp_output_df.to_csv(
                 output_file,

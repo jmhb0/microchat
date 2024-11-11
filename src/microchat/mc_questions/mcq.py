@@ -93,7 +93,7 @@ re_parse_prediction_4 = re.compile(
     r"\*?D\)\*?\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
     r"(?:\*?E\)\*?\s?(?P<option_e>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option E
     r"\n+\*?(?:Revised\s)?[Cc]orrect\s[Aa]nswer:\*?\s?(?P<correct_option>[A-E])\)\s?(?P<correct_answer>.*)['`]{0,3}",
-    re.IGNORECASE | re.DOTALL
+    re.IGNORECASE | re.DOTALL,
 )
 re_parse_prediction_5 = re.compile(
     r"(?:\*?\*?Revised\s+)?Question(?:\s?\d?)?:(?:\*?\*?)?\s*\n+\n*['`]{0,3}(?P<question>.*?)['`]{0,3}"  # Capture "Revised Question" with optional asterisks and backticks
@@ -113,7 +113,7 @@ re_parse_prediction_7 = re.compile(
 )
 
 
-DEFAULT_TEACHER = create_model("o1-mini") # "o1-preview"
+DEFAULT_TEACHER = create_model("o1-mini")  # "o1-preview"
 
 
 class MCQ(BaseModel):
@@ -233,7 +233,7 @@ class MCQ(BaseModel):
         #### Original process check similarity
         # with dspy.settings.context(lm=DEFAULT_TEACHER.lm):
         result = dspy.ChainOfThought(CheckSimilar)(
-            context=context, question=self_assess_str #question_str
+            context=context, question=self_assess_str  # question_str
         )
 
         # clean text outputs
@@ -286,15 +286,17 @@ class MCQ(BaseModel):
 
         # process the prediction
         pred_match = None
-        for idx, compiled_regex in enumerate([
-            re_parse_prediction_4,
-            re_parse_prediction,
-            re_parse_prediction_2,
-            re_parse_prediction_3,
-            re_parse_prediction_5,
-            re_parse_prediction_6,
-            re_parse_prediction_7,
-        ]):
+        for idx, compiled_regex in enumerate(
+            [
+                re_parse_prediction_4,
+                re_parse_prediction,
+                re_parse_prediction_2,
+                re_parse_prediction_3,
+                re_parse_prediction_5,
+                re_parse_prediction_6,
+                re_parse_prediction_7,
+            ]
+        ):
             pred_match = compiled_regex.search(self.prediction.answer)
             if pred_match:
                 break
@@ -308,8 +310,6 @@ class MCQ(BaseModel):
             if answer := re_parse_answer.search(self.prediction.answer):
                 self.prediction_dict["correct_answer"] = answer.group("correct_answer")
                 self.prediction_dict["correct_option"] = answer.group("correct_option")
-
-
 
             self.errors += 1
             logger.warning("Prediction does not match the expected format.")
@@ -431,7 +431,6 @@ class MCQ(BaseModel):
             # compute metric for token ratio, want to have ratio near 1
             option_token_ratio = np.mean(token_ratio)
 
-
         try:
             self.metrics = self.compute_metrics(
                 question_key="question", answer_key="correct_answer"
@@ -520,7 +519,9 @@ class Blooms(BaseModel):
         #     logger.debug(f"Predicting answer for question: {self.example.question}")
 
         try:
-            response = self.module(self.example.question, return_reasoning=return_reasoning)
+            response = self.module(
+                self.example.question, return_reasoning=return_reasoning
+            )
             if response is None:
                 logger.error(f"Prediction failed for question: {self.example.question}")
 
@@ -602,9 +603,13 @@ class Blooms(BaseModel):
         with dspy.settings.context(lm=self.teacher_model):
             # logger.debug(f"Model: {dspy.settings.lm.model_name}")
             rev_model = dspy.settings.lm.model_name
-            teacher_module = CoTRAG(context="blooms", return_reasoning=True) # context sets signature
+            teacher_module = CoTRAG(
+                context="blooms", return_reasoning=True
+            )  # context sets signature
             teacher_module.name = teacher_module.__class__.__name__
-            model_filepath = model_dir.joinpath(f"{self.teacher_model.model_name}_{teacher_module.name}_{teacher_module.signature_name}.json")
+            model_filepath = model_dir.joinpath(
+                f"{self.teacher_model.model_name}_{teacher_module.name}_{teacher_module.signature_name}.json"
+            )
             if model_filepath.exists():
                 teacher_module.load(model_filepath)
                 teacher_module.name = teacher_module.__class__.__name__
@@ -612,7 +617,7 @@ class Blooms(BaseModel):
                 logger.error(f"Model file not found: {model_filepath}")
 
             assess_response = teacher_module(
-                question=self.self_check_question #, context=self.context
+                question=self.self_check_question  # , context=self.context
             )
 
         # process
@@ -673,19 +678,21 @@ class Blooms(BaseModel):
             oracle_model = create_model("o1-preview").lm
 
             # change context manager to allow self-assessment by a teacher model
-            logger.info(f"Mismatched Bloom's predictions:\nGT:\t\t{gt_level}\n{dspy.settings.lm.model_name}:\t{init_level}\n{rev_model}:\t{rev_level}")
+            logger.info(
+                f"Mismatched Bloom's predictions:\nGT:\t\t{gt_level}\n{dspy.settings.lm.model_name}:\t{init_level}\n{rev_model}:\t{rev_level}"
+            )
             logger.info(f"Tiebreaker model: {oracle_model.model_name}")
             with dspy.settings.context(lm=oracle_model):
                 # logger.debug(f"Model: {dspy.settings.lm.model_name}")
                 oracle_module = CoTRAG(context="blooms", return_reasoning=True)
                 oracle_module.name = teacher_module.__class__.__name__
 
-                final_response = oracle_module(
-                    question=tiebreak_question
-                )
+                final_response = oracle_module(question=tiebreak_question)
 
             # process
-            final_level, final_bloom = self._process_answer(final_response.answer, blooms_dict)
+            final_level, final_bloom = self._process_answer(
+                final_response.answer, blooms_dict
+            )
 
             if final_level == gt_level:
                 self.blooms_level = final_level
@@ -706,8 +713,12 @@ class Blooms(BaseModel):
                 self.blooms_source = " & ".join([rev_model, oracle_model.model_name])
                 self.blooms_reasoning = final_response.reasoning
             else:
-                logger.warning(f"No agreement between models: {gt_model}, {init_model}, {rev_model}, {oracle_model.model_name}")
-                logger.warning(f"{oracle_model.model_name} reasoning: {final_response.reasoning}")
+                logger.warning(
+                    f"No agreement between models: {gt_model}, {init_model}, {rev_model}, {oracle_model.model_name}"
+                )
+                logger.warning(
+                    f"{oracle_model.model_name} reasoning: {final_response.reasoning}"
+                )
                 self.blooms_level = final_level
                 self.blooms_name = final_bloom
                 self.blooms_confidence = 1 / 4

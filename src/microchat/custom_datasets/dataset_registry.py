@@ -22,5 +22,6 @@ class DatasetType(Enum):
     mol_bio_cell = Mol_Bio_CellWrapper()
     microbench = MicroBenchWrapper()
     blooms = BloomsWrapper()
+    blooms_postbot = Blooms_PostBotWrapper()
     other_blooms = Other_BloomsWrapper()
     nbme_blooms = NBME_BloomsWrapper()
