@@ -420,6 +420,184 @@ def exp_1109_dspy_full_after_round5_4oagain(seed):
 	return df, cfg, name
 
 
+def exp_1110_redo_4o_fromiter1_iter1(seed):
+	"""
+	Here we call 4o again, just on the filtered versions - this should just have
+	cache hits
+	"""
+	# configs
+	name = f"exp_1110_redo_4o_fromiter1_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+
+	# get dataset
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+
+	# eliminate some keys
+	with open("benchmark/refine_bot/keys_round1.json", "r") as fp:
+		keys_round1 = json.load(fp)
+
+	df = df[df['key_question'].isin(keys_round1)].copy()
+	assert len(df) == len(keys_round1)
+
+	return df, cfg, name
+
+def exp_1110_redo_4o_fromiter1_iter2(seed):
+	"""
+	Here we call 4o again, just on the filtered versions - this should just have
+	cache hits
+	"""
+	# configs
+	name = f"exp_1110_redo_4o_fromiter2_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+
+	# get dataset
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+
+	# eliminate some keys
+	with open("benchmark/refine_bot/keys_round1.json", "r") as fp:
+		keys_round1 = json.load(fp)
+
+	df = df[df['key_question'].isin(keys_round1)].copy()
+	assert len(df) == len(keys_round1)
+
+	# now filter the keys we already got
+	with open("benchmark/refine_bot/keys_redo_round1.json", "r") as fp:
+		keys_redo_round1 = json.load(fp)
+
+	keys_skip = keys_redo_round1
+
+	n_before = len(df)
+	n_after = n_before - len(keys_skip)
+	df = df[~df['key_question'].isin(keys_skip)].copy()
+	assert len(df) == n_after
+
+	return df, cfg, name
+
+
+def exp_1110_redo_4o_fromiter1_iter3(seed):
+	"""
+	Here we call 4o again, just on the filtered versions - this should just have
+	cache hits
+	"""
+	# configs
+	name = f"exp_1110_redo_4o_fromiter3_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+	cfg['rewrite']['model'] = model_o1mini
+	cfg['rewrite']['strucured_output_key'] = 0
+
+	# get dataset
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+
+	# eliminate some keys
+	with open("benchmark/refine_bot/keys_round1.json", "r") as fp:
+		keys_round1 = json.load(fp)
+
+	df = df[df['key_question'].isin(keys_round1)].copy()
+	assert len(df) == len(keys_round1)
+
+	# now filter the keys we already got
+	with open("benchmark/refine_bot/keys_redo_round1.json", "r") as fp:
+		keys_redo_round1 = json.load(fp)
+	with open("benchmark/refine_bot/keys_redo_round2.json", "r") as fp:
+		keys_redo_round2 = json.load(fp)
+
+	keys_skip = keys_redo_round1 + keys_redo_round2
+
+	n_before = len(df)
+	n_after = n_before - len(keys_skip)
+	df = df[~df['key_question'].isin(keys_skip)].copy()
+	assert len(df) == n_after
+
+	return df, cfg, name
+
+def exp_1110_redo_4o_fromiter1_iter4(seed):
+	"""
+	Here we call 4o again, just on the filtered versions - this should just have
+	cache hits
+	"""
+	# configs
+	name = f"exp_1110_redo_4o_fromiter4_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+	# cfg['rewrite']['model'] = model_o1mini
+	# cfg['rewrite']['strucured_output_key'] = 0
+
+	# get dataset
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+
+	# eliminate some keys
+	with open("benchmark/refine_bot/keys_round1.json", "r") as fp:
+		keys_round1 = json.load(fp)
+
+	df = df[df['key_question'].isin(keys_round1)].copy()
+	assert len(df) == len(keys_round1)
+
+	# now filter the keys we already got
+	with open("benchmark/refine_bot/keys_redo_round1.json", "r") as fp:
+		keys_redo_round1 = json.load(fp)
+	with open("benchmark/refine_bot/keys_redo_round2.json", "r") as fp:
+		keys_redo_round2 = json.load(fp)
+	with open("benchmark/refine_bot/keys_redo_round3.json", "r") as fp:
+		keys_redo_round3 = json.load(fp)
+
+	keys_skip = keys_redo_round1 + keys_redo_round2 + keys_redo_round3 
+
+	n_before = len(df)
+	n_after = n_before - len(keys_skip)
+	df = df[~df['key_question'].isin(keys_skip)].copy()
+	assert len(df) == n_after
+
+	return df, cfg, name
+
+def exp_1110_redo_4o_fromiter1_iter4_b(seed):
+	"""
+	Here we call 4o again, just on the filtered versions - this should just have
+	cache hits
+	"""
+	# configs
+	name = f"exp_1110_redo_4o_fromiter1_iter4_b_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+	cfg['rewrite']['model'] = model_o1mini
+	cfg['rewrite']['strucured_output_key'] = 0
+
+	# get dataset
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+
+	# eliminate some keys
+	with open("benchmark/refine_bot/keys_round1.json", "r") as fp:
+		keys_round1 = json.load(fp)
+
+	df = df[df['key_question'].isin(keys_round1)].copy()
+	assert len(df) == len(keys_round1)
+
+	# now filter the keys we already got
+	with open("benchmark/refine_bot/keys_redo_round1.json", "r") as fp:
+		keys_redo_round1 = json.load(fp)
+	with open("benchmark/refine_bot/keys_redo_round2.json", "r") as fp:
+		keys_redo_round2 = json.load(fp)
+	with open("benchmark/refine_bot/keys_redo_round3.json", "r") as fp:
+		keys_redo_round3 = json.load(fp)
+
+	keys_skip = keys_redo_round1 + keys_redo_round2 + keys_redo_round3 
+
+	n_before = len(df)
+	n_after = n_before - len(keys_skip)
+	df = df[~df['key_question'].isin(keys_skip)].copy()
+	assert len(df) == n_after
+
+	return df, cfg, name
+
+
+
 def _get_data_october(questions_source):
 	""" 
 	These were the data sources from earlier experiments
@@ -460,9 +638,9 @@ if __name__ == "__main__":
 	# df, cfg, name = exp_1103_test150_o1mini(seed=0)
 
 	# if 1:
-	for seed in [0, 1, 2, 3, 4]:
-		# for seed in [0]:
-		# for seed in [1, 2, 3, 4]:
+	# for seed in [0]:
+	# for seed in [0]:
+	for seed in [1, 2, 3, 4, 5, 6]:
 		# df, cfg, name = exp_1105_test150_dspy_o1mini(seed=seed)
 
 		# df, cfg, name = exp_1103_test150_multieval_150(seed=seed, multi_eval=3)
@@ -474,7 +652,11 @@ if __name__ == "__main__":
 		# df, cfg, name = exp_1109_dspy_full_after_round1(seed=seed)
 		# df, cfg, name = exp_1109_dspy_full_after_round1(seed=seed)
 		# df, cfg, name = exp_1109_dspy_full_after_round4_o1(seed=seed)
-		df, cfg, name = exp_1109_dspy_full_after_round5_4oagain(seed=seed)
+		# df, cfg, name = exp_1109_dspy_full_after_round5_4oagain(seed=seed)
+		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter1(seed=seed)
+		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter3(seed=seed)
+		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter4(seed=seed)
+		df, cfg, name = exp_1110_redo_4o_fromiter1_iter4_b(seed=seed)
 		# ipdb.set_trace()
 		# pass
 

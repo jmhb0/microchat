@@ -490,6 +490,55 @@ def exp_1109_dspy_full_after_round5_best():
 	return df, df_results, mcqs, name, run_number
 
 
+def exp_1110_redo_4o_fromiter1_iter2_best():
+	""" 
+	Same as exp_1109_dspy_full_after_round1_best but we reverse the order
+	so that a different value gets selected 
+	"""
+	# seeds = [1, 2, 3, 4]
+	seeds = [1,2,3,4]
+	run_nums = [1, 1, 1, 1]
+
+	for (seed, run_number) in zip(seeds, run_nums):
+		df, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter2(seed=seed)
+		mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
+			name, run_number)
+		df_results['mcqs'] = mcqs
+		df_results_lst.append(df_results)
+		assert np.array_equal(df['key_question'].values, keys_question)
+
+	df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+	mcqs = df_choose_qs.values
+
+	name = "exp_1110_redo_4o_fromiter1_iter2"
+
+	return df, df_results, mcqs, name, run_number
+
+def exp_1110_redo_4o_fromiter1_iter3_best():
+	""" 
+	Same as exp_1109_dspy_full_after_round1_best but we reverse the order
+	so that a different value gets selected 
+	"""
+	# seeds = [1, 2, 3, 4]
+	seeds = [1,2,3,4]
+	run_nums = [1, 1, 1, 1]
+
+	for (seed, run_number) in zip(seeds, run_nums):
+		df, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter3(seed=seed)
+		mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
+			name, run_number)
+		df_results['mcqs'] = mcqs
+		df_results_lst.append(df_results)
+		assert np.array_equal(df['key_question'].values, keys_question)
+
+	df_choose_qs, df_results = select_mcqs_by_priority(df_results_lst)
+	mcqs = df_choose_qs.values
+
+	name = "exp_1110_redo_4o_fromiter1_iter3"
+
+	return df, df_results, mcqs, name, run_number
+
+
 def get_all(iters=7):
 
 	# get single one
@@ -590,6 +639,80 @@ def get_all(iters=7):
 	assert np.array_equal(df.index, df_results.index)
 	return df, mcqs, df_results, name
 
+def get_all_redo(iters=5):
+
+	# get single one
+	_dfs = []
+	_mcqs = []
+	_df_results = []
+
+	for seed, run_number in zip([1, 2, 3, 4, 5, 6], [1, 1, 1, 1, 1, 1]):
+		df, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter4(
+			seed=seed)
+		mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
+			name, run_number)
+		_dfs.append(df)
+		_mcqs.append(mcqs)
+		_df_results.append(df_results)
+
+	for seed, run_number in zip([1, 2, 3, 4, 5, 6], [1, 1, 1, 1, 1, 1]):
+		df, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter4_b(
+			seed=seed)
+		mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
+			name, run_number)
+		_dfs.append(df)
+		_mcqs.append(mcqs)
+		_df_results.append(df_results)
+
+
+	# concat everything
+	df = pd.concat(_dfs)
+	df_results = pd.concat(_df_results)
+
+	def flatten_lst(lst):
+		return [item for sublist in lst for item in sublist]
+
+	mcqs = flatten_lst(_mcqs)
+
+	# filter out the quesitons that are done
+	keys_skip = []
+
+	if iters not in (5,):
+		raise ValueError()
+	if iters >= 5:
+		with open("benchmark/refine_bot/keys_redo_round4.json", "r") as fp:
+			keys_redo_round4 = json.load(fp)
+		keys_skip += keys_redo_round4
+
+	assert len(keys_skip) == len(set(keys_skip))
+	n_before = len(df)
+	n_after = n_before - len(keys_skip)
+
+	df = df.reset_index(drop=True)
+	df_results = df_results.reset_index(drop=True)
+	assert np.array_equal(df.index, df_results.index)
+	idxs = df[~df['key_question'].isin(keys_skip)].index
+	mcqs = [mcqs[idx] for idx in idxs]
+	df = df.loc[idxs]
+	df_results = df_results.loc[idxs]
+
+	# filter for instances of 'success_rewrite'
+	df = df.reset_index(drop=True)
+	df_results = df_results.reset_index(drop=True)
+	assert np.array_equal(df.index, df_results.index)
+	idxs = df_results[df_results['code'] == 'SUCCESS_REWRITE'].index
+	mcqs = [mcqs[idx] for idx in idxs]
+	df = df.loc[idxs]
+	df_results = df_results.loc[idxs]
+
+	name = f"all_iters_redo_{iters}"
+	df = df.reset_index(drop=True)
+	df_results = df_results.reset_index(drop=True)
+	assert np.array_equal(df.index, df_results.index)
+
+	return df, mcqs, df_results, name
+
+
 
 if __name__ == "__main__":
 
@@ -610,13 +733,20 @@ if __name__ == "__main__":
 		# for (model, api) in zip(["anthropic/claude-3.5-sonnet"], ["openrouter"]):
 		seed_eval = 0
 		for seed_eval in [0, 1]:
+
+
 			# df_questions, mcqs, df_results, name = get_all(iters=7)
 			# df_questions, mcqs, df_results, name = get_all(iters=8)
 			# df_questions, mcqs, df_results, name = get_all(iters=9)
 			# df_questions, mcqs, df_results, name = get_all(iters=10)
+			# df_questions, mcqs, df_results, name = get_all_redo(iters=4)
+			df_questions, mcqs, df_results, name = get_all_redo(iters=5)
 
-			if 0:
-			# if 1:
+			running_all = True # if `get_all`, merging later is different
+			# running_all = False
+
+			# if 0:
+			if 1:
 				pass
 				# df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
 				# df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
@@ -626,9 +756,10 @@ if __name__ == "__main__":
 				# df_questions, df_results, mcqs, name, run_number = exp_1105_test150_dspy_best()
 				# df_questions, df_results, mcqs, name, run_number = exp_1109_dspy_full_after_round1_best()
 				# df_questions, df_results, mcqs, name, run_number = exp_1109_dspy_full_after_round3_best()
-				# df_questions, df_results, mcqs, name, run_number = exp_1109_dspy_full_after_round5_best(
-				# )
-				# pass
+				# df_questions, df_results, mcqs, name, run_number = exp_1109_dspy_full_after_round5_best()
+				# df_questions, df_results, mcqs, name, run_number = exp_1110_redo_4o_fromiter1_iter2_best()
+				# df_questions, df_results, mcqs, name, run_number = exp_1110_redo_4o_fromiter1_iter3_best()
+				pass
 
 			else:
 				pass
@@ -646,20 +777,13 @@ if __name__ == "__main__":
 				# df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round1(seed=1) # dspy
 				# df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round2_o1mini(
 				# 	seed=0)
-				df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round4_o1(
-					seed=0)
+				# df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round4_o1(seed=0)
+				df_questions, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter1(seed=0)
+
 				# get the mcqs
 				mcqs, _, _, keys_question, df_results = get_refined_bot_mcqs(
 					name, run_number)
-				ipdb.set_trace()
 
-				# doing the 673 filtering
-				# if 1:
-				#     ilocs = [i for (i, idx) in enumerate(df_questions.index) if idx <= 673]
-				#     df_questions = df_questions.iloc[ilocs]
-				#     df_results = df_results.iloc[ilocs]
-				#     mcqs = [mcqs[i] for i in ilocs]
-				#     # pass
 
 				df_results['mcqs'] = mcqs
 				assert np.array_equal(df_questions['key_question'].values,
@@ -706,10 +830,18 @@ if __name__ == "__main__":
 				str)
 			assert all(
 				df_results['key_question'] == df_results['key_question'])
-			df_eval = df_questions.merge(df_results,
-										 left_index=True,
-										 right_index=True,
-										 suffixes=('', '_r'))
+
+			# if doing 'all', cannot merge on question_index bc there are multiple instances per question
+			if running_all:
+				df_eval = df_questions.merge(df_results,
+											 left_index=True,
+											 right_index=True,
+											 suffixes=('', '_r'))
+			else: 
+				df_eval = df_questions.merge(df_results,
+											 on="key_question",
+											 suffixes=('', '_r'))
+
 			df_eval['mcqs_formatted'] = [json.dumps(m, indent=4) for m in mcqs]
 
 			# save the questions

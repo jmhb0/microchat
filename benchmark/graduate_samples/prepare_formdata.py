@@ -326,6 +326,195 @@ def nov9_choose_iter9():
 
     return df
 
+def nov10_redoiter1_choose_iter1():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "exp_1110_redo_4o_fromiter10_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter10_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter10_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "exp_1110_redo_4o_fromiter10_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    df = df[df['sum'] == 0]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter1.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def nov10_redoiter1_choose_iter2():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "exp_1110_redo_4o_fromiter1_iter2_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter1_iter2_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter1_iter2_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "exp_1110_redo_4o_fromiter1_iter2_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    df = df[df['sum'] == 0]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter2.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def nov10_redoiter1_choose_iter3():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "exp_1110_redo_4o_fromiter1_iter3_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter1_iter3_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "exp_1110_redo_4o_fromiter1_iter3_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "exp_1110_redo_4o_fromiter1_iter3_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    df = df[df['sum'] == 0]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter4.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def nov10_redoiter1_choose_iter4():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "all_iters_redo_4_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_4_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_4_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "all_iters_redo_4_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    df = df[df['sum'] == 0]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter4.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def nov10_redoiter1_choose_iter5():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "all_iters_redo_5_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_5_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_5_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "all_iters_redo_5_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    
+    df = df[df['sum'] == 1]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter5.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def nov10_redoiter1_choose_iter6():
+    """ 
+    The one where we collected all the random seeds across all of them
+    """
+    # df_all, f_csv_out, dir_people_out = get_df_from_key(key='nov5_dspy_full__eval_seed0')
+    f_evals = [
+        "all_iters_redo_5_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_5_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "all_iters_redo_5_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "all_iters_redo_5_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    dfs = []
+    for f in f_evals: 
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    # apply this strict critera ... can loosen a bit later
+    
+    df = df[df['sum'] == 2]
+    df = df.groupby('key_question', as_index=False).first()
+
+    f_csv_out = "benchmark/graduate_samples/results/OUT_nov10_redo1_choose_iter6.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+
 def get_people_whole_round2():
     dir_people_out = dir_results_parent.parent / "OUT_nov9_everything"
     dir_people_out.mkdir(exist_ok=True)
@@ -429,6 +618,11 @@ if __name__ == "__main__":
     # nov9_choose_iter7()
     # nov9_choose_iter8()
     # nov9_choose_iter9()
-    get_people_whole_round2()
+    # get_people_whole_round2()
+    # nov10_redoiter1_choose_iter1()
+    # nov10_redoiter1_choose_iter2()
+    # nov10_redoiter1_choose_iter3()
+    # nov10_redoiter1_choose_iter5()
+    nov10_redoiter1_choose_iter6()
     ipdb.set_trace()
     pass
