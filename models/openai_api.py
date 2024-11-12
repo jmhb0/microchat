@@ -190,7 +190,7 @@ def call_gpt(
         assert "imgs_hash_key" in content[-1].keys()
         content.pop()
 
-        if 'anthropic' in model:
+        if 'gemini' in model or 'anthropic' in model or 'Qwen' in model:
             imagelst = [Image.fromarray(im) for im in imgs]
             base64_imgs = ImageList(tuple(imagelst)).to_base64()
         else:
@@ -198,6 +198,10 @@ def call_gpt(
 
         if 'Qwen' in model:
             base64_imgs = base64_imgs[:4]
+
+        # if 'gemini' in model: 
+        #     size = get_base64_sizes(base64_imgs)
+        #     pass
 
         for base64_img in base64_imgs:
             content.append({
@@ -242,6 +246,7 @@ def call_gpt(
     return msg, response_cache, messages, conversation
 
 
+
 def _encode_image_np(image_np: np.array):
     """ Encode numpy array image to bytes64 so it can be sent over http """
     assert image_np.ndim == 3 and image_np.shape[-1] == 3
@@ -249,6 +254,17 @@ def _encode_image_np(image_np: np.array):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+
+def get_base64_sizes(base64_imgs):
+    for i, img in enumerate(base64_imgs):
+        # Get size of the base64 string in bytes
+        size_bytes = len(img.encode('utf-8'))
+        size_mb = size_bytes / (1024 * 1024)
+        print(f"Image {i}: {size_mb:.2f} MB ({size_bytes:,} bytes)")
+        
+    total_bytes = sum(len(img.encode('utf-8')) for img in base64_imgs)
+    return total_bytes
 
 
 def call_gpt_batch(texts,
@@ -533,6 +549,18 @@ def test_qwen():
     ipdb.set_trace()
     pass
 
+def test_gemini_img():
+    model = "google/gemini-pro-1.5"
+    random_image = np.random.randint(0, 256, size=(100, 100, 3), dtype=np.uint8)
+    imgs = [random_image, random_image, random_image]
+    api = "openrouter"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    cache = False
+    res0 = call_gpt(text, imgs, model=model, cache=cache, api=api, json_mode=False)
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
+
 # basic testing
 if __name__ == "__main__":
     import time
@@ -547,5 +575,6 @@ if __name__ == "__main__":
     # test_response_format()
     # test_claude()
     # test_gemini()
-    test_qwen()
+    # test_qwen()
+    test_gemini_img()
     
