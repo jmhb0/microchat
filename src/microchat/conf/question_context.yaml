@@ -329,151 +329,174 @@ organism_research:
   taxonomy_of_research_subjects: |
     #Taxonomy of Research Subjects in Biology:
     Anatomy
-    The study of the structure of organisms and their parts, encompassing understanding the physical organization of various biological entities, from organs and tissues down to cellular structures.
+        Study of the structure of organisms and their parts.
+        Keywords: organs, tissues, morphology, physical organization.
 
     Biochemistry
-    Focuses on the chemical processes within and related to living organisms, including the study of proteins, enzymes, nucleic acids, and the biochemical pathways that drive cellular functions.
+        Chemical processes within living organisms.
+        Keywords: proteins, enzymes, nucleic acids, metabolic pathways.
 
     Biophysics
-    The application of principles of physics to understand biological systems, often focusing on molecular structures, energy flows, and the dynamics within cells and organisms.
+        Application of physics principles to biological systems.
+        Keywords: molecular structures, energy flows, dynamics.
 
     Biotechnology
-    Involves the manipulation of living organisms or their systems to develop products, ranging from genetic engineering to industrial applications that harness biological processes for practical purposes.
+        Manipulation of living organisms for product development.
+        Keywords: genetic engineering, industrial applications, bio-manufacturing.
 
     Botany
-    The scientific study of plants, including their physiology, structure, genetics, ecology, and the diverse ways they interact with their environments.
+        Scientific study of plants.
+        Keywords: plant physiology, plant genetics, ecology, photosynthesis.
 
     Cell and Molecular Biology
-    Examines the structure, function, and interactions of cells and their molecular components, emphasizing the genetic and biochemical pathways essential to cellular processes.
+        Structure and function of cells and their molecules.
+        Keywords: cellular processes, gene expression, molecular pathways.
 
     Conservation Biology
-    Aims to protect species, their habitats, and ecosystems from excessive rates of extinction and erosion of biotic interactions, often integrating ecology, genetics, and environmental science.
+        Protection of species and ecosystems.
+        Keywords: biodiversity, habitat preservation, extinction prevention.
 
     Developmental Biology
-    Studies the process by which organisms grow and develop, focusing on the genetic and cellular mechanisms that govern development from fertilized egg to mature form.
+        Process by which organisms grow and develop.
+        Keywords: embryology, morphogenesis, genetic regulation.
 
     Ecology
-    Investigates the relationships between organisms and their environments, focusing on ecosystems, biodiversity, and the interactions that shape biological communities.
+        Relationships between organisms and their environment.
+        Keywords: ecosystems, interactions, population dynamics.
 
     Evolutionary Biology
-    Explores the processes that drive the diversity of life over time, including natural selection, genetic drift, and speciation, to understand the history and adaptation of species.
+        Processes driving the diversity of life over time.
+        Keywords: natural selection, speciation, adaptation.
 
     Genetics
-    The study of heredity and the variation of inherited characteristics, investigating the molecular basis of genes, gene expression, and how traits are passed from one generation to the next.
+        Study of heredity and gene function.
+        Keywords: DNA, inheritance, genetic variation, gene expression.
 
     Immunology
-    Focuses on the immune system in health and disease, examining how organisms defend themselves against pathogens and how immune dysregulation can lead to diseases.
+        Immune system in health and disease.
+        Keywords: antibodies, immune response, pathogens, vaccines.
 
     Marine Biology
-    Studies ocean ecosystems and the diverse life forms within them, including species interactions, adaptations to marine environments, and the ecological roles of marine organisms.
+        Study of ocean ecosystems and marine life.
+        Keywords: marine organisms, aquatic environments, ocean ecology.
 
     Microbiology
-    The study of microorganisms, including bacteria, viruses, fungi, and parasites, with a focus on their physiology, classification, ecology, and roles in health and disease.
+        Study of microorganisms.
+        Keywords: bacteria, viruses, fungi, parasites, microbial ecology.
 
     Neurobiology
-    Investigates the structure and function of the nervous system, exploring neural circuits, brain structures, and the mechanisms that underlie behavior and cognition.
+        Structure and function of the nervous system.
+        Keywords: neurons, brain, neural circuits, cognition.
 
     Parasitology
-    The study of parasites and their interactions with host organisms, focusing on the biology, lifecycle, and pathology of parasites and the diseases they cause.
+        Study of parasites and host interactions.
+        Keywords: parasitic organisms, lifecycles, disease pathology.
 
     Pharmacology
-    Examines how drugs interact with biological systems, studying the mechanisms, therapeutic effects, and side effects of various pharmaceutical compounds.
+        Drug interactions with biological systems.
+        Keywords: drug mechanisms, therapeutics, side effects, pharmacokinetics.
 
     Physiology
-    Studies the functions and mechanisms occurring within living organisms, from cellular to system-wide processes, exploring how organisms respond to internal and external stimuli.
+        Functions and mechanisms in living organisms.
+        Keywords: organ systems, homeostasis, bodily functions.
 
     Structural Biology
-    Investigates the molecular structure of biological macromolecules, including proteins and nucleic acids, to understand how their shapes and forms relate to function.
+        Molecular structure of biological macromolecules.
+        Keywords: protein folding, nucleic acid structures, crystallography.
 
     Systems Biology
-    An interdisciplinary approach to understanding complex interactions within biological systems, integrating biology, mathematics, and computational modeling to study networks of biological processes.
+        Complex interactions within biological systems.
+        Keywords: computational modeling, biological networks, integrative biology.
 
     Virology
-    The study of viruses and viral diseases, focusing on the molecular biology of viruses, their replication cycles, and interactions with host cells.
+        Study of viruses and viral diseases.
+        Keywords: virus structure, replication, host-virus interactions.
 
     Zoology
-    The scientific study of animals, covering various aspects of their physiology, behavior, evolution, and classification within the broader context of biological diversity.
+        Scientific study of animals.
+        Keywords: animal behavior, physiology, taxonomy, evolution.
 
     Other
-    A category for specialized or emerging fields within biology that may not be covered by traditional classifications but are important to advancing scientific knowledge in unique biological phenomena.
+        Specialized or emerging fields within biology.
+        Keywords: interdisciplinary studies, novel phenomena, specialized research.
   taxonomy_of_organisms_in_biology: |
     # Taxonomy of Model Organisms in Biology and Biomedical Research:
     In vitro (None)
-        Description: Studies conducted in controlled laboratory environments with purified molecules but not living organisms.
-        Research Use: In vitro studies allow researchers to investigate biological processes, drug interactions, and molecular mechanisms in a controlled setting, providing insights into cellular functions and disease pathways.
+        Studies without living organisms.
+        Keywords: lab experiments, purified molecules, test tubes.
     
     Escherichia coli (E. coli)
-        Description: A gram-negative bacterium frequently used in genetic and molecular biology.
-        Research Use: E. coli is a primary model for studying gene expression, genetic engineering, and metabolic pathways due to its rapid growth, well-understood genetics, and ease of manipulation in the laboratory.
-
-    Saccharomyces cerevisiae (Baker’s Yeast)
-        Description: A eukaryotic single-celled fungus commonly used as a model organism in cell biology.
-        Research Use: Known as a model for studying cell division, DNA repair, and cellular metabolism, S. cerevisiae has a simple genome that is easy to manipulate, making it ideal for genetic and biochemical studies relevant to higher eukaryotes.
-
+        Bacterium used in genetics and molecular biology.
+        Keywords: bacteria, gene expression, plasmids, genetic engineering.
+    
+    Saccharomyces cerevisiae (Baker's Yeast)
+        Single-celled fungus, model eukaryote.
+        Keywords: yeast, fermentation, cell division, DNA repair.
+    
     Caenorhabditis elegans (C. elegans)
-        Description: A small, transparent nematode (roundworm) widely used in genetic and developmental biology.
-        Research Use: C. elegans is instrumental for studying developmental processes, gene function, and aging. Its fully mapped genome and cell lineage make it valuable for research on programmed cell death, gene expression, and nervous system function.
-
+        Transparent nematode worm.
+        Keywords: worm, development, aging, programmed cell death.
+    
     Drosophila melanogaster (Fruit Fly)
-        Description: A small, rapidly reproducing insect that is easy to culture and has a short lifecycle.
-        Research Use: Fruit flies are classic models in genetics and developmental biology, particularly for studying inheritance patterns, gene-environment interactions, and developmental processes, due to their relatively simple genome and conserved biological pathways.
-
+        Insect with rapid life cycle.
+        Keywords: fruit fly, genetics, inheritance patterns, development.
+    
     Danio rerio (Zebrafish)
-        Description: A small freshwater fish whose embryos are transparent, enabling live imaging of development.
-        Research Use: Zebrafish are essential for studies in vertebrate development, gene function, and organogenesis, particularly of the cardiovascular and nervous systems. Their rapid development and genetic similarities to humans make them useful in genetic, toxicology, and drug discovery studies.
-
+        Fish with transparent embryos.
+        Keywords: zebrafish, vertebrate development, embryology, organogenesis.
+    
     Xenopus laevis (African Clawed Frog)
-        Description: An amphibian with large, easily manipulated eggs and embryos.
-        Research Use: Xenopus is widely used to study early vertebrate development, cell cycle regulation, and signal transduction. Its large, externally developing embryos are ideal for observing developmental processes and cellular interactions in real-time.
-
-    Homo sapiens (Human)
-        Description: Cultured human cells  (e.g., HeLa, HEK293) that can be grown and studied in vitro.
-        Research Use: Human cell lines provide a direct model for studying human cellular and molecular biology. They are extensively used in cancer research, drug discovery, virology, and genetics.
+        Amphibian with large eggs.
+        Keywords: frog, embryology, cell cycle, signal transduction.
+    
+    Homo sapiens (Human Cells)
+        Cultured human cells (e.g., HeLa, HEK293, A431, U2OS).
+        Keywords: human cells, cell lines, immortalized cell lines
     
     Mus musculus (Mouse)
-        Description: A small mammal closely related to humans in terms of genetics and physiology.
-        Research Use: Mice are the most widely used mammalian model for human disease research, including cancer, immunology, genetics, and neurobiology. Genetic tools allow for the creation of transgenic and knockout models, facilitating in-depth studies of gene function and disease mechanisms.
-
+        Mammalian model organism.
+        Keywords: mouse, disease models, transgenic mice, immunology.
+    
     Rattus norvegicus (Rat)
-        Description: A rodent model that is larger than mice and has a well-characterized physiology.
-        Research Use: Rats are used extensively in pharmacology, neuroscience, and behavioral studies. Their larger size makes them particularly useful in studies requiring complex surgeries, physiological measurements, and cognitive tests.
-
+        Rodent used in behavioral studies.
+        Keywords: rat, pharmacology, neuroscience, physiology.
+    
     Sus scrofa (Pig)
-        Description: A large mammal with anatomical and physiological similarities to humans, particularly in cardiovascular and digestive systems.
-        Research Use: Pigs are valuable in research on organ transplantation, cardiovascular health, and metabolism. Their size and physiology make them particularly suitable for surgical research and xenotransplantation studies, and they are increasingly used in regenerative medicine and wound healing studies.
-
+        Large mammal similar to humans.
+        Keywords: pig, organ transplantation, cardiovascular research, metabolism.
+    
     Tursiops truncatus (Bottlenose Dolphin)
-        Description: A highly intelligent marine mammal known for complex social structures and echolocation abilities.
-        Research Use: Dolphins are studied in neurobiology, cognition, and social behavior research, especially for understanding complex brain functions, acoustic communication, and intelligence. They are also valuable in ecological and conservation studies to monitor the health of marine ecosystems.
-
+        Intelligent marine mammal.
+        Keywords: dolphin, cognition, neurobiology, echolocation.
+    
     Arabidopsis thaliana (Thale Cress)
-      Description: A small flowering plant with a short lifecycle and fully sequenced genome.
-      Research Use: Arabidopsis is the model organism of choice in plant biology. It provides insights into plant genetics, development, and responses to environmental stress, allowing researchers to study photosynthesis, flower development, and hormone signaling.
-
+        Model plant organism.
+        Keywords: Arabidopsis, plant genetics, photosynthesis, hormone signaling.
+    
     Apis mellifera (Honeybee)
-        Description: A social insect with complex behavior and colony structure.
-        Research Use: Honeybees serve as models for studying social behavior, neurobiology, and ecology. They provide insights into learning and memory, communication, and the impacts of environmental stressors on social insects.
-
-    Tetrahymena thermophila (Ciliate Protozoan)
-        Description: A single-celled organism with cilia, often used as a model eukaryote.
-        Research Use: Tetrahymena is used to study cellular processes such as telomere function, cilia structure, and epigenetic mechanisms. It has contributed significantly to our understanding of cellular organization and genetic regulation.
-
+        Social insect with complex behavior.
+        Keywords: honeybee, social behavior, ecology, pollination.
+    
+    Tetrahymena thermophila
+        Single-celled ciliate protozoan.
+        Keywords: protozoan, cilia, telomeres, epigenetics.
+    
     Daphnia (Water Flea)
-        Description: A small planktonic crustacean commonly used in ecological and toxicology studies.
-        Research Use: Daphnia serves as a model for environmental and ecotoxicology research due to its sensitivity to pollutants. It is also used in studies of population dynamics, developmental biology, and physiology.
-
+        Planktonic crustacean.
+        Keywords: Daphnia, ecology, toxicology, environmental stress.
+    
     Gallus gallus (Chicken)
-        Description: A bird species that produces large, easily accessible embryos.
-        Research Use: Chicken embryos are a model for vertebrate development and organogenesis. They are particularly valuable in developmental biology for studying limb development, vascularization, and neurodevelopment.
-
+        Bird with accessible embryos.
+        Keywords: chicken embryo, development, limb formation, vascularization.
+    
     Macaca mulatta (Rhesus Monkey)
-        Description: A non-human primate with close genetic and physiological similarities to humans.
-        Research Use: Rhesus monkeys are used in complex studies of behavior, cognition, immunology, and infectious diseases. They provide essential insights for neuroscience, vaccine development, and translational medical research due to their physiological similarities to humans.
-
+        Non-human primate model.
+        Keywords: rhesus monkey, neuroscience, immunology, infectious diseases.
+    
     Schmidtea mediterranea (Planarian Flatworm)
-        Description: A freshwater flatworm with remarkable regenerative abilities.
-        Research Use: Planarians are used to study regeneration, stem cell biology, and tissue patterning. Their ability to regenerate entire body parts makes them an ideal model for studying cellular repair mechanisms and regeneration.
-
+        Flatworm with regenerative abilities.
+        Keywords: planarian, regeneration, stem cells, tissue patterning.
+    
     Dictyostelium discoideum (Amoeba)
-        Description: A single-celled social amoeba that can aggregate into multicellular structures.
-        Research Use: Dictyostelium is used as a model for studying cell motility, signaling pathways, and developmental biology. Its simple genetics and ability to form complex multicellular structures make it a unique model for understanding cellular communication and behavior.
+        Social amoeba forming multicellular structures.
+        Keywords: amoeba, cell motility, signaling pathways, aggregation.
