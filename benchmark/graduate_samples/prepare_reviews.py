@@ -3,6 +3,7 @@ python -m ipdb benchmark/graduate_samples/prepare_reviews.py
 
 """
 
+import ipdb
 from benchmark.refine_bot.run_experiments import _download_csv
 # yapf: disable
 
@@ -39,3 +40,75 @@ lookup_0 = {
 	
 }
 # yapf: enable
+
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import pandas as pd
+import os.path
+import pickle
+
+def get_form_responses(form_id):
+    """
+    Get responses from a Google Form using the Forms API
+    
+    Parameters:
+    form_id (str): The ID of the Google Form
+    
+    Returns:
+    pandas.DataFrame: DataFrame containing the form responses
+    """
+    # If modifying these scopes, delete the file token.pickle.
+    SCOPES = ['https://www.googleapis.com/auth/forms.responses.readonly']
+    
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+            
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    try:
+        service = build('forms', 'v1', credentials=creds)
+        
+        # Get form responses
+        result = service.forms().responses().list(formId=form_id).execute()
+        responses = result.get('responses', [])
+        
+        # Process responses into a DataFrame
+        processed_responses = []
+        for response in responses:
+            answer_dict = {}
+            answers = response.get('answers', {})
+            for question_id, answer_data in answers.items():
+                # Get the text response (modify this based on your question types)
+                answer = answer_data.get('textAnswers', {}).get('answers', [{}])[0].get('value', '')
+                answer_dict[question_id] = answer
+            processed_responses.append(answer_dict)
+        
+        return pd.DataFrame(processed_responses)
+    
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return None
+
+# Example usage:
+# Extract form ID from your URL
+form_id = "117e6lu-yeycGcxLs8T6VglS-kJBF946v5H6nLVgSxYg"
+df = get_form_responses(form_id)
+ipdb.set_trace()
+pass
+
+
