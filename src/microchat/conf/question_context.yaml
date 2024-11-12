@@ -422,8 +422,8 @@ organism_research:
   taxonomy_of_organisms_in_biology: |
     # Taxonomy of Model Organisms in Biology and Biomedical Research:
     In vitro (None)
-        Studies without living organisms.
-        Keywords: lab experiments, purified molecules, test tubes.
+        Purity of molecules and reactions in controlled environments without living cells or organisms.
+        Keywords: purified proteins, purified molecules, cell-free systems
     
     Escherichia coli (E. coli)
         Bacterium used in genetics and molecular biology.
