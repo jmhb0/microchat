@@ -1,8 +1,12 @@
 """
 Usage:
+python 20241030_blooms_tagging.py --dataset_name ours_nov11_stage2 --version_name 2 --save_dir /pasteur/data/microchat/dataset_versions/nov11/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/nov11/benchmark_nov11_stage2.csv --send_batch
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name omnimed_vqa_part1 --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
+python 20241030_blooms_tagging.py --dataset_name pathchat --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/PathQABench.json --send_batch
+python 20241030_blooms_tagging.py --dataset_name pathvqa --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/pvqa/qas/test_vqa.pkl --send_batch
+python 20241030_blooms_tagging.py --dataset_name lab_bench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 
 # to send batch questions
 # --send_batch
@@ -18,6 +22,7 @@ import ast
 import argparse
 from datasets import load_dataset
 import pandas as pd
+import pickle
 import ipdb 
 from pydantic import BaseModel
 import numpy as np
@@ -76,7 +81,8 @@ def main(args):
     dataset_info_path = os.path.join(ds_save_dir, 'dataset_info.npz')
     query_qs, all_qs = parse_dataset(args.dataset_name,
                                      dataset_info_path,
-                                     args.dataset_path)
+                                     args.dataset_path,
+                                     args.version_name)
     
     jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api_{args.system_key}_{args.prompt_key}.jsonl')
     if not os.path.exists(jsonl_path):
@@ -115,7 +121,7 @@ def read_jsonl(path: str) -> List[Dict[str, Any]]:
     with open(path, buffering=1024*1024) as f:
         return [json.loads(line) for line in f if line.strip()]
     
-def organize_ours(file_path, dataset_name='ours'):
+def organize_ours(file_path, dataset_name='ours', version_name=''):
     df = pd.read_csv(file_path)
     query_qs = []
     all_qs = None # no need bc we don't have template qs
@@ -126,17 +132,20 @@ def organize_ours(file_path, dataset_name='ours'):
     #     choices = np.vstack(df['choices'].apply(lambda x: ast.literal_eval(x)['choices']['choices']))
     #     df['correct_answer'] = choices[np.arange(len(choices)), gt_idx]
     for idx, row in df.iterrows():
-        if 'bot' in dataset_name:
-            choices = ast.literal_eval(row['choices'])['choices']['choices']
-            gt_idx = ast.literal_eval(row['choices'])['choices']['correct_index']
+        if '2' == version_name:
+            choices = ast.literal_eval(row[f'choices_{version_name}'])
+            gt_idx = row[f'correct_index_{version_name}']
             correct_answer = choices[gt_idx]
         else:
-            correct_answer = row['answer']
-        q_info = {'question_stem': row['question'],
+            correct_answer = row[f'answer_{version_name}']
+        
+        q_info = {'question_stem': row[f'question_{version_name}'],
             'correct_answer': correct_answer,
             'dataset': dataset_name,
             'id': str(row['key_question']),
-            'use_case': str(row['use_case'])}
+            'key_question': str(row['key_question']),
+            # 'use_case': str(row['use_case'])
+            }
         query_qs.append(q_info)
     return query_qs, all_qs
 
@@ -258,7 +267,116 @@ def organize_mmmu(dataset_name='mmmu', set_name='test'):
             query_qs.append(q_info)
     return query_qs, all_qs
 
-def parse_dataset(dataset_name, save_path, file_path=None):
+def organize_pathchat(file_path, dataset_name='pathchat'):
+    with open(file_path) as f:
+        data = json.load(f)
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    for q in data:
+        q_info = {'question_stem': q['question'],
+            'correct_answer': '?',
+            'dataset': dataset_name,
+            'id': str(q['id'])}
+        query_qs.append(q_info)
+    return query_qs, all_qs
+
+def organize_pathvqa(file_path, dataset_name='pathvqa'):
+    with open(file_path, 'rb') as f:
+        data = pickle.load(f)
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    for q in data:
+        q_info = {'question_stem': q['sent'],
+            'correct_answer': '?',
+            'dataset': dataset_name,
+            'id': str(q['question_id']),
+            'question_type': q['question_type']}
+        query_qs.append(q_info)
+    return query_qs, all_qs
+
+def organize_scieval(dataset_name='scieval'):
+    ds = load_dataset('OpenDFM/SciEval')['test']
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    for idx, q in enumerate(ds):
+        # TODO: get real answer with the choices
+        q_info = {'question_stem': q['question'].split('Which of the following')[0].strip(), # remove the options
+            'correct_answer': '?',
+            'dataset': dataset_name,
+            'id': str(idx)} # q['id] is empty
+        query_qs.append(q_info)
+    return query_qs, all_qs
+
+def organize_vlm4bio(dataset_name='vlm4bio'):
+    subsets = ['Bird', 'Butterfly', 'Fish']
+    # TODO: add this one, seems like they have templates so annoying
+    # https://github.com/Imageomics/VLM4Bio/blob/main/vlm_datasets/vqa_dataset.py
+    pass
+
+def organize_scienceQA(dataset_name='science_qa'):
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    ds = load_dataset("derek-thomas/ScienceQA")['test']
+    for idx, q in enumerate(ds):
+        if q['task'] != 'closed choice':
+            continue
+        correct_answer = q['choices'][q['answer']]
+        q_info = {'question_stem': q['question'],
+            'correct_answer': correct_answer,
+            'dataset': dataset_name,
+            'id': f"{idx}_{q['grade']}",
+            'grade': q['grade'],
+            'skill': q['skill']}
+        query_qs.append(q_info)
+    return query_qs, all_qs
+
+def extract_core_question(text):
+    """
+    Efficiently extracts the core question from a scientific query by using
+    the last period as a delimiter and minimal processing.
+    
+    Args:
+        text (str): The full text containing background info and the question
+        
+    Returns:
+        str: The extracted core question
+    """
+    # Split on the last period
+    parts = text.rsplit('.', 1)
+    
+    # If there's no period or only one part, return the cleaned full text
+    if len(parts) == 1:
+        return parts[0].strip() + ('?' if not parts[0].strip().endswith('?') else '')
+    
+    # Take the last part and clean it up
+    question = parts[-1].strip()
+    
+    # Add question mark if missing
+    if not question.endswith('?'):
+        question += '?'
+        
+    return question
+
+def organize_lab_bench(dataset_name='lab_bench'):
+    all_qs = None # no need bc doesn't have template qs
+    subsets = ['CloningScenarios', 'DbQA', 'FigQA', 'LitQA2', 'ProtocolQA', 'SeqQA', 'SuppQA', 'TableQA']
+    query_qs = []
+    for subset in subsets:
+        ds = load_dataset("futurehouse/lab-bench", subset)['train']
+        for q in ds:
+            short_q = q['question']
+            if subset == 'CloningScenarios':
+                # this subset has long nuclotide sequences as background
+                short_q = extract_core_question(q['question'])
+            q_info = {'question_stem': short_q,
+                'correct_answer': '?',
+                'dataset': dataset_name,
+                'id': q['id'],
+                'subset': subset}
+            query_qs.append(q_info)
+    return query_qs, all_qs
+
+def parse_dataset(dataset_name, save_path, file_path=None, version_name=''):
     if os.path.exists(save_path):
         data = np.load(save_path, allow_pickle=True)
         return data['query_qs'].tolist(), data['all_qs'].tolist()
@@ -267,13 +385,26 @@ def parse_dataset(dataset_name, save_path, file_path=None):
     if dataset_name == 'microbench':
         query_qs, all_qs = organize_microbench()
     elif 'ours' in dataset_name:
-        query_qs, all_qs = organize_ours(file_path, dataset_name)
+        query_qs, all_qs = organize_ours(file_path, dataset_name,
+                                         version_name=version_name)
     elif 'omnimed_vqa' in dataset_name:
         query_qs, all_qs = organize_omnimed_vqa(file_path, dataset_name)
     elif dataset_name == 'mmmu_pro':
         query_qs, all_qs = organize_mmmu_pro(dataset_name)
     elif dataset_name == 'mmmu':
         query_qs, all_qs = organize_mmmu(dataset_name)
+    elif dataset_name == 'pathchat':
+        query_qs, all_qs = organize_pathchat(file_path, dataset_name)  
+    elif dataset_name == 'pathvqa':
+        query_qs, all_qs = organize_pathvqa(file_path, dataset_name)
+    elif dataset_name == 'scieval':
+        query_qs, all_qs = organize_scieval(dataset_name)
+    # elif dataset_name == 'vlm4bio':
+    #     query_qs, all_qs = organize_vlm4bio(dataset_name)
+    elif dataset_name == 'science_qa':
+        query_qs, all_qs = organize_scienceQA(dataset_name)
+    elif dataset_name == 'lab_bench':
+        query_qs, all_qs = organize_lab_bench(dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)
@@ -384,6 +515,7 @@ def clean_gpt_output(gpt_output):
         res.update({'id': qs['custom_id']})
         final_output.append(res)
     final_df = pd.DataFrame(final_output)
+    final_df = final_df[['id', 'blooms_name', 'blooms_level', 'blooms_reasoning']]
     return final_df
 
 def plot_histograms(df, column_name, ds_save_dir, possible_values=None, figsize=(10, 6), title_prefix="Distribution of"):
@@ -481,7 +613,7 @@ def plot_histograms(df, column_name, ds_save_dir, possible_values=None, figsize=
 
 def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
               prompt_key=0, system_key=0):
-    save_path = os.path.join(save_dir, f'tagged_dataset_{prompt_key}_{system_key}.csv')
+    save_path = os.path.join(save_dir, f'blooms_tags_{prompt_key}_{system_key}.csv')
     if os.path.exists(save_path):
         print(f"Loading tagged dataset from {save_path}")
         blooms_qs = pd.read_csv(save_path)
@@ -501,7 +633,6 @@ def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
         # save the tagged dataset
         blooms_qs.to_csv(save_path, index=False)
     # plot the histogram of the blooms levels
-    
     # remove invalid values
     blooms_qs = blooms_qs[(blooms_qs['blooms_level'] != -1) & (blooms_qs['blooms_level'].notna()) & (blooms_qs['blooms_level'] != 'nan')]
     # make the level a string variable
@@ -512,15 +643,19 @@ def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add Blooms tags to the dataset')
-    parser.add_argument('--dataset_name', type=str, help='dataset name', default='ours') # options: ours, microbench
+    # options: ours, microbench, mmmu, mmmu_pro, omnimed_vqa_part1, omnimed_vqa_part2, pathvqa, pathchat, scieval, science_qa
+    parser.add_argument('--dataset_name', type=str, help='dataset name', default='ours')
     parser.add_argument('--save_dir', type=str, help='directory to save the tagged dataset', default='blooms_tagging')
     parser.add_argument('--prompt_key', type=int, help='prompt key to use', default=0)
     parser.add_argument('--system_key', type=int, help='system prompt key to use', default=0)
     parser.add_argument('--send_batch', action='store_true', help='send batch to gpt')
     parser.add_argument('--batch_id', type=str, help='batch id to retrieve the output')
     parser.add_argument('--dataset_path', type=str, help='path to the dataset file', default=
-                        # '/pasteur/data/microchat/dataset_versions/df_questions_key_choices_9_nov3_s1_naive.csv')
-                        '/pasteur/data/microchat/sota_benchmarks/omnimed_vqa/QA_information/Open-access')
+                        '/pasteur/data/microchat/dataset_versions/nov_11/benchmark_nov11_stage2.csv')
+    parser.add_argument('--version_name', type=str, help='version name for the dataset. Relevant for ours', default='2')
+                        # '/pasteur/data/microchat/sota_benchmarks/omnimed_vqa/QA_information/Open-access')
+                        # '/pasteur/data/microchat/sota_benchmarks/PathQABench.json')
+                        # '/pasteur/data/microchat/sota_benchmarks/pvqa/qas/test_vqa.pkl')
 
     args = parser.parse_args()
     main(args)

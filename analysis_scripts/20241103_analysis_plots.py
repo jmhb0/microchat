@@ -58,7 +58,7 @@ def plot_method_performance(df, metric_type, figsize=(12, 6), ylim=(60, 100)):
     )
     
     # Set title based on metric type
-    title = "Performance by Bloom's Level" if metric_type == 'blooms_level' else 'Performance by Question Type'
+    title = f"Performance by {metric_type}"
     ax.set_title(title, fontsize=20, pad=20)
     
     # Customize axes with bigger font sizes
