@@ -325,3 +325,178 @@ blooms:
           Verbs: Analyze, Differentiate, Examine, Organize, Outline, Question.
       5) Synthesis/Evaluation: Making judgments based on criteria and standards.
           Verbs: Assess, Critique, Evaluate, Justify, Support, Test.
+organism_research:
+  taxonomy_of_research_subjects: |
+    #Taxonomy of Research Subjects in Biology:
+    Anatomy
+        Study of the structure of organisms and their parts.
+        Keywords: organs, tissues, morphology, physical organization.
+
+    Biochemistry
+        Chemical processes within living organisms.
+        Keywords: proteins, enzymes, nucleic acids, metabolic pathways.
+
+    Biophysics
+        Application of physics principles to biological systems.
+        Keywords: molecular structures, energy flows, dynamics.
+
+    Biotechnology
+        Manipulation of living organisms for product development.
+        Keywords: genetic engineering, industrial applications, bio-manufacturing.
+
+    Botany
+        Scientific study of plants.
+        Keywords: plant physiology, plant genetics, ecology, photosynthesis.
+
+    Cell and Molecular Biology
+        Structure and function of cells and their molecules.
+        Keywords: cellular processes, gene expression, molecular pathways.
+
+    Conservation Biology
+        Protection of species and ecosystems.
+        Keywords: biodiversity, habitat preservation, extinction prevention.
+
+    Developmental Biology
+        Process by which organisms grow and develop.
+        Keywords: embryology, morphogenesis, genetic regulation.
+
+    Ecology
+        Relationships between organisms and their environment.
+        Keywords: ecosystems, interactions, population dynamics.
+
+    Evolutionary Biology
+        Processes driving the diversity of life over time.
+        Keywords: natural selection, speciation, adaptation.
+
+    Genetics
+        Study of heredity and gene function.
+        Keywords: DNA, inheritance, genetic variation, gene expression.
+
+    Immunology
+        Immune system in health and disease.
+        Keywords: antibodies, immune response, pathogens, vaccines.
+
+    Marine Biology
+        Study of ocean ecosystems and marine life.
+        Keywords: marine organisms, aquatic environments, ocean ecology.
+
+    Microbiology
+        Study of microorganisms.
+        Keywords: bacteria, viruses, fungi, parasites, microbial ecology.
+
+    Neurobiology
+        Structure and function of the nervous system.
+        Keywords: neurons, brain, neural circuits, cognition.
+
+    Parasitology
+        Study of parasites and host interactions.
+        Keywords: parasitic organisms, lifecycles, disease pathology.
+
+    Pharmacology
+        Drug interactions with biological systems.
+        Keywords: drug mechanisms, therapeutics, side effects, pharmacokinetics.
+
+    Physiology
+        Functions and mechanisms in living organisms.
+        Keywords: organ systems, homeostasis, bodily functions.
+
+    Structural Biology
+        Molecular structure of biological macromolecules.
+        Keywords: protein folding, nucleic acid structures, crystallography.
+
+    Systems Biology
+        Complex interactions within biological systems.
+        Keywords: computational modeling, biological networks, integrative biology.
+
+    Virology
+        Study of viruses and viral diseases.
+        Keywords: virus structure, replication, host-virus interactions.
+
+    Zoology
+        Scientific study of animals.
+        Keywords: animal behavior, physiology, taxonomy, evolution.
+
+    Other
+        Specialized or emerging fields within biology.
+        Keywords: interdisciplinary studies, novel phenomena, specialized research.
+  taxonomy_of_organisms_in_biology: |
+    # Taxonomy of Model Organisms in Biology and Biomedical Research:
+    In vitro (None)
+        Purity of molecules and reactions in controlled environments without living cells or organisms.
+        Keywords: purified proteins, purified molecules, cell-free systems
+    
+    Escherichia coli (E. coli)
+        Bacterium used in genetics and molecular biology.
+        Keywords: bacteria, gene expression, plasmids, genetic engineering.
+    
+    Saccharomyces cerevisiae (Baker's Yeast)
+        Single-celled fungus, model eukaryote.
+        Keywords: yeast, fermentation, cell division, DNA repair.
+    
+    Caenorhabditis elegans (C. elegans)
+        Transparent nematode worm.
+        Keywords: worm, development, aging, programmed cell death.
+    
+    Drosophila melanogaster (Fruit Fly)
+        Insect with rapid life cycle.
+        Keywords: fruit fly, genetics, inheritance patterns, development.
+    
+    Danio rerio (Zebrafish)
+        Fish with transparent embryos.
+        Keywords: zebrafish, vertebrate development, embryology, organogenesis.
+    
+    Xenopus laevis (African Clawed Frog)
+        Amphibian with large eggs.
+        Keywords: frog, embryology, cell cycle, signal transduction.
+    
+    Homo sapiens (Human Cells)
+        Cultured human cells (e.g., HeLa, HEK293, A431, U2OS).
+        Keywords: human cells, cell lines, immortalized cell lines
+    
+    Mus musculus (Mouse)
+        Mammalian model organism.
+        Keywords: mouse, disease models, transgenic mice, immunology.
+    
+    Rattus norvegicus (Rat)
+        Rodent used in behavioral studies.
+        Keywords: rat, pharmacology, neuroscience, physiology.
+    
+    Sus scrofa (Pig)
+        Large mammal similar to humans.
+        Keywords: pig, organ transplantation, cardiovascular research, metabolism.
+    
+    Tursiops truncatus (Bottlenose Dolphin)
+        Intelligent marine mammal.
+        Keywords: dolphin, cognition, neurobiology, echolocation.
+    
+    Arabidopsis thaliana (Thale Cress)
+        Model plant organism.
+        Keywords: Arabidopsis, plant genetics, photosynthesis, hormone signaling.
+    
+    Apis mellifera (Honeybee)
+        Social insect with complex behavior.
+        Keywords: honeybee, social behavior, ecology, pollination.
+    
+    Tetrahymena thermophila
+        Single-celled ciliate protozoan.
+        Keywords: protozoan, cilia, telomeres, epigenetics.
+    
+    Daphnia (Water Flea)
+        Planktonic crustacean.
+        Keywords: Daphnia, ecology, toxicology, environmental stress.
+    
+    Gallus gallus (Chicken)
+        Bird with accessible embryos.
+        Keywords: chicken embryo, development, limb formation, vascularization.
+    
+    Macaca mulatta (Rhesus Monkey)
+        Non-human primate model.
+        Keywords: rhesus monkey, neuroscience, immunology, infectious diseases.
+    
+    Schmidtea mediterranea (Planarian Flatworm)
+        Flatworm with regenerative abilities.
+        Keywords: planarian, regeneration, stem cells, tissue patterning.
+    
+    Dictyostelium discoideum (Amoeba)
+        Social amoeba forming multicellular structures.
+        Keywords: amoeba, cell motility, signaling pathways, aggregation.

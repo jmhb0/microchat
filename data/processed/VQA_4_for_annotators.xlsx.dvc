@@ -1,0 +1,6 @@
+outs:
+- md5: 403c2b974095793a4c9f4172a25446ed
+  size: 1084017
+  isexec: true
+  hash: md5
+  path: VQA_4_for_annotators.xlsx
