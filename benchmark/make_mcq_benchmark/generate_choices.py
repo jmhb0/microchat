@@ -68,7 +68,7 @@ def update_question(df_questions, update_q, key_choices_gen):
     df_questions['original_answer'] = copy.deepcopy(df_questions['answer'])
     if update_q:
         # to handle some bug I don't understand
-        if key_choices_gen in (9, 10):
+        if key_choices_gen in (9, 10,11):
             df_questions['question'] = df_questions[
                 'llm_response_choices'].apply(lambda x: x['question'])
             df_questions['answer'] = df_questions[
@@ -245,6 +245,17 @@ ANSWER:
 {{answer}}
 
 """,
+    11 : # for debugging only
+    """\
+Below is an image description, a question, and an answer that should be shared with an image.
+Please generate 5 distractors. 
+
+{{question}}
+Answer: '''{{answer}}'''
+
+Return a json: {'question' : '...', 'answer' : '...', 'incorrect_answers' : ['...', '...', ...]}
+""",
+
 }
 from pydantic import BaseModel
 
@@ -346,9 +357,10 @@ if __name__ == "__main__":
     key_form = 0
     # which set of questions to get - made in make_questions.py
     # key_question_gen = 0
-    key_question_gen = 3
+    key_question_gen = 0
     # key for generatin the choices
-    key_choices_gen = 9
+    # key_choices_gen = 9
+    key_choices_gen = 11
     subset = None
     # subset = 20
 

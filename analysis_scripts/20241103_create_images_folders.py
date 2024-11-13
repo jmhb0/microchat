@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
 import logging
+import os
 import pickle
 import ast
 from PIL import Image
@@ -52,6 +53,14 @@ imgs_all = []
 contexts = []
 idxs = []
 
+def _get_filenames_from_key(key, ):
+    dir_ = f"benchmark/data/formdata_0/images/idx_{key:04d}"
+    fs =  [f for f in os.listdir(dir_) if os.path.isfile(os.path.join(dir_, f))]
+    fs = [f for f in fs if f!=".DS_Store"]
+    fs = sorted(fs)
+    return [os.path.join(os.path.join(dir_, f)) for f in fs]
+
+
 print(f"Collecting images from df_imgs size {len(df_imgs)}")
 dir_base = Path("benchmark/data/formdata_0/images")
 
@@ -60,10 +69,9 @@ for key_image, row in df_imgs.iterrows():
     if key_image == 0: 
         continue # was a test image.
     
-    fs_stems = ast.literal_eval(row['fnames_images'])
+    fs = _get_filenames_from_key(key_image)
 
     # try:
-    fs = [dir_base /f"idx_{key_image:04d}" / f for f in fs_stems]
     imgs_pil = [Image.open(f).convert('RGB') for f in fs]
     imgs = [np.array(img) for img in imgs_pil]
     imgs_all.append(imgs)
@@ -81,7 +89,7 @@ f_save_imgs = dir_results_parent / "images.pkl"
 lookup_images = dict(zip(idxs, imgs_all))
 with open(f_save_imgs, "wb") as fp:
     pickle.dump(lookup_images, fp)
-
+ipdb.set_trace()
 
 dir_results_imgs = dir_results_parent / "imgs"
 dir_results_imgs.mkdir(exist_ok=True)
@@ -271,7 +279,7 @@ def create_image_grid(images, target_height=800):
     
     return grid
 
-
+pickle_only = True
 grids = []
 for (key_image, imgs, context) in zip(idxs, imgs_all, contexts):
     print("key image", key_image)

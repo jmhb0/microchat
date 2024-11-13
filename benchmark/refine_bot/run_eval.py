@@ -68,6 +68,7 @@ def eval_qa(df_questions,
 			model='gpt-4o-mini',
 			api='openai',
 			seed=0,
+			num_threads=64,
 			verbose=False):
 	""" 
 	Run eval - both with and without the multi-choice options. 
@@ -144,6 +145,7 @@ def eval_qa(df_questions,
 								   imgs=batch_prompts_imgs,
 								   model=model,
 								   api=api,
+								   num_threads=num_threads,
 								   json_mode=False)
 		msg = responses[0][0]
 
@@ -158,7 +160,7 @@ def eval_qa(df_questions,
 		imgs=batch_prompts_imgs,
 		model=model,
 		api=api,
-		# num_workers=1,
+		num_threads=num_threads,
 		json_mode=False,
 		seeds=seeds)
 	cost = sum([c[1] for c in responses])
@@ -244,6 +246,7 @@ def _get_filenames_from_key(key, ):
 	dir_ = f"benchmark/data/formdata_0/images/idx_{key:04d}"
 	fs = sorted(
 		[f for f in os.listdir(dir_) if os.path.isfile(os.path.join(dir_, f))])
+	fs = [f for f in fs if f!=".DS_Store"]
 	return [os.path.join(os.path.join(dir_, f)) for f in fs]
 
 

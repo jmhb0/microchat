@@ -102,7 +102,7 @@ def call_gpt(
     elif api == "hyperbolic":
         base_url = "https://api.hyperbolic.xyz/v1"
         api_key = os.getenv("HYPERBOLIC_API_KEY")
-    else: 
+    else:
         raise NotImplementedError()
     client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
@@ -190,7 +190,7 @@ def call_gpt(
         assert "imgs_hash_key" in content[-1].keys()
         content.pop()
 
-        if 'gemini' in model or 'anthropic' in model or 'Qwen' in model:
+        if api != 'openai':
             imagelst = [Image.fromarray(im) for im in imgs]
             base64_imgs = ImageList(tuple(imagelst)).to_base64()
         else:
@@ -199,7 +199,7 @@ def call_gpt(
         if 'Qwen' in model:
             base64_imgs = base64_imgs[:4]
 
-        # if 'gemini' in model: 
+        # if 'gemini' in model:
         #     size = get_base64_sizes(base64_imgs)
         #     pass
 
@@ -217,9 +217,8 @@ def call_gpt(
 
     # if 'anthropic' not in model:
     response = client.beta.chat.completions.parse(**kwargs)
-    # else:         
+    # else:
     # response = client.chat.completions.create(**kwargs)
-
 
     prompt_tokens = response.usage.prompt_tokens
     completion_tokens = response.usage.completion_tokens
@@ -246,7 +245,6 @@ def call_gpt(
     return msg, response_cache, messages, conversation
 
 
-
 def _encode_image_np(image_np: np.array):
     """ Encode numpy array image to bytes64 so it can be sent over http """
     assert image_np.ndim == 3 and image_np.shape[-1] == 3
@@ -262,7 +260,7 @@ def get_base64_sizes(base64_imgs):
         size_bytes = len(img.encode('utf-8'))
         size_mb = size_bytes / (1024 * 1024)
         print(f"Image {i}: {size_mb:.2f} MB ({size_bytes:,} bytes)")
-        
+
     total_bytes = sum(len(img.encode('utf-8')) for img in base64_imgs)
     return total_bytes
 
@@ -273,11 +271,13 @@ def call_gpt_batch(texts,
                    json_modes=None,
                    get_meta=True,
                    debug=None,
-                   num_workers=64,
+                   num_threads=64,
                    **kwargs):
     """ 
     with multithreading
     if return_meta, then return a dict that tells you the runtime, the cost
+
+    kwargs gets forwarded to `call_gpt`
     """
     n = len(texts)
     if imgs is None:
@@ -296,7 +296,8 @@ def call_gpt_batch(texts,
             if debug is not None:
                 all_kwargs[i]['debug'] = debug[i]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=num_threads) as executor:
         futures = []
 
         for text, img, _kwargs in zip(texts, imgs, all_kwargs):
@@ -339,8 +340,9 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4": 30,
         "gpt-3.5-turbo": 0.5,
         'anthropic/claude-3.5-sonnet': 3,
-        'Qwen2-VL-72B-Instruct' : 0.4,
-        "google/gemini-pro-1.5" : 1.25,
+        'Qwen2-VL-72B-Instruct': 0.4,
+        "google/gemini-pro-1.5": 1.25,
+        "llama-3.2-90b-vision-instruct": 0.9,
     }
     prices_per_million_output = {
         "o1": 60,
@@ -351,8 +353,9 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-4": 60,
         "gpt-3.5-turbo": 1.5,
         'anthropic/claude-3.5-sonnet': 15,
-        'Qwen2-VL-72B-Instruct' : 0.4,
-        "google/gemini-pro-1.5" : 5,
+        'Qwen2-VL-72B-Instruct': 0.4,
+        "google/gemini-pro-1.5": 5,
+        "llama-3.2-90b-vision-instruct": 0.9,
     }
     if "o1-preview" in model:
         key = "o1"
@@ -374,6 +377,8 @@ def compute_api_call_cost(prompt_tokens: int,
         key = 'Qwen2-VL-72B-Instruct'
     elif 'gemini-pro-1.5' in model:
         key = 'google/gemini-pro-1.5'
+    elif "llama-3.2-90b-vision-instruct" in model:
+        key = "llama-3.2-90b-vision-instruct"
     else:
         raise NotImplementedError(f"Did not record prices for model {model}")
 
@@ -383,6 +388,7 @@ def compute_api_call_cost(prompt_tokens: int,
 
     return price
 
+
 class ImageList:
     """Handles a list of images with encoding support for base64 conversion.
 
@@ -391,8 +397,9 @@ class ImageList:
     """
 
     images: Tuple[Image.Image]
+
     def __init__(self, images):
-        self.images=images
+        self.images = images
 
     @staticmethod
     @lru_cache()  # pickle strings are hashable and can be cached.
@@ -538,6 +545,7 @@ def test_gemini():
     ipdb.set_trace()
     pass
 
+
 def test_qwen():
     model = "Qwen/Qwen2-VL-72B-Instruct"
     api = "hyperbolic"
@@ -549,17 +557,36 @@ def test_qwen():
     ipdb.set_trace()
     pass
 
-def test_gemini_img():
-    model = "google/gemini-pro-1.5"
-    random_image = np.random.randint(0, 256, size=(100, 100, 3), dtype=np.uint8)
-    imgs = [random_image, random_image, random_image]
+
+def test_llama():
+    model = "meta-llama/llama-3.2-90b-vision-instruct"
     api = "openrouter"
     text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    # text = "Who makes the best clam chowder?"
     cache = False
-    res0 = call_gpt(text, imgs, model=model, cache=cache, api=api, json_mode=False)
+    res0 = call_gpt(text, model=model, cache=cache, api=api, json_mode=False)
     msg = res0[0]
     ipdb.set_trace()
     pass
+
+
+def test_gemini_img():
+    model = "google/gemini-pro-1.5"
+    # random_image = np.random.randint(0, 256, size=(100, 100, 3), dtype=np.uint8)
+    # imgs = [random_image, random_image, random_image]
+    api = "openrouter"
+    text = "What model is this? Who build you? Also, how did Steve Irwin die?"
+    cache = False
+    res0 = call_gpt(text,
+                    imgs,
+                    model=model,
+                    cache=cache,
+                    api=api,
+                    json_mode=False)
+    msg = res0[0]
+    ipdb.set_trace()
+    pass
+
 
 # basic testing
 if __name__ == "__main__":
@@ -576,5 +603,5 @@ if __name__ == "__main__":
     # test_claude()
     # test_gemini()
     # test_qwen()
-    test_gemini_img()
-    
+    test_llama()
+    # test_gemini_img()
