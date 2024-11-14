@@ -76,6 +76,11 @@ def create_model(    model_name: str, config: Optional[dict] = None, kwargs: Opt
                                  temperature=temperature,
                                  max_tokens=max_tokens,
                                  **config)
+        case ModelType.claude_3_opus:
+            dspy_model = dspy.LM("/".join(model_type.value),
+                                 temperature=temperature,
+                                 max_tokens=max_tokens,
+                                 **config)
         case _: # no match
                 raise NotImplementedError(f"Model {model_type} is not yet supported.")
 

@@ -85,8 +85,8 @@ taxonomy:
       - utilize
       - utilizing
     4: # Analyze
-      - analyze
       - analysis
+      - analyze
       - analyzing
       - categorize
       - categorizing
@@ -111,6 +111,7 @@ taxonomy:
       - examine
       - examining
     5: # Synthesis/Evaluation
+      - evaluation
       - argue
       - arguing
       - argument
@@ -137,10 +138,10 @@ taxonomy:
       - synthesize
       - synthesizing
     6: # Create
-      - build
       - create
       - creating
       - creation
+      - build
       - design
       - designing
       - formulate

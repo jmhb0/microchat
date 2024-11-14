@@ -25,3 +25,4 @@ class DatasetType(Enum):
     blooms_postbot = Blooms_PostBotWrapper()
     other_blooms = Other_BloomsWrapper()
     nbme_blooms = NBME_BloomsWrapper()
+    organism_research = Organism_ResearchWrapper()

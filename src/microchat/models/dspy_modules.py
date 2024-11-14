@@ -21,6 +21,7 @@ from microchat.models.base_signatures import (
     SelfAssessBlooms,
     DefaultQA,
     SelfAssessRevisedInput,
+    TagDataset,
 )
 
 context = yaml_loader(Path(MODULE_ROOT, "conf", "question_context.yaml"))
@@ -57,6 +58,11 @@ class BaseRAG(dspy.Module):
             # gpt-4o-mini with SelfAssessBlooms is better default
             self.signature = SelfAssessBlooms
             temp_context = self._format_context(context["blooms"])
+            shuffle(temp_context)
+            self.context = temp_context
+        elif self.kwargs.get("context") == "organism_research":
+            self.signature = TagDataset
+            temp_context = self._format_context(context["organism_research"])
             shuffle(temp_context)
             self.context = temp_context
         else:
@@ -101,6 +107,11 @@ class CoTRAG(BaseRAG):
                 answer=prediction.answer,
                 reasoning=prediction.reasoning,
             )
+        elif self.signature == TagDataset:
+            # dump all prediction attr into the prediction object
+            # filter "_" prefixed attributes
+            data_dict = {k: v for k, v in prediction.__dict__["_store"].items() if not k.startswith("_")}
+            return dspy.Prediction(context=context, **data_dict)
         else:
             return dspy.Prediction(context=context, answer=prediction.answer)
 

@@ -64,6 +64,10 @@ re_parse_prediction = re.compile(
     r"B\)\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"C\)\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"D\)\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
+    r"\*?E\)\*?\s?(?P<option_e>.*?)(?:\s{2,}|\n+)"  # Capture option E
+    r"\*?F\)\*?\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
+    r"\*?G\)\*?\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G
+    r"(?:\*?H\)\*?\s?(?P<option_h>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option H
     r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)['`]{0,3}?",  # Capture correct answer with flexible capitalization
     re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
 )
@@ -91,7 +95,10 @@ re_parse_prediction_4 = re.compile(
     r"\*?B\)\*?\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"\*?C\)\*?\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"\*?D\)\*?\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
-    r"(?:\*?E\)\*?\s?(?P<option_e>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option E
+    r"\*?E\)\*?\s?(?P<option_e>.*?)(?:\s{2,}|\n+)"  # Capture option E
+    r"\*?F\)\*?\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
+    r"\*?G\)\*?\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G
+    r"(?:\*?H\)\*?\s?(?P<option_h>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option H
     r"\n+\*?(?:Revised\s)?[Cc]orrect\s[Aa]nswer:\*?\s?(?P<correct_option>[A-E])\)\s?(?P<correct_answer>.*)['`]{0,3}",
     re.IGNORECASE | re.DOTALL,
 )
@@ -468,6 +475,7 @@ class Blooms(BaseModel):
     gt_bloom: Optional[str] = None
     blooms_level: Optional[int] = None
     blooms_name: Optional[str] = None
+    blooms_verb: Optional[str] = None
     blooms_confidence: Optional[float] = None
     blooms_source: Optional[str] = None
     blooms_reasoning: Optional[str] = None
@@ -508,7 +516,7 @@ class Blooms(BaseModel):
     @staticmethod
     def _process_answer(
         answer: str, reference_dict: Optional[dict] = blooms_dict
-    ) -> Tuple[int, str]:
+    ) -> Tuple[int, str, str]:
         return process_blooms(answer, reference_dict)
 
     def predict(self, return_reasoning: bool = False) -> dspy.Prediction:
@@ -554,7 +562,7 @@ class Blooms(BaseModel):
             gt_model = ["CustomGPT"]
 
         gt_model = [elem.strip() for elem in gt_model]
-        gt_level, gt_bloom = self._process_answer(self.example.answer, blooms_dict)
+        gt_level, gt_bloom, gt_bloom_verb = self._process_answer(self.example.answer, blooms_dict)
         gt_level = gt_level if gt_level > 0 else self.example.blooms_level
         gt_bloom = gt_bloom or self.example.answer
 
@@ -571,7 +579,7 @@ class Blooms(BaseModel):
 
         # process the response
         init_model = dspy.settings.lm.model_name
-        init_level, init_bloom = self._process_answer(response.answer, blooms_dict)
+        init_level, init_bloom, init_verb = self._process_answer(response.answer, blooms_dict)
         # correct for null
         init_level = init_level or "Unknown"
         init_bloom = init_bloom or response.answer
@@ -621,7 +629,7 @@ class Blooms(BaseModel):
             )
 
         # process
-        rev_level, rev_bloom = self._process_answer(assess_response.answer, blooms_dict)
+        rev_level, rev_bloom, rev_verb = self._process_answer(assess_response.answer, blooms_dict)
         # correct for null
         rev_level = rev_level or "Unknown"
         rev_bloom = rev_bloom or assess_response.answer
@@ -634,6 +642,7 @@ class Blooms(BaseModel):
             self.blooms_confidence = 1.0
             self.blooms_source = " & ".join(gt_model + [init_model, rev_model])
             self.blooms_reasoning = assess_response.reasoning
+            self.blooms_verb = gt_bloom_verb
         elif gt_level == init_level:
             # if the ground truth and initial levels match, use the ground truth level
             self.blooms_level = gt_level
@@ -641,6 +650,7 @@ class Blooms(BaseModel):
             self.blooms_confidence = 2 / 3
             self.blooms_source = " & ".join(gt_model + [init_model])
             self.blooms_reasoning = response.reasoning
+            self.blooms_verb = gt_bloom_verb
         elif gt_level == rev_level:
             # if the ground truth and self-assessment levels match, use the ground truth level
             self.blooms_level = gt_level
@@ -648,6 +658,7 @@ class Blooms(BaseModel):
             self.blooms_confidence = 2 / 3
             self.blooms_source = " & ".join(gt_model + [rev_model])
             self.blooms_reasoning = assess_response.reasoning
+            self.blooms_verb = gt_bloom_verb
         elif rev_level == init_level and abs(gt_level - rev_level) == 1:
             # if the self-assessment and initial levels match, use the self-assessment level
             # if the ground truth level is one level higher or lower
@@ -656,6 +667,7 @@ class Blooms(BaseModel):
             self.blooms_confidence = 2 / 3
             self.blooms_source = " & ".join([init_model, rev_model])
             self.blooms_reasoning = assess_response.reasoning
+            self.blooms_verb = init_verb
         else:
             tiebreak_question = (
                 "Multiple LLM models evaluated the Bloom's Taxonomy level of the following  multiple choice question:\n"
@@ -690,7 +702,7 @@ class Blooms(BaseModel):
                 final_response = oracle_module(question=tiebreak_question)
 
             # process
-            final_level, final_bloom = self._process_answer(
+            final_level, final_bloom, final_verb = self._process_answer(
                 final_response.answer, blooms_dict
             )
 
@@ -700,18 +712,21 @@ class Blooms(BaseModel):
                 self.blooms_confidence = 2 / 4
                 self.blooms_source = " & ".join(gt_model + [oracle_model.model_name])
                 self.blooms_reasoning = final_response.reasoning
+                self.blooms_verb = final_verb
             elif final_level == init_level:
                 self.blooms_level = final_level
                 self.blooms_name = final_bloom
                 self.blooms_confidence = 2 / 4
                 self.blooms_source = " & ".join([init_model, oracle_model.model_name])
                 self.blooms_reasoning = final_response.reasoning
+                self.blooms_verb = final_verb
             elif final_level == rev_level:
                 self.blooms_level = final_level
                 self.blooms_name = final_bloom
                 self.blooms_confidence = 2 / 4
                 self.blooms_source = " & ".join([rev_model, oracle_model.model_name])
                 self.blooms_reasoning = final_response.reasoning
+                self.blooms_verb = final_verb
             else:
                 logger.warning(
                     f"No agreement between models: {gt_model}, {init_model}, {rev_model}, {oracle_model.model_name}"

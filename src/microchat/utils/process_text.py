@@ -24,20 +24,26 @@ re_blooms_compiled = re.compile(r"|".join(blooms_list), re.IGNORECASE)
 
 def process_blooms(
     answer: str, reference_dict: Optional[dict] = blooms_dict
-) -> Tuple[int, str]:
+) -> Tuple[int, str, str]:
     # extract the blooms level from the response
-    blooms_name = answer  # default to the answer if not found
+    blooms_name = None
+    blooms_verb = answer # default to answer if not found
     blooms_level = -1
     if match := re_blooms_compiled.search(answer):
-        blooms_name = match.group().lower()
+        # find the blooms verb from the match
+        blooms_verb = match.group().lower()
         # find the level of the blooms taxonomy from blooms_dict
         blooms_level = next(
-            level for level, names in reference_dict.items() if blooms_name in names
+             level for level, names in reference_dict.items() if blooms_verb in names
         )
+        # process reference dict to get 1st key from each value
+        # this is to standardize the name of the blooms level
+        # although the blooms verb is more descriptive
+        blooms_name = blooms_dict[blooms_level][0]
     else:
         logger.warning(f"Bloom's taxonomy level not found: {answer}")
 
-    return blooms_level, blooms_name
+    return blooms_level, blooms_name, blooms_verb
 
 
 def compute_chars(prompt: str) -> int:
