@@ -111,27 +111,14 @@ def wrap_labels(text, width=20):
     """
     return '\n'.join(textwrap.wrap(text, width=width))
 
-def plot_model_performance(performance_df, exp_name, save_path, method_order, figsize=(12, 6)):
+def plot_model_performance(performance_df, exp_name, save_path, method_order, figsize=(6, 12)):
     """
-    Create a bar plot of model performance using seaborn.
+    Create a horizontal bar plot of model performance using seaborn.
     Uses colors from the performance_df['color'] column.
-    
-    Parameters:
-    performance_df : pandas DataFrame
-        DataFrame containing 'model_name', 'performance', and 'color' columns
-    exp_name : str
-        Name of the experiment for the plot title
-    figsize : tuple, optional (default=(12, 6))
-        Figure size in inches
     """
     # Create figure
     fig, ax = plt.subplots(figsize=figsize)
-    
-    # # Calculate y-axis limits with margin
-    # ymin = performance_df['performance'].min()
-    # y_margin = (1 - ymin) * 0.1  # 10% of the range to max
-    # ylim = (max(0, ymin - y_margin), 1)
-    
+
     # Create color mapping dictionary from the DataFrame
     color_dict = dict(zip(performance_df['method'].unique(),
                          performance_df.groupby('method')['color'].first()))
@@ -139,41 +126,37 @@ def plot_model_performance(performance_df, exp_name, save_path, method_order, fi
     # Create the grouped bar plot using seaborn
     bars = sns.barplot(
         data=performance_df,
-        x=exp_name,
-        y='performance',
+        y=exp_name,           # Switched to y
+        x='performance',      # Switched to x
         hue='method',
         hue_order=method_order,
         palette=color_dict,
-        ax=ax
+        ax=ax,
+        orient='h'
     )
     
     # Get current tick positions and labels
-    ticks = ax.get_xticks()
-    labels = [item.get_text() for item in ax.get_xticklabels()]
+    ticks = ax.get_yticks()   # Changed to yticks
+    labels = [item.get_text() for item in ax.get_yticklabels()]  # Changed to yticklabels
     
     # Wrap the labels
     wrapped_labels = [wrap_labels(label) for label in labels]
     
     # Set the ticks and labels explicitly
-    ax.set_xticks(ticks)
-    ax.set_xticklabels(wrapped_labels)
-    
-    # # Add value labels on the bars
-    # for container in bars.containers:
-    #     bars.bar_label(container, fmt='%.1f%%', padding=3, fontsize=10)
+    ax.set_yticks(ticks)      # Changed to yticks
+    ax.set_yticklabels(wrapped_labels)  # Changed to yticklabels
     
     # Customize appearance
     ax.tick_params(axis='both', which='major', labelsize=16)
-    ax.yaxis.grid(True, linestyle='--', alpha=0.3)
-    ax.set_axisbelow(True)  # Put grid behind bars
+    ax.xaxis.grid(True, linestyle='--', alpha=0.3)  # Changed to xaxis
+    ax.set_axisbelow(True)
     
     # Move legend below the plot with multiple rows if needed
     n_models = len(performance_df['method'].unique())
-    ncols = min(3, n_models)  # Maximum 3 columns in legend
-    
+    ncols = min(3, n_models)
     ax.legend(
         title='Model',
-        bbox_to_anchor=(0.5, -0.15),  # Adjust vertical position
+        bbox_to_anchor=(0.5, -0.15),
         loc='upper center',
         ncol=ncols,
         fontsize=11,
@@ -181,11 +164,13 @@ def plot_model_performance(performance_df, exp_name, save_path, method_order, fi
     )
     
     # Adjust layout to make room for legend at bottom
-    plt.subplots_adjust(bottom=0.25)  # Increased bottom margin
+    plt.subplots_adjust(bottom=0.25)
+    
     # Adjust layout to prevent label cutoff
     plt.tight_layout()
     
     plt.savefig(os.path.join(save_path, f'performance_by_{exp_name}.png'), dpi=300)
+
 
 def create_fake_data():
     """Create sample data for all metrics including sublevels"""
@@ -292,21 +277,24 @@ def compile_pred_data():
 
     model_info = {
         # 'gpt-4o': {'path': os.path.join(base_path, 'eval_gpt-4o-2024-08-06_stage2.csv'), 'type': 'Closed source'},
-        'gpt-4-turbo': {'path': os.path.join(base_path, 'eval_gpt-4-turbo-2024-04-09_stage2_prompt0.csv'), 'type': 'Closed source'},
+        # 'gpt-4-turbo': {'path': os.path.join(base_path, 'eval_gpt-4-turbo-2024-04-09_stage2_prompt0.csv'), 'type': 'Closed source'},
         # 'claude3.5-sonnet': {'path': os.path.join(base_path, 'eval_anthropicclaude-35-sonnet_stage2.csv'), 'type': 'Closed source'},
-        'claude3.5-opus': {'path': os.path.join(base_path, 'eval_anthropicclaude-3-opus_stage2_prompt0.csv'), 'type': 'Closed source'},
-        'gemini 1.5 pro': {'path': os.path.join(base_path, 'eval_googlegemini-pro-15_stage2.csv'), 'type': 'Closed source'},
-        'Qwen2-VL-72B': {'path': os.path.join(base_path, 'eval_QwenQwen2-VL-72B-Instruct_stage2.csv'), 'type': 'Open source'},
+        # 'claude3.5-opus': {'path': os.path.join(base_path, 'eval_anthropicclaude-3-opus_stage2_prompt0.csv'), 'type': 'Closed source'},
+        'Gemini 1.5 pro': {'path': os.path.join(base_path, 'eval_googlegemini-pro-15_stage2.csv'), 'type': 'Closed source'},
+        'VILA1.5 40B': {'path': os.path.join(base_path, 'eval_vila15-40b_stage2_prompt0.csv'), 'type': 'Open source'},
+        # 'Qwen2-VL-72B': {'path': os.path.join(base_path, 'eval_QwenQwen2-VL-72B-Instruct_stage2.csv'), 'type': 'Open source'},
         # 'Qwen2-VL-7B': {'path': os.path.join(base_path, 'eval_QwenQwen2-VL-7B-Instruct_stage2_prompt0.csv'), 'type': 'Open source'},
-        'Llama 3.2 90B': {'path': os.path.join(base_path, 'eval_meta-llamallama-32-90b-vision-instruct_stage2_prompt0.csv'), 'type': 'Open source'},
+        # 'Llama 3.2 90B': {'path': os.path.join(base_path, 'eval_meta-llamallama-32-90b-vision-instruct_stage2_prompt0.csv'), 'type': 'Open source'},
         # 'Llama 3.2 11B': {'path': os.path.join(base_path, 'eval_meta-llamallama-32-11b-vision-instruct_stage2_prompt0.csv'), 'type': 'Open source'},
-        'Pixtral 12B': {'path': os.path.join(base_path, 'eval_mistralaipixtral-12b_stage2_prompt0.csv'), 'type': 'Open source'},
+        # 'Pixtral 12B': {'path': os.path.join(base_path, 'eval_mistralaipixtral-12b_stage2_prompt0.csv'), 'type': 'Open source'},
         'LlaVA-Med-7B': {'path': os.path.join(base_path, 'microsoft-llava-med-v1.5-mistral-7b (1).csv'), 'type': 'Specialized'},
     }
     # colors = sns.color_palette("muted", n_colors=len(model_info))
     # colors = [mcolors.rgb2hex(c) for c in colors]
     # colors = ['#2c7bb6', '#539cc6', '#7cbdd6', '#a5dee6', '#e66101', '#ec8843', '#f1af85', '#5e3c99', '#806bb3', '#a39acc']
-    colors = ['#2c7bb6', '#539cc6', '#a5dee6', '#e66101', '#ec8843', '#f1af85', '#5e3c99', '#806bb3', '#a39acc']
+    # colors = ['#2c7bb6', '#539cc6', '#a5dee6', '#e66101', '#ec8843', '#f1af85', '#5e3c99', '#806bb3', '#a39acc']
+    colors = ['#539cc6', '#e66101', '#5e3c99']
+    # colors = ['#2c7bb6', '#539cc6', '#a5dee6']
     method_order = list(model_info.keys())
   
     all_df = pd.DataFrame()
@@ -316,7 +304,7 @@ def compile_pred_data():
         all_df = pd.concat([all_df, method_df])
     tag_df = pd.read_csv(tag_path)
     #update blooms to make question type 6 --> 5
-    tag_df['blooms_level'] = tag_df['blooms_level'].apply(lambda x: 5 if x == 6 else x)
+    # tag_df['blooms_level'] = tag_df['blooms_level'].apply(lambda x: 5 if x == 6 else x)
     tag_df['image_counts'] = tag_df['image_counts'].apply(lambda x: '3+' if x >= 3 else str(x))
 
     return all_df, tag_df, method_order
@@ -333,6 +321,9 @@ if __name__ == "__main__":
     for tag in tag_names:
         exp_tag_df = tag_df[[tag, 'key_question']]
         exp_df = pd.merge(all_df, exp_tag_df, on='key_question')
+        if tag == 'blooms_level':
+            exp_df.drop(exp_df[exp_df['blooms_level'] == 6].index, inplace=True)
+            exp_df.drop(exp_df[exp_df['blooms_level'] == 1].index, inplace=True)
         perf_df = calculate_model_performance(exp_df, tag)
         plot_model_performance(perf_df, tag, save_path, method_order)
     # # Create plots
