@@ -25,8 +25,8 @@ from microchat import LOG_DIR
 
 def hex_to_rgb(hex_color: str, opacity: float = 1.0) -> tuple:
     """Convert hex color to an RGBA tuple."""
-    hex_color = hex_color.lstrip('#')
-    rgb = tuple(int(hex_color[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    hex_color = hex_color.lstrip("#")
+    rgb = tuple(int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4))
     return (*rgb, opacity)
 
 
@@ -38,7 +38,9 @@ def wrap_text(context, text, max_width):
 
     for word in words:
         test_line = f"{line} {word}".strip()
-        xbearing, ybearing, width, height, xadvance, yadvance = context.text_extents(test_line)
+        xbearing, ybearing, width, height, xadvance, yadvance = context.text_extents(
+            test_line
+        )
 
         if width <= max_width:
             line = test_line
@@ -50,9 +52,27 @@ def wrap_text(context, text, max_width):
 
     return lines
 
-def create_mcq_graphics(question: str, answer: str, options: list, explanation: str, output_path: Path, dry_run: bool = False) -> None:
+
+def create_mcq_graphics(
+    question: str,
+    options: list,
+    correct_index: int,
+    explanation: str,
+    output_path: Path,
+    question_color="#000000",
+    option_color="#000000",
+    background_color="#FFFFFF",
+    answer_background="#DFFFD6",
+    explanation_color="#333333",
+    opacity=1.0,
+    line_spacing=10,
+    width=800,
+    height=600,
+    font_size=20,
+    dry_run=False,
+):
     """
-    Create a graphic representation of an MCQ using cairo and Pillow.
+    Create a graphic representation of an MCQ with customizable colors and text wrapping.
 
     Args:
         question (str): The question text.
@@ -61,48 +81,70 @@ def create_mcq_graphics(question: str, answer: str, options: list, explanation: 
         explanation (str): Explanation text.
         output_path (Path): Path to save the generated graphic.
     """
-    width, height = 800, 600
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
     context = cairo.Context(surface)
 
-    # Background color
-    context.set_source_rgb(1, 1, 1)
+    # Set up background color
+    context.set_source_rgba(*hex_to_rgb(background_color, opacity))
     context.rectangle(0, 0, width, height)
     context.fill()
 
     # Fonts and colors
-    context.set_source_rgb(0, 0, 0)
-    context.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-    context.set_font_size(20)
+    context.set_font_size(font_size)
+    margin_x, margin_y = 50, 40
 
-    # Draw question
-    context.move_to(50, 50)
-    context.show_text(f"Q: {question}")
+    # Draw Question
+    context.set_source_rgba(*hex_to_rgb(question_color, opacity))
+    y_offset = margin_y
+    lines = wrap_text(context, f"Q: {question}", width - 2 * margin_x)
+    for line in lines:
+        context.move_to(margin_x, y_offset)
+        context.show_text(line)
+        y_offset += 15 + line_spacing
 
-    # Draw options with colored boxes
-    box_y = 100
-    for option in options:
-        context.rectangle(40, box_y, 720, 30)
-        context.set_source_rgb(0.9, 0.9, 0.9)  # Light gray background for options
-        context.fill_preserve()
-        context.set_source_rgb(0, 0, 0)
-        context.stroke()
-        context.move_to(50, box_y + 20)
-        context.show_text(option)
-        box_y += 40
+    # Draw Options
+    if correct_index not in range(len(options)):
+        raise ValueError("Correct index must be within the range of options.")
 
-    # Draw answer box
-    context.rectangle(40, box_y, 720, 30)
-    context.set_source_rgb(0.8, 1.0, 0.8)  # Light green background for correct answer
-    context.fill_preserve()
-    context.set_source_rgb(0, 0, 0)
-    context.stroke()
-    context.move_to(50, box_y + 20)
-    context.show_text(f"Answer: {answer}")
+    #
+    for idx, option in enumerate(options):
+        box_height = 30
+        context.rectangle(margin_x, y_offset, width - 2 * margin_x, box_height)
 
-    # Draw explanation
-    context.move_to(50, box_y + 60)
-    context.show_text(f"Explanation: {explanation}")
+        # Option text
+        if idx == correct_index:
+            context.rectangle(margin_x, y_offset, width - 2 * margin_x, box_height)
+            context.set_source_rgba(
+                *hex_to_rgb(answer_background, opacity)  # answer_color
+            )  # Background for answer
+            context.fill_preserve()  # fill the rectangle
+            context.set_line_width(2)  # thick border for correct answer
+            context.set_source_rgb(0, 0, 0)  # Border color
+            context.stroke()  # draw border
+        else:
+            # Background for options
+            context.set_source_rgba(*hex_to_rgb("#FFFFFF", opacity))
+            context.fill_preserve()
+            context.set_source_rgb(0, 0, 0)  # Border color
+            context.stroke()
+            context.set_source_rgba(*hex_to_rgb(option_color, opacity))
+
+        option_lines = wrap_text(context, option, width - 2 * margin_x - 10)
+        for opt_line in option_lines:
+            context.move_to(margin_x + 10, y_offset + 20)
+            context.show_text(opt_line)
+            y_offset += 20
+        y_offset += 15
+
+    # Draw Explanation
+    context.set_source_rgba(*hex_to_rgb(explanation_color, opacity))
+    explanation_lines = wrap_text(
+        context, f"Explanation: {explanation}", width - 2 * margin_x
+    )
+    for line in explanation_lines:
+        context.move_to(margin_x, y_offset)
+        context.show_text(line)
+        y_offset += 25
 
     # Save to PNG and convert to image
     if dry_run:
@@ -110,7 +152,6 @@ def create_mcq_graphics(question: str, answer: str, options: list, explanation: 
         return
 
     surface.write_to_png(output_path)
-    Image.open(output_path).show()  # Display image for reference
 
 
 @click.command()
@@ -128,7 +169,7 @@ def main(
     dry_run: bool = False,
 ) -> None:
     """Generate MCQ graphics from a CSV file."""
-    output_dir =  output_dir or input_file.parent.joinpath(input_file.stem)
+    output_dir = output_dir or input_file.parent.joinpath(input_file.stem)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.add(
@@ -152,18 +193,33 @@ def main(
     answer_key = "answer_2_formatted"
     choices_key = "choices_2"
     explanation_key = "msg"
-    metadata_cols = ["blooms_level", "use_case", "organism", "specimen", "research_subject"]
+    metadata_cols = [
+        "blooms_level",
+        "use_case",
+        "organism",
+        "specimen",
+        "research_subject",
+    ]
     for idx, row in tqdm(df.iterrows(), total=len(df)):
         question = row[question_key]
-        answer = row[answer_key]
+        answer = row[answer_key].strip()
 
         # get options
         options = eval(row[choices_key])
         options = [str(option).strip() for option in options]
-        explanation = row[explanation_key]
+        correct_index = options.index(answer)
+        explanation = row[explanation_key].strip()
 
         output_path = output_dir.joinpath(f"mcq_{idx}.png")
-        create_mcq_graphics(question, answer, options, explanation, output_path, dry_run=dry_run)
+        create_mcq_graphics(
+            question,
+            answer,
+            options,
+            correct_index,
+            explanation,
+            output_path,
+            dry_run=dry_run,
+        )
 
     logger.info("Finished generating graphics.")
 
