@@ -110,7 +110,11 @@ class CoTRAG(BaseRAG):
         elif self.signature == TagDataset:
             # dump all prediction attr into the prediction object
             # filter "_" prefixed attributes
-            data_dict = {k: v for k, v in prediction.__dict__["_store"].items() if not k.startswith("_")}
+            data_dict = {
+                k: v
+                for k, v in prediction.__dict__["_store"].items()
+                if not k.startswith("_")
+            }
             return dspy.Prediction(context=context, **data_dict)
         else:
             return dspy.Prediction(context=context, answer=prediction.answer)

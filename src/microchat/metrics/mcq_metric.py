@@ -95,7 +95,11 @@ def validate_tagging(example, pred, trace=None):
     gt_organism = example.organism.lower()
     pred_organism = pred.organism.lower()
     match_organsim = 0
-    if gt_organism == pred_organism or pred_organism in gt_organism or gt_organism in pred_organism:
+    if (
+        gt_organism == pred_organism
+        or pred_organism in gt_organism
+        or gt_organism in pred_organism
+    ):
         match_organsim = 1
     elif "human" in gt_organism and "human" in pred_organism:
         match_specimen = 1
@@ -105,16 +109,25 @@ def validate_tagging(example, pred, trace=None):
     gt_specimen = example.specimen.lower()
     pred_specimen = pred.specimen.lower()
     match_specimen = 0
-    if gt_specimen == pred_specimen or pred_specimen in gt_specimen or gt_specimen in pred_specimen:
+    if (
+        gt_specimen == pred_specimen
+        or pred_specimen in gt_specimen
+        or gt_specimen in pred_specimen
+    ):
         match_specimen = 1
 
     gt_research_subject = example.research_subject.lower()
     pred_research_subject = pred.research_subject.lower()
     match_research_subject = 0
-    if gt_research_subject == pred_research_subject or pred_research_subject in gt_research_subject:
+    if (
+        gt_research_subject == pred_research_subject
+        or pred_research_subject in gt_research_subject
+    ):
         match_research_subject = 1
 
-    pred_secondary_research_subject = [x.lower() for x in pred.research_subject_list.split(",")]
+    pred_secondary_research_subject = [
+        x.lower() for x in pred.research_subject_list.split(",")
+    ]
     match_secondary_research_subject = 0
     if gt_research_subject in pred_secondary_research_subject:
         match_secondary_research_subject = 1
@@ -133,7 +146,7 @@ def validate_tagging(example, pred, trace=None):
         "organism": match_organsim,
         "specimen": match_specimen,
         "research_subject": match_research_subject,
-        "secondary_research_subject": match_secondary_research_subject
+        "secondary_research_subject": match_secondary_research_subject,
     }
 
     # calculate weighted score

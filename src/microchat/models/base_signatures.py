@@ -306,7 +306,7 @@ class ClassifyBlooms(dspy.Signature):
 
 
 class TagDataset(dspy.Signature):
-    """You are an expert in BioMedical AI tasked with annotating fields (e.g., organism, specimen, research subject) based on question and answer pairs. Your annotations will directly impact the development of a new curriculum aimed at enhancing students' cognitive skills in biology. Carefully analyze the provided image description, question and answer. Then, determine the most appropriate organism and research subject tags for the question-answer pair. After your initial classification, critically evaluate your decision by asking yourself: 'Are you sure about the tags?' If you have any doubts, reassess your classification to ensure it accurately reflects the content of the question. Your goal is to enhance the accuracy of educational assessments based on your expertise in biology.""" # noqa
+    """You are an expert in BioMedical AI tasked with annotating fields (e.g., organism, specimen, research subject) based on question and answer pairs. Your annotations will directly impact the development of a new curriculum aimed at enhancing students' cognitive skills in biology. Carefully analyze the provided image description, question and answer. Then, determine the most appropriate organism and research subject tags for the question-answer pair. After your initial classification, critically evaluate your decision by asking yourself: 'Are you sure about the tags?' If you have any doubts, reassess your classification to ensure it accurately reflects the content of the question. Your goal is to enhance the accuracy of educational assessments based on your expertise in biology."""  # noqa
 
     context = dspy.InputField(
         desc="Bloom's taxonomy for biology multiple-choice questions."
@@ -326,6 +326,7 @@ class TagDataset(dspy.Signature):
     research_subject_list = dspy.OutputField(
         desc="Comma separated list of the top 3 research subject(s) related to the question, including the primary research subject. If the research subject(s) cannot be determined, the tag should be 'None'."
     )
+
 
 class SelfAssessBlooms(dspy.Signature):
     """You are an expert in Biomedical AI with deep knowledge of Bloom's taxonomy and training from the National Board of Medical Examiners. Your role is to assist biologists and computer scientists in designing benchmarks that test vision-language models' perception and reasoning capabilities by converting user-submitted questions and long-form answers into a high-quality question stem and correct answer according to NBME guidelines.
