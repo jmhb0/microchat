@@ -6,10 +6,11 @@ This script generates vector graphics for multiple-choice questions from a CSV f
 
 import cairo
 
-import pprint as pp
+
+import PIL.Image
 from tqdm import tqdm
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import click
 import pandas as pd
@@ -18,6 +19,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from microchat import LOG_DIR
+from microchat.fileio.binary.readers import pickle_reader
 
 
 def hex_to_rgb(hex_color: str, opacity: float = 1.0) -> tuple:
@@ -63,26 +65,35 @@ def create_mcq_graphics(
     correct_index: int,
     explanation: str,
     output_path: Path,
+    research_subject: str = None,
+    bloom_level: str = None,
     question_color="#000000",
     option_color="#000000",
     background_color="#FFFFFF",
     answer_background="#DFFFD6",
     explanation_color="#333333",
+    subject_color="#3366CC",
+    blooms_color="#228B22",
+    specimen_color="#8B4513",
+    error_category_color="#B22222",
     opacity=1.0,
-    line_spacing=10,
-    width=800,
+    line_spacing=3,
+    width=650,
     base_height=200,
     font_size=20,
-    section_spacing=30,
-    question_prefix: Optional[str] = None,  # "Q"
-    explanation_prefix: Optional[str] = "Explanation",
+    section_spacing=25,
+    question_prefix: Optional[str] = None,
+    explanation_prefix: Optional[str] = "AI",
     prediction: Optional[int] = None,
+    error_category: Optional[str] = None,
+    error_rationale: Optional[str] = None,
+    specimen: Optional[str] = None,
     dry_run=False,
 ):
     """
     Create a graphic representation of an MCQ with customizable colors and text wrapping.
     """
-    # Estimate height based on content
+    # Initial dynamic height setup based on content
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, base_height)
     context = cairo.Context(surface)
     context.set_font_size(font_size)
@@ -90,23 +101,35 @@ def create_mcq_graphics(
     margin_x, margin_y = 50, 40
     y_offset = margin_y
 
-    # Pre-calculate the height needed for the question, options, and explanation
+    # Pre-calculate the height needed for metadata, question, options, and explanation
+    metadata_height = 0
+    if research_subject or bloom_level or error_category or specimen:
+        metadata_height = (
+            font_size + line_spacing + 40
+        )  # Extra padding for metadata at the end
+
+    # Question prefix
     if question_prefix:
         question = f"{question_prefix}: {question}"
 
-    question_lines = wrap_text(context, f"{question}", width - 2 * margin_x)
+    question_lines = wrap_text(context, question, width - 2 * margin_x)
+
+    # filter options to correct_index and prediction
+    options = [options[correct_index], options[prediction]] if prediction else options
     option_lines_wrapped = [
-        wrap_text(context, option, width - 2 * margin_x - 10) for option in options
+        wrap_text(context, option, width - 2 * margin_x - 5) for option in options
     ]
 
     # Explanation prefix
     if explanation_prefix:
         explanation = f"{explanation_prefix}: {explanation}"
 
-    # Format explanation text, pprint to use "\n" and "\t" for new lines and tabs
-    explanation_lines = pp.pformat(explanation, indent=4, width=width - 2 * margin_x)
-    explanation_lines = explanation_lines.split("\n")
     explanation_lines = wrap_text(context, f"{explanation}", width - 2 * margin_x)
+
+    if isinstance(error_rationale, str):
+        error_rationale = wrap_text(
+            context, f"Error reason: {error_rationale}", width - 2 * margin_x - 5
+        )
 
     # Dynamic height calculation
     question_height = len(question_lines) * (font_size + line_spacing)
@@ -116,8 +139,19 @@ def create_mcq_graphics(
         for lines in option_lines_wrapped
     )
     explanation_height = len(explanation_lines) * (font_size + line_spacing)
+    error_rationale_height = (
+        len(error_rationale) * (font_size + line_spacing)
+        if isinstance(error_rationale, list)
+        else 0
+    )
     total_height = (
-        y_offset + question_height + options_height + explanation_height + margin_y
+        y_offset
+        + margin_y
+        + metadata_height
+        + question_height
+        + options_height
+        + explanation_height
+        + error_rationale_height
     )
 
     # Resize surface if needed
@@ -130,30 +164,96 @@ def create_mcq_graphics(
     context.rectangle(0, 0, width, total_height)
     context.fill()
 
+    # Draw Metadata Tags
+    if research_subject:
+        # set bold text
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        context.set_source_rgba(*hex_to_rgb(subject_color, opacity))
+        context.move_to(margin_x, y_offset)
+        context.show_text(f"Subject:     {research_subject}")
+        y_offset += font_size  # + line_spacing
+        # unbold
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+
+    if bloom_level:
+        # set bold text
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        context.set_source_rgba(*hex_to_rgb(blooms_color, opacity))
+        context.move_to(margin_x, y_offset)
+        context.show_text(f"Bloom's:    {bloom_level}")
+        y_offset += font_size  # + line_spacing
+        # unbold
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+
+    if specimen:
+        # set bold text
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        context.set_source_rgba(*hex_to_rgb(specimen_color, opacity))
+        context.move_to(margin_x, y_offset)
+        context.show_text(f"Specimen: {specimen}")
+        y_offset += font_size  # + line_spacing
+        # unbold
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+
+    # if error_category:
+    #     # set bold text
+    #     context.select_font_face(
+    #         "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+    #     )
+    #     context.set_source_rgba(*hex_to_rgb(error_category_color, opacity))
+    #     context.move_to(margin_x, y_offset)
+    #     context.show_text(f"Error type: {error_category.capitalize()}")
+    #     y_offset += font_size  # + line_spacing
+    #     # unbold
+    #     context.select_font_face(
+    #         "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+    #     )
+
+    # Draw separator line between metadata and question
+    # y_offset += 10
+    context.set_source_rgb(0, 0, 0)
+    context.set_line_width(1)
+    context.move_to(margin_x, y_offset)
+    context.line_to(width - margin_x, y_offset)
+    context.stroke()
+    y_offset += section_spacing
+
     # Draw Question
     context.set_source_rgba(*hex_to_rgb(question_color, opacity))
     for line in question_lines:
         context.move_to(margin_x, y_offset)
         context.show_text(line)
-        y_offset += font_size + line_spacing
-
-    # # Add space between question and options
-    # y_offset += section_spacing
+        y_offset += font_size  # + line_spacing
 
     # Draw Options
     pred_color: str = "#000000"
     prediction_coords: dict = None
     for idx, option_lines in enumerate(option_lines_wrapped):
         # Option background and border
-        box_height = (len(option_lines) * (font_size + line_spacing)) + line_height
+        # box_height = (len(option_lines) * (font_size + line_spacing)) + line_height
+        box_height = (len(option_lines) * (font_size)) + line_height
         if idx == correct_index:
             context.set_source_rgba(*hex_to_rgb(answer_background, opacity))
             context.set_line_width(1)
             context.rectangle(margin_x, y_offset, width - 2 * margin_x, box_height)
             context.fill_preserve()
-        else:
+            context.set_source_rgb(0, 0, 0)
+            context.stroke()
+        elif idx == prediction:
             context.set_source_rgba(*hex_to_rgb("#FFFFFF", opacity))
-            context.set_line_width(1)  # 2*(idx+1))
+            context.set_line_width(1)
             context.rectangle(margin_x, y_offset, width - 2 * margin_x, box_height)
             context.fill_preserve()
 
@@ -161,7 +261,9 @@ def create_mcq_graphics(
             # color box border (all sides)
             pred_color = "#008000" if idx == correct_index else "#FF0000"  # 00FF00
             pred_box_height = (
-                len(option_lines) * (font_size + line_spacing)
+                len(option_lines)
+                * (font_size)
+                # len(option_lines) * (font_size + line_spacing) # noqa
             ) + line_height
             pred_y_offset = y_offset
             # save prediction coords and draw at the end
@@ -181,15 +283,22 @@ def create_mcq_graphics(
 
         # Option text
         context.set_source_rgba(*hex_to_rgb(option_color, opacity))
-        for line in option_lines:
+        for idx, line in enumerate(option_lines):
+            if idx not in {correct_index, prediction}:
+                continue
+
             # I added "+ (line_height)" to center text within the box. It looks okay
             # with font size 20, but may need adjustment to be generalizable.
-            context.move_to(margin_x + 10, y_offset + line_height + (line_height))
+            context.move_to(margin_x + 10, y_offset + line_height * 1.5)
             context.show_text(line)
-            y_offset += font_size + line_spacing
+            y_offset += font_size  # + line_spacing
         y_offset += 15
 
     # Draw prediction border to be on top
+    if not prediction_coords:
+        logger.error("Prediction coordinates not found.")
+        return
+
     context.set_source_rgba(*hex_to_rgb(pred_color, opacity))
     context.set_line_width(3)
     context.rectangle(*prediction_coords)
@@ -200,14 +309,69 @@ def create_mcq_graphics(
 
     # Draw Explanation
     context.set_source_rgba(*hex_to_rgb(explanation_color, opacity))
-    for line in explanation_lines:
+    for idx, line in enumerate(explanation_lines):
         context.move_to(margin_x, y_offset)
         context.show_text(line)
-        y_offset += font_size + line_spacing
+        if len(explanation_lines) != idx:
+            # only add line spacing if not the last line
+            y_offset += font_size  # + line_spacing
+
+    if error_category:
+        # Draw separator line between explanation and error_category
+        y_offset -= 10  #  line right after explanation
+        context.set_source_rgb(0, 0, 0)
+        context.set_line_width(1)
+        context.move_to(margin_x, y_offset)
+        context.line_to(width - margin_x, y_offset)
+        context.stroke()
+        y_offset += font_size
+
+        # set bold text
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        context.set_source_rgba(*hex_to_rgb(error_category_color, opacity))
+        context.move_to(margin_x, y_offset)
+        context.show_text(f"Error type: {error_category.capitalize()}")
+        y_offset += font_size  # + line_spacing
+        # unbold
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+    if isinstance(error_rationale, list):
+        # set bold text
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        context.set_source_rgba(*hex_to_rgb(error_category_color, opacity))
+
+        for idx, line in enumerate(error_rationale):
+            context.move_to(margin_x, y_offset)
+            context.show_text(line)
+            if len(error_rationale) != idx:
+                # only add line spacing if not the last line
+                y_offset += font_size  # + line_spacing
+
+        # unbold
+        context.select_font_face(
+            "Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
 
     # Save to PNG
     if not dry_run:
         surface.write_to_png(output_path)
+        if error_category:
+            output_path = output_path.parent.joinpath(error_category).joinpath(
+                output_path.name
+            )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            # resize surface 2x
+            surface.write_to_png(output_path)
+            # PIL read image
+            img = PIL.Image.open(output_path)
+            # resize 2x
+            img = img.resize((img.width * 4, img.height * 4))
+            img.save(output_path)
 
 
 @click.command()
@@ -217,11 +381,18 @@ def create_mcq_graphics(
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, exists=False, path_type=Path)
 )
+@click.option(
+    "--filter_col",
+    default=None,
+    type=dict,
+    help="Filter to apply to the dataframe. {column_name: value}",
+)
 @click.option("--dry-run", is_flag=True, help="Perform a trial run with no changes.")
 @click.version_option()
 def main(
     input_file: Path,
     output_dir: Optional[Path] = None,
+    filter_col: Optional[Dict[Any, Any]] = None,
     dry_run: bool = False,
 ) -> None:
     """Generate MCQ graphics from a CSV file."""
@@ -244,6 +415,16 @@ def main(
     else:
         raise ValueError("Input file must be a CSV or Excel file.")
 
+    # filter
+    filter_col = {"correct": 0}
+    if filter_col and isinstance(filter_col, dict):
+        logger.info(f"Filtering dataframe with {filter_col}")
+        for key, value in filter_col.items():
+            if key in df.columns:
+                df = df[df[key] == value]
+            else:
+                logger.warning(f"Column {key} not found in the dataframe.")
+
     logger.info(f"Loaded {len(df)} rows from input file.")
     question_key = "question_2"
     answer_key = "answer_2_formatted"
@@ -258,33 +439,75 @@ def main(
         "research_subject",
     ]
     for idx, row in tqdm(df.iterrows(), total=len(df)):
+        key_image = int(row["key_image"])
+        key_question = int(row["key_question"])
         question = row[question_key]
         answer = row[answer_key].strip()
-        research_subject = " ".join([x[:5] for x in row["research_subject"].split()]) if "research_subject" in row else "mcq"
-        research_subject = research_subject.replace(" ", "_").lower()
+
+        research_subject = "mcq"
+        if "research_subject" in row and not pd.isna(row["research_subject"]):
+            research_subject = " ".join(
+                [x[:4] for x in row["research_subject"].split()]
+            )
+            research_subject = research_subject.replace(" ", "-").lower()
+
         use_case = row["use_case"] if "use_case" in row else "na"
-        blooms_level = int(row["blooms_level"]) if "blooms_level" in row else "na"
+        blooms_level = (
+            int(row["blooms_level"])
+            if "blooms_level" in row and not pd.isna(row["blooms_level"])
+            else "na"
+        )
+        blooms_name = (
+            f" ({row['blooms_name'].capitalize()})"
+            if "blooms_name" in row and not pd.isna(row["blooms_name"])
+            else ""
+        )
 
         # get options
         options = eval(row[choices_key])
         options = [str(option).strip() for option in options]
-        correct_index = options.index(answer)
         pred_index = row[prediction_key] if prediction_key else None
+        correct_index = options.index(answer)
+        filter_options = True
+        if filter_options:
+            options = [options[correct_index], options[pred_index]]
+            correct_index = 0
+            pred_index = 1
+
         pred_correct = "correct" if pred_index == correct_index else "incorrect"
+        error_category = (
+            row["error_category"]
+            if "error_category" in row and not pd.isna(row["error_category"])
+            else None
+        )
+        specimen = (
+            row["specimen"]
+            if "specimen" in row and not pd.isna(row["specimen"])
+            else None
+        )
 
         # get explanation
         explanation = row[explanation_key].strip()
+        abbrev_explanation = row["abbrev_msg"]
+        if pd.isna(abbrev_explanation):
+            continue
 
-        output_file = f"{idx:05d}_blooms-{blooms_level}_task-{use_case}_{research_subject}_{pred_correct}.png"
+        output_file = f"{idx:03d}_{key_image:02d}_{key_question:02d}_{research_subject}_blooms-{blooms_level}_task-{use_case}_{pred_correct}.png"
         output_path = output_dir.joinpath(output_file)
         create_mcq_graphics(
             question,
             options,
             correct_index,
-            explanation,
+            # explanation,
+            abbrev_explanation,
             output_path,
             prediction=pred_index,
             dry_run=dry_run,
+            research_subject=row["research_subject"].capitalize(),
+            bloom_level=f"Level {blooms_level}{blooms_name}",
+            error_category=error_category,
+            error_rationale=row["error_rationale"],
+            specimen=specimen,
         )
 
     logger.info("Finished generating graphics.")
@@ -294,3 +517,49 @@ if __name__ == "__main__":
     load_dotenv(find_dotenv())
 
     main()
+
+    ##### Scratch filter and save pickle
+    # collect list of items in error_category_list, exclude first elem
+    error_category_list = df["error_category_list"].apply(lambda x: x.split(",")[1:])
+    error_category_list = error_category_list.explode()
+
+    # temp
+    # filter df to only those with non null error_category
+    df = df[~df["error_category"].isnull()]
+    df.reset_index(drop=True, inplace=True)
+    # save new name
+    output_file = output_dir.joinpath(f"{input_file.stem}_filter-error-category.csv")
+    df.to_csv(output_file, index=False)
+    df.to_excel(output_file.with_suffix(".xlsx"), index=False)
+
+    # load pickle file with images
+    pkl_dir = output_dir
+    pkl_file = pkl_dir.joinpath(f"{input_file.stem}.pkl")
+
+    # load pick as binary
+    if pkl_file.exists():
+        images = pickle_reader(pkl_file)
+
+    # filter images to those with key_image in df
+    images = {
+        key: value for key, value in images.items() if key in df["key_image"].values
+    }
+
+    # save images to output_dir images
+    output_dir = output_dir.joinpath("images")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for (key_image, img), (idx, row) in zip(images.items(), df.iterrows()):
+
+        # convert to PIL
+        if len(img) > 1:
+            img_list = [PIL.Image.fromarray(img_) for img_ in img]
+            # combine into one image grid
+            for idx2, img in enumerate(img_list):
+                img.save(output_dir.joinpath(f"{key_image:03d}_{idx2}.png"))
+        else:
+            img = PIL.Image.fromarray(img[0])
+
+            img.save(output_dir.joinpath(f"{key_image:03d}.png"))
+#
+#
+#     ##

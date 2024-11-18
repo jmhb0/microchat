@@ -16,7 +16,7 @@ __all__ = [
     "Blooms_PostBotWrapper",
     "Other_BloomsWrapper",
     "NBME_BloomsWrapper",
-    "Organism_ResearchWrapper"
+    "Organism_ResearchWrapper",
 ]
 
 import os
@@ -367,6 +367,7 @@ class NBME_BloomsWrapper(BaseDataWrapper):
             subset=subset,
             **kwargs,
         )
+
 
 class Organism_ResearchWrapper(BaseDataWrapper):
 

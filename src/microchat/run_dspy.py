@@ -50,18 +50,20 @@ except ImportError as e:
 
 @click.command()
 @click.argument("dataset_name", type=click.STRING)  # blooms.csv
-@click.option("--model", type=click.STRING, default="o1-mini")
+@click.option("--model", type=click.STRING, default="gpt_4_turbo")
 @click.option("--teacher-model", type=click.STRING, default="o1-mini")
-@click.option("--retrieval-model", type=click.STRING, default=None) # "wiki17_abstracts"
+@click.option("--retrieval-model", type=click.STRING, default=None)
 @click.option("--optimizer", type=click.STRING, default="miprov2")
 @click.option(
     "--output-dir", type=click.Path(file_okay=False, dir_okay=True, path_type=Path)
 )
 @click.option(
-    "--task", type=click.Choice(["nbme", "blooms", "hotpotqa"]), default="blooms"
+    "--task",
+    type=click.Choice(["nbme", "blooms", "hotpotqa", "organism_research"]),
+    default="blooms",
 )
 @click.option("--random-seed", type=click.INT, default=8675309)
-@click.option("--retrieve-k", type=click.IntRange(1, 10), default=3)
+@click.option("--retrieve-k", type=click.IntRange(1, 10), default=5)
 @click.option("--dry-run", is_flag=True, help="Perform a trial run with no changes.")
 @click.version_option()
 def main(
@@ -73,7 +75,7 @@ def main(
     output_dir: Optional[Path] = None,
     task: Optional[str] = "blooms",
     random_seed: int = 8675309,
-    retrieve_k: int = 3,
+    retrieve_k: int = 5,
     dry_run: bool = False,
 ) -> None:
     """Docstring."""
@@ -136,16 +138,25 @@ def main(
         answer_key = "blooms_question_category"  # "blooms_question_category"  # "revised_question" #"revised_question_answer"
         metric = validate_blooms
         eval_metric = dspy.evaluate.answer_exact_match
+        subset = [question_key, answer_key]
     elif task == "nbme":
         question_key = "original_question_answer"
         answer_key = "revised_question_answer"
         metric = validate_nbme
         eval_metric = validate_nbme
+        subset = [question_key, answer_key]
     elif task == "hotpotqa":
         question_key = "question"
         answer_key = "answer"
         metric = dspy.evaluate.answer_exact_match
         eval_metric = dspy.evaluate.answer_exact_match
+        subset = [question_key, answer_key]
+    elif task == "organism_research":
+        question_key = "description_question_answer"
+        answer_key = "original_answer"
+        metric = validate_tagging
+        eval_metric = validate_tagging
+        subset = [question_key, answer_key, "organism", "specimen", "research_subject"]
     else:
         logger.error(f"Task {task} not implemented.")
         raise NotImplementedError(f"Task {task} not implemented.")
@@ -159,6 +170,9 @@ def main(
     # Tell DSPy that the 'question' field is the input. Any other fields are labels and/or metadata.
     trainset = [x.with_inputs("context", "question") for x in dataset.train]
     devset = [x.with_inputs("context", "question") for x in dataset.dev]
+    if len(trainset) == 0 or len(devset) == 0:
+        logger.error(f"Empty dataset: {dataset_name}")
+        raise ValueError(f"Empty dataset: {dataset_name}")
 
     print(f"{len(trainset)}, {len(devset)}")
 
@@ -214,7 +228,9 @@ def main(
         )
 
     # compile rag
-    logger.info(f"Compiling {module.name} with optimizer {optimizer.name} and model {model.model_name}")
+    logger.info(
+        f"Compiling {module.name} with optimizer {optimizer.name} and model {model.model_name}"
+    )
     compiled_rag = optimizer.compile(
         module, trainset=trainset, minibatch_size=len(devset)
     )

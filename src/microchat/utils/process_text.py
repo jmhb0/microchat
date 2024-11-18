@@ -27,14 +27,14 @@ def process_blooms(
 ) -> Tuple[int, str, str]:
     # extract the blooms level from the response
     blooms_name = None
-    blooms_verb = answer # default to answer if not found
+    blooms_verb = answer  # default to answer if not found
     blooms_level = -1
     if match := re_blooms_compiled.search(answer):
         # find the blooms verb from the match
         blooms_verb = match.group().lower()
         # find the level of the blooms taxonomy from blooms_dict
         blooms_level = next(
-             level for level, names in reference_dict.items() if blooms_verb in names
+            level for level, names in reference_dict.items() if blooms_verb in names
         )
         # process reference dict to get 1st key from each value
         # this is to standardize the name of the blooms level
