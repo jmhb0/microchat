@@ -1,4 +1,5 @@
 # stuff I added 
+*.csv
 credentials.json
 notes.py
 *bak

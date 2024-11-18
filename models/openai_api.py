@@ -296,16 +296,29 @@ def call_gpt_batch(texts,
             if debug is not None:
                 all_kwargs[i]['debug'] = debug[i]
 
-    with concurrent.futures.ThreadPoolExecutor(
-            max_workers=num_threads) as executor:
-        futures = []
-
+    if num_threads == 1:
+        # Regular sequential processing
+        results = []
         for text, img, _kwargs in zip(texts, imgs, all_kwargs):
-            future = executor.submit(call_gpt, text, img, **_kwargs)
-            futures.append(future)
+            result = call_gpt(text, img, **_kwargs)
+            results.append(list(result))
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+            futures = []
+            for text, img, _kwargs in zip(texts, imgs, all_kwargs):
+                future = executor.submit(call_gpt, text, img, **_kwargs)
+                futures.append(future)
+            results = [list(future.result()) for future in futures]
+    # with concurrent.futures.ThreadPoolExecutor(
+    #         max_workers=num_threads) as executor:
+    #     futures = []
 
-        # run
-        results = [list(future.result()) for future in futures]
+    #     for text, img, _kwargs in zip(texts, imgs, all_kwargs):
+    #         future = executor.submit(call_gpt, text, img, **_kwargs)
+    #         futures.append(future)
+
+    #     # run
+    #     results = [list(future.result()) for future in futures]
 
     # reset the cache logging
     global HITS, MISSES
@@ -341,8 +354,12 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-3.5-turbo": 0.5,
         'anthropic/claude-3.5-sonnet': 3,
         'Qwen2-VL-72B-Instruct': 0.4,
+        'Qwen2-VL-7B-Instruct' : 0.1,
         "google/gemini-pro-1.5": 1.25,
         "llama-3.2-90b-vision-instruct": 0.9,
+        "llama-3.2-11b-vision-instruct":0.055,
+        'anthropic/claude-3-opus' : 15,
+        "pixtral-12b" : 0.15,
     }
     prices_per_million_output = {
         "o1": 60,
@@ -354,8 +371,12 @@ def compute_api_call_cost(prompt_tokens: int,
         "gpt-3.5-turbo": 1.5,
         'anthropic/claude-3.5-sonnet': 15,
         'Qwen2-VL-72B-Instruct': 0.4,
+        'Qwen2-VL-7B-Instruct' : 0.1,
         "google/gemini-pro-1.5": 5,
         "llama-3.2-90b-vision-instruct": 0.9,
+        "llama-3.2-11b-vision-instruct":0.055,
+        'anthropic/claude-3-opus' : 75,
+        "pixtral-12b" : 0.15,
     }
     if "o1-preview" in model:
         key = "o1"
@@ -373,13 +394,23 @@ def compute_api_call_cost(prompt_tokens: int,
         key = "gpt-3.5-turbo"
     elif 'claude-3.5-sonnet' in model:
         key = 'anthropic/claude-3.5-sonnet'
+    elif 'claude-3-opus' in model:
+        key = 'anthropic/claude-3-opus'
     elif 'Qwen2-VL-72B-Instruct' in model:
         key = 'Qwen2-VL-72B-Instruct'
+    elif 'Qwen2-VL-7B-Instruct' in model:
+        key = 'Qwen2-VL-7B-Instruct'
     elif 'gemini-pro-1.5' in model:
         key = 'google/gemini-pro-1.5'
     elif "llama-3.2-90b-vision-instruct" in model:
         key = "llama-3.2-90b-vision-instruct"
+    elif "llama-3.2-11b-vision-instruct" in model:
+        key = "llama-3.2-11b-vision-instruct"
+    elif "pixtral-12b" in model:
+        key = "pixtral-12b"
+    
     else:
+        return 0
         raise NotImplementedError(f"Did not record prices for model {model}")
 
     price = prompt_tokens * prices_per_million_input[

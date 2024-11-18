@@ -89,7 +89,6 @@ f_save_imgs = dir_results_parent / "images.pkl"
 lookup_images = dict(zip(idxs, imgs_all))
 with open(f_save_imgs, "wb") as fp:
     pickle.dump(lookup_images, fp)
-ipdb.set_trace()
 
 dir_results_imgs = dir_results_parent / "imgs"
 dir_results_imgs.mkdir(exist_ok=True)
@@ -283,6 +282,8 @@ pickle_only = True
 grids = []
 for (key_image, imgs, context) in zip(idxs, imgs_all, contexts):
     print("key image", key_image)
+    if key_image> 30:
+        break
     
     # save images one-by-one
     for i, img in enumerate(imgs): 

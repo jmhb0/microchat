@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 import json
 import ast
+import re
 
 from benchmark.refine_bot import bot
 
@@ -596,6 +597,30 @@ def exp_1110_redo_4o_fromiter1_iter4_b(seed):
 
 	return df, cfg, name
 
+import tiktoken
+def count_tokens(text: str, model: str = "gpt-3.5-turbo") -> int:
+    """
+    Count the number of tokens in a string using tiktoken.
+    
+    Args:
+        text (str): The input text to count tokens for
+        model (str): The model to use for tokenization (default: "gpt-3.5-turbo")
+        
+    Returns:
+        int: Number of tokens in the text
+    """
+    text = re.sub(r'Answer.*$', 'Answer', text)
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Fall back to cl100k_base encoding if model not found
+        encoding = tiktoken.get_encoding("cl100k_base")
+    
+    tokens = encoding.encode(text)
+    return len(tokens)
+
+
 
 
 def _get_data_october(questions_source):
@@ -627,6 +652,11 @@ if __name__ == "__main__":
 	dir_results_parent.mkdir(exist_ok=True, parents=True)
 	# do_multiprocessing = False
 	do_multiprocessing = True
+
+	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
+	ipdb.set_trace()
+	lst = [count_tokens(t) for t in df['revised_question_answer']]
+	pass
 
 	## run this experiment
 	# df, cfg, name = exp_1103_test150(seed=0)
