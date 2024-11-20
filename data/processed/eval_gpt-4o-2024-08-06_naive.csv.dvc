@@ -1,6 +1,0 @@
-outs:
-- md5: 079604270502d1e0d66a888f9cd97117
-  size: 4880272
-  isexec: true
-  hash: md5
-  path: eval_gpt-4o-2024-08-06_naive.csv
