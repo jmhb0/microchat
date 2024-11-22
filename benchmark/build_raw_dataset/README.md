@@ -42,4 +42,5 @@ From the prior scripts, `3_images_updated.csv` and `3_question_updates.csv` are 
 
 The script `'apply_manual_annotations.py'` then just applies all those updates, first loading the files `4_images_updated.csv` and `'4_questions_updated.csv` and then saving the updated files to `4_images.csv` and `'4_questions.csv`.
 
+TOOD: updates
 

@@ -25,5 +25,5 @@ pass
 print(df.groupby(['_sub_use_case2'])['_sub_use_case2'].count())
 print(df.groupby(['modality'])['modality'].count())
 
-print(df['organism'])
+print(len(df['organism'].unique()))
 
