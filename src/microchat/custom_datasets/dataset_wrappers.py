@@ -125,7 +125,7 @@ class MicroChatWrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
         subset: Optional[list] = ["original_question", "revised_question"],
@@ -157,7 +157,7 @@ class MicroChatV2Wrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        dataset_name: Optional[str],  # = ,
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
         subset: Optional[list] = ["original_question", "revised_question"],
@@ -189,7 +189,7 @@ class Mol_Bio_CellWrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        dataset_name: Optional[str],  # = ,
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
         subset: Optional[list] = ["question_stem", "correct_answer"],
@@ -221,7 +221,7 @@ class MicroBenchWrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = "df_jeff_manual_question_generation.csv",
+        dataset_name: Optional[str],  # = ,
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
         subset: Optional[list] = ["question_stem", "correct_answer"],
