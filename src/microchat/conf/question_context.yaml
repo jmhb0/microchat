@@ -366,7 +366,7 @@ organism_research:
 
     Evolutionary Biology
         Processes driving the diversity of life over time.
-        Keywords: natural selection, speciation, adaptation.
+        Keywords: natural selection, speciation, adaptation, evolution.
 
     Genetics
         Study of heredity and gene function.
@@ -406,7 +406,7 @@ organism_research:
 
     Systems Biology
         Complex interactions within biological systems.
-        Keywords: computational modeling, biological networks, integrative biology.
+        Keywords: computational modeling, biological networks and systems.
 
     Virology
         Study of viruses and viral diseases.
@@ -414,89 +414,89 @@ organism_research:
 
     Zoology
         Scientific study of animals.
-        Keywords: animal behavior, physiology, taxonomy, evolution.
+        Keywords: animal behavior, physiology, taxonomy.
 
     Other
         Specialized or emerging fields within biology.
-        Keywords: interdisciplinary studies, novel phenomena, specialized research.
+        Keywords: interdisciplinary studies, novel phenomena.
   taxonomy_of_organisms_in_biology: |
     # Taxonomy of Model Organisms in Biology and Biomedical Research:
-    In vitro (None)
-        Purity of molecules and reactions in controlled environments without living cells or organisms.
-        Keywords: purified proteins, purified molecules, cell-free systems
-    
-    Escherichia coli (E. coli)
-        Bacterium used in genetics and molecular biology.
-        Keywords: bacteria, gene expression, plasmids, genetic engineering.
-    
-    Saccharomyces cerevisiae (Baker's Yeast)
-        Single-celled fungus, model eukaryote.
-        Keywords: yeast, fermentation, cell division, DNA repair.
-    
-    Caenorhabditis elegans (C. elegans)
-        Transparent nematode worm.
-        Keywords: worm, development, aging, programmed cell death.
-    
-    Drosophila melanogaster (Fruit Fly)
-        Insect with rapid life cycle.
-        Keywords: fruit fly, genetics, inheritance patterns, development.
-    
-    Danio rerio (Zebrafish)
-        Fish with transparent embryos.
-        Keywords: zebrafish, vertebrate development, embryology, organogenesis.
-    
-    Xenopus laevis (African Clawed Frog)
-        Amphibian with large eggs.
-        Keywords: frog, embryology, cell cycle, signal transduction.
-    
-    Homo sapiens (Human Cells)
-        Cultured human cells (e.g., HeLa, HEK293, A431, U2OS).
-        Keywords: human cells, cell lines, immortalized cell lines
-    
-    Mus musculus (Mouse)
-        Mammalian model organism.
-        Keywords: mouse, disease models, transgenic mice, immunology.
-    
-    Rattus norvegicus (Rat)
-        Rodent used in behavioral studies.
-        Keywords: rat, pharmacology, neuroscience, physiology.
-    
-    Sus scrofa (Pig)
-        Large mammal similar to humans.
-        Keywords: pig, organ transplantation, cardiovascular research, metabolism.
-    
-    Tursiops truncatus (Bottlenose Dolphin)
-        Intelligent marine mammal.
-        Keywords: dolphin, cognition, neurobiology, echolocation.
-    
-    Arabidopsis thaliana (Thale Cress)
-        Model plant organism.
-        Keywords: Arabidopsis, plant genetics, photosynthesis, hormone signaling.
-    
-    Apis mellifera (Honeybee)
-        Social insect with complex behavior.
-        Keywords: honeybee, social behavior, ecology, pollination.
-    
-    Tetrahymena thermophila
-        Single-celled ciliate protozoan.
-        Keywords: protozoan, cilia, telomeres, epigenetics.
-    
-    Daphnia (Water Flea)
-        Planktonic crustacean.
-        Keywords: Daphnia, ecology, toxicology, environmental stress.
-    
-    Gallus gallus (Chicken)
-        Bird with accessible embryos.
-        Keywords: chicken embryo, development, limb formation, vascularization.
-    
-    Macaca mulatta (Rhesus Monkey)
-        Non-human primate model.
-        Keywords: rhesus monkey, neuroscience, immunology, infectious diseases.
-    
-    Schmidtea mediterranea (Planarian Flatworm)
-        Flatworm with regenerative abilities.
-        Keywords: planarian, regeneration, stem cells, tissue patterning.
-    
-    Dictyostelium discoideum (Amoeba)
-        Social amoeba forming multicellular structures.
-        Keywords: amoeba, cell motility, signaling pathways, aggregation.
+      Apis mellifera (Honeybee)
+          Social insect with complex behavior.
+          Keywords: honeybee, social behavior, ecology, pollination.
+  
+      Arabidopsis thaliana (Thale Cress)
+          Model plant organism.
+          Keywords: Arabidopsis, plant genetics, photosynthesis, hormone signaling.
+  
+      Caenorhabditis elegans (C. elegans)
+          Transparent nematode worm.
+          Keywords: worm, development, aging, programmed cell death.
+  
+      Danio rerio (Zebrafish)
+          Fish with transparent embryos.
+          Keywords: zebrafish, vertebrate development, embryology, organogenesis.
+  
+      Daphnia (Water Flea)
+          Planktonic crustacean.
+          Keywords: Daphnia, ecology, toxicology, environmental stress.
+  
+      Dictyostelium discoideum (Amoeba)
+          Social amoeba forming multicellular structures.
+          Keywords: amoeba, cell motility, signaling pathways, aggregation.
+  
+      Drosophila melanogaster (Fruit Fly)
+          Insect with rapid life cycle.
+          Keywords: fruit fly, genetics, inheritance patterns, development.
+      
+      Escherichia coli (E. coli)
+          Bacterium used in genetics and molecular biology.
+          Keywords: bacteria, gene expression, plasmids, genetic engineering.
+  
+      Gallus gallus (Chicken)
+          Bird with accessible embryos.
+          Keywords: chicken embryo, development, limb formation, vascularization.
+  
+      Homo sapiens (Human Cells)
+          Cultured human cells (e.g., HeLa, HEK293, A431, U2OS).
+          Keywords: human cells, cell lines, immortalized cell lines
+  
+      In vitro (None)
+          Purity of molecules and reactions in controlled environments without living cells or organisms.
+          Keywords: purified proteins, purified molecules, cell-free systems
+  
+      Macaca mulatta (Rhesus Monkey)
+          Non-human primate model.
+          Keywords: rhesus monkey, neuroscience, immunology, infectious diseases.
+  
+      Mus musculus (Mouse)
+          Mammalian model organism.
+          Keywords: mouse, disease models, transgenic mice, immunology.
+  
+      Rattus norvegicus (Rat)
+          Rodent used in behavioral studies.
+          Keywords: rat, pharmacology, neuroscience, physiology.
+  
+      Saccharomyces cerevisiae (Baker's Yeast)
+          Single-celled fungus, model eukaryote.
+          Keywords: yeast, fermentation, cell division, DNA repair.
+  
+      Schmidtea mediterranea (Planarian Flatworm)
+          Flatworm with regenerative abilities.
+          Keywords: planarian, regeneration, stem cells, tissue patterning.
+  
+      Sus scrofa (Pig)
+          Large mammal similar to humans.
+          Keywords: pig, organ transplantation, cardiovascular research, metabolism.
+  
+      Tetrahymena thermophila
+          Single-celled ciliate protozoan.
+          Keywords: protozoan, cilia, telomeres, epigenetics.
+  
+      Tursiops truncatus (Bottlenose Dolphin)
+          Intelligent marine mammal.
+          Keywords: dolphin, cognition, neurobiology, echolocation.
+  
+      Xenopus laevis (African Clawed Frog)
+          Amphibian with large eggs.
+          Keywords: frog, embryology, cell cycle, signal transduction.
