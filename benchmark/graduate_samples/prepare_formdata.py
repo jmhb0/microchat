@@ -559,6 +559,7 @@ def get_people_whole_round2():
 
 
 def create_form_datasets_perperson(df, dir_people_out):
+    ipdb.set_trace()
     # people lookup
     df.loc[:, 'key_person'] = [
         lookup_question_to_person[str(k)] for k in df['question_key']
@@ -618,11 +619,11 @@ if __name__ == "__main__":
     # nov9_choose_iter7()
     # nov9_choose_iter8()
     # nov9_choose_iter9()
-    # get_people_whole_round2()
+    get_people_whole_round2()
     # nov10_redoiter1_choose_iter1()
     # nov10_redoiter1_choose_iter2()
     # nov10_redoiter1_choose_iter3()
     # nov10_redoiter1_choose_iter5()
-    nov10_redoiter1_choose_iter6()
+    # nov10_redoiter1_choose_iter6()
     ipdb.set_trace()
     pass

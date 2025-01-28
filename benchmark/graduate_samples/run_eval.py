@@ -25,14 +25,21 @@ dir_results.mkdir(exist_ok=True, parents=True)
 # df_questions = df_stage_1
 from benchmark.graduate_samples.combine_dataset import get_full_dataset_before_review, get_naive_choices_data
 df_questions, mcqs = get_full_dataset_before_review()
+ipdb.set_trace()
 
 seed = 11
 seed = 10
-key_prompt_eval = 0
+key_prompt_eval = 1 # 0 means with images, 1 means without
 DO_STAGE1_EVAL = 0
 DO_NAIVE_DISTACTOR_GEN = 0
 models = ["gpt-4o-2024-08-06", "anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5", "Qwen/Qwen2-VL-72B-Instruct"]
 apis = ["openai", "openrouter", "openrouter", "hyperbolic"]
+models = ["gpt-4o-2024-08-06", "anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5"]#, "Qwen/Qwen2-VL-72B-Instruct"]
+apis = ["openai", "openrouter", "openrouter", "hyperbolic"]
+models = ["mistralai/pixtral-large-2411"]
+apis = ['openrouter']
+models = ['o1-mini-2024-09-12']
+apis = ["openai"]
 # models = ["Qwen/Qwen2-VL-72B-Instruct",  "google/gemini-pro-1.5"]
 # apis = ["hyperbolic",  "openrouter"]
 # models = ["Qwen/Qwen2-VL-72B-Instruct"]
@@ -44,8 +51,8 @@ apis = ["openai", "openrouter", "openrouter", "hyperbolic"]
 
 # models = ["anthropic/claude-3-opus", "gpt-4-turbo-2024-04-09"]
 # apis = ["openrouter", "openai"]
-models = ["gpt-4-turbo-2024-04-09"]
-apis = ["openai"]
+# models = ["gpt-4-turbo-2024-04-09"]
+# apis = ["openai"]
 
 # models =["Qwen/Qwen2-VL-72B-Instruct"]
 # apis = ["hyperbolic"]
@@ -59,16 +66,16 @@ apis = ["openai"]
 
 # models = ["google/gemini-flash-1.5-8b"]
 # apis = [ "openrouter"]
-models = ["anthropic/claude-3-haiku", "gpt-4o-mini-2024-07-18"]
-apis = [ "openrouter", "openai"]
+# models = ["anthropic/claude-3-haiku", "gpt-4o-mini-2024-07-18"]
+# apis = [ "openrouter", "openai"]
 
-# models = ["gpt-4o-mini-2024-07-18"]
-# apis = [ "openai"]
-models = ["liuhaotian/llava-13b"]
-apis = [ "openrouter"]
+# # models = ["gpt-4o-mini-2024-07-18"]
+# # apis = [ "openai"]
+# models = ["liuhaotian/llava-13b"]
+# apis = [ "openrouter"]
 
-models = ["Qwen/Qwen2-VL-7B-Instruct"]
-apis = ["hyperbolic"]
+# models = ["Qwen/Qwen2-VL-7B-Instruct"]
+# apis = ["hyperbolic"]
 
 
 
@@ -125,3 +132,5 @@ for model, api in zip(models, apis):
     print(f"Eval results in {f_save}")
     df_questions.to_csv(f_save)
 
+ipdb.set_trace()
+pass
