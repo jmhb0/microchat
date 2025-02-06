@@ -88,17 +88,16 @@ def create_mcq_graphics(
     error_category: Optional[str] = None,
     error_rationale: Optional[str] = None,
     specimen: Optional[str] = None,
+    image_filepath: Optional[Path] = None,
     dry_run=False,
 ):
-    """
-    Create a graphic representation of an MCQ with customizable colors and text wrapping.
-    """
+    """Create a graphic representation of an MCQ with customizable colors and text wrapping."""
     # Initial dynamic height setup based on content
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, base_height)
     context = cairo.Context(surface)
     context.set_font_size(font_size)
 
-    margin_x, margin_y = 50, 40
+    margin_x, margin_y = 30, 40
     y_offset = margin_y
 
     # Pre-calculate the height needed for metadata, question, options, and explanation
@@ -256,6 +255,16 @@ def create_mcq_graphics(
             context.set_line_width(1)
             context.rectangle(margin_x, y_offset, width - 2 * margin_x, box_height)
             context.fill_preserve()
+            # add red X left of rectangle
+            context.set_source_rgba(*hex_to_rgb("#FF0000", opacity))
+            context.set_line_width(5)
+            context.move_to(margin_x - 10, y_offset + 10)
+            context.line_to(margin_x - 30, y_offset + 30)
+            context.move_to(margin_x - 30, y_offset + 10)
+            context.line_to(margin_x - 10, y_offset + 30)
+            context.stroke()
+            context.set_line_width(1)
+
 
         if idx == prediction:
             # color box border (all sides)
@@ -300,7 +309,7 @@ def create_mcq_graphics(
         return
 
     context.set_source_rgba(*hex_to_rgb(pred_color, opacity))
-    context.set_line_width(3)
+    context.set_line_width(2)
     context.rectangle(*prediction_coords)
     context.stroke()
 
@@ -371,7 +380,35 @@ def create_mcq_graphics(
             img = PIL.Image.open(output_path)
             # resize 2x
             img = img.resize((img.width * 4, img.height * 4))
-            img.save(output_path)
+
+            # read full image file
+            disp_img = PIL.Image.open(image_filepath)
+
+            # rotate image to be horizontal if rectangular
+            if disp_img.height < disp_img.width:
+                disp_img = disp_img.rotate(90, expand=True)
+
+            # resize image to be 2x, if disp_img is <1/2 image size, resize to 2x
+            if disp_img.width < img.width / 2:
+                disp_img = disp_img.resize((disp_img.width * 2, disp_img.height * 2))
+
+            # resize disp_img to have same height as img
+
+
+            # extend canvase to right to include disp_img on right
+            new_img = PIL.Image.new(
+                "RGB",
+                (img.width + disp_img.width, img.height),
+                color=(255, 255, 255),
+            )
+            # add img left
+            new_img.paste(img, (0, 0))
+            # add disp_img right, center vertically
+            new_img.paste(
+                disp_img, (img.width, (img.height - disp_img.height) // 2)
+            )
+
+            new_img.save(output_path)
 
 
 @click.command()
@@ -486,6 +523,10 @@ def main(
             else None
         )
 
+        # set image path
+        image_filepath = output_dir.joinpath("./images", f"{key_image:03d}.png")
+        image_filepath = image_filepath if image_filepath.exists() else None
+
         # get explanation
         explanation = row[explanation_key].strip()
         abbrev_explanation = row["abbrev_msg"]
@@ -508,6 +549,7 @@ def main(
             error_category=error_category,
             error_rationale=row["error_rationale"],
             specimen=specimen,
+            image_filepath=image_filepath,
         )
 
     logger.info("Finished generating graphics.")
@@ -518,48 +560,103 @@ if __name__ == "__main__":
 
     main()
 
-    ##### Scratch filter and save pickle
-    # collect list of items in error_category_list, exclude first elem
-    error_category_list = df["error_category_list"].apply(lambda x: x.split(",")[1:])
-    error_category_list = error_category_list.explode()
-
-    # temp
-    # filter df to only those with non null error_category
-    df = df[~df["error_category"].isnull()]
-    df.reset_index(drop=True, inplace=True)
-    # save new name
-    output_file = output_dir.joinpath(f"{input_file.stem}_filter-error-category.csv")
-    df.to_csv(output_file, index=False)
-    df.to_excel(output_file.with_suffix(".xlsx"), index=False)
-
-    # load pickle file with images
-    pkl_dir = output_dir
-    pkl_file = pkl_dir.joinpath(f"{input_file.stem}.pkl")
-
-    # load pick as binary
-    if pkl_file.exists():
-        images = pickle_reader(pkl_file)
-
-    # filter images to those with key_image in df
-    images = {
-        key: value for key, value in images.items() if key in df["key_image"].values
-    }
-
-    # save images to output_dir images
-    output_dir = output_dir.joinpath("images")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    for (key_image, img), (idx, row) in zip(images.items(), df.iterrows()):
-
-        # convert to PIL
-        if len(img) > 1:
-            img_list = [PIL.Image.fromarray(img_) for img_ in img]
-            # combine into one image grid
-            for idx2, img in enumerate(img_list):
-                img.save(output_dir.joinpath(f"{key_image:03d}_{idx2}.png"))
-        else:
-            img = PIL.Image.fromarray(img[0])
-
-            img.save(output_dir.joinpath(f"{key_image:03d}.png"))
+# #     ##### Scratch filter and save pickle
+# #     # collect list of items in error_category_list, exclude first elem
+# #     error_category_list = df["error_category_list"].apply(lambda x: x.split(",")[1:])
+# #     error_category_list = error_category_list.explode()
+# #
+# #     # temp
+# #     # filter df to only those with non null error_category
+# #     df = df[~df["error_category"].isnull()]
+# #     df.reset_index(drop=True, inplace=True)
+# #     # save new name
+# #     output_file = output_dir.joinpath(f"{input_file.stem}_filter-error-category.csv")
+# #     df.to_csv(output_file, index=False)
+# #     df.to_excel(output_file.with_suffix(".xlsx"), index=False)
+# #
+#     # load pickle file with images
+#     pkl_dir = output_dir
+#     pkl_file = pkl_dir.joinpath(f"{input_file.stem}.pkl")
+#
+#     # load pick as binary
+#     if pkl_file.exists():
+#         images = pickle_reader(pkl_file)
+#
+#     # filter images to those with key_image in df
+#     images = {
+#         key: value for key, value in images.items() if key in df["key_image"].values
+#     }
+#
+#     # save images to output_dir images
+#     output_dir = output_dir.joinpath("all_images")
+#     output_dir.mkdir(parents=True, exist_ok=True)
+#     for key_image, img in images.items():
+#
+#         # convert to PIL
+#         if len(img) > 1:
+#             img_list = [PIL.Image.fromarray(img_) for img_ in img]
+#             # combine into one image grid
+#             for idx2, img in enumerate(img_list):
+#                 img.save(output_dir.joinpath(f"{key_image:03d}_{idx2}.png"))
+#         else:
+#             img = PIL.Image.fromarray(img[0])
+#
+#             img.save(output_dir.joinpath(f"{key_image:03d}.png"))
+# #
+# #
+# #     ##
+#
+# from PIL import Image
+#
+# def create_collage(images: list[str], collage_width: int, collage_height: int, grid_size: tuple[int, int]) -> Image:
+#     """
+#     Create a collage of images arranged in a grid.
+#
+#     Args:
+#         images (list[str]): List of file paths to the images.
+#         collage_width (int): Width of the collage in pixels.
+#         collage_height (int): Height of the collage in pixels.
+#         grid_size (tuple[int, int]): Number of rows and columns in the collage.
+#
+#     Returns:
+#         Image: A PIL Image object of the collage.
+#     """
+#     rows, cols = grid_size
+#     cell_width = collage_width // cols
+#     cell_height = collage_height // rows
+#
+#     # Create a blank canvas
+#     collage = Image.new('RGB', (collage_width, collage_height), 'white')
+#
+#     for index, img_path in enumerate(images):
+#         if index >= rows * cols:
+#             break
+#
+#         # Open and resize image
+#         img = Image.open(img_path)
+#         img = img.resize((cell_width, cell_height))
+#
+#         # Calculate position
+#         row = index // cols
+#         col = index % cols
+#         x = col * cell_width
+#         y = row * cell_height
+#
+#         # Paste image on canvas
+#         collage.paste(img, (x, y))
+#
+#     return collage
 #
 #
-#     ##
+# # Example usage # get all from output_dir
+# image_paths = [ str(img) for img in output_dir.glob("*.png") ]
+# # random shuffle
+# import random
+# random.shuffle(image_paths)
+# # format for 8x11 page high res
+# height = 2200
+# width = 1600
+# collage = create_collage(image_paths, width, height, (24, 16))
+# collage.show()
+# collage.save(output_dir.joinpath("collage_2.png"))
+
