@@ -310,14 +310,9 @@ class CSVDataset(Dataset):
 
         # initialize the dspy dataset
         dataset: List[Dict[str, Any]] = []
-        keys: List[str] = [
-            question_key,
-            answer_key,
-            # "key_image",
-            # "key_question",
-            "blooms_reasoning",
-            "blooms_source",
-        ]
+        keys: List[str] = list(
+            {question_key, answer_key, "key_image", "key_question", *subset}
+        )
 
         # iterate over HuggingFace dataset and convert to DSPy dataset
         for idx, raw_example in tqdm(
@@ -346,6 +341,8 @@ class CSVDataset(Dataset):
                     "blooms_source",
                 }:
                     example[k] = raw_example[k]
+                elif k in {"organism", "specimen", "research_subject"}:
+                    example[k] = raw_example[k].strip()
                 else:
                     continue
                     # example[k] = example[k].strip()

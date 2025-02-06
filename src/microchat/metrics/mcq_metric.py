@@ -91,7 +91,7 @@ def validate_nbme(example, pred, trace=None, train=True):
 
 
 def validate_tagging(example, pred, trace=None):
-    """Measure accurasy of automated tagging"""
+    """Measure accuracy of automated tagging"""
     gt_organism = example.organism.lower()
     pred_organism = pred.organism.lower()
     match_organsim = 0

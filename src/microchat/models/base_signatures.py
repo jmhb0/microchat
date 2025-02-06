@@ -69,13 +69,13 @@ class CheckSimilar(dspy.Signature):
     [1] ««« Guidelines for checking similarity | Guidelines for checking similarity:
         When checking for similarity between the original and revised question, consider the following:
           - The revised question should maintain the original question's overall meaning.
-          - The revised question formatted correctly for a one-best answer NBME-style multiple-choice question.
+          - Does the revised question strictly adhere to the NBME-guidelines on format for one-best answer multiple-choice question?
           - The revised question should not describe perceptual features of the image that could bias the answer.
           - The revised question should not contain extraneous details about cell lines or diseases that could bias the answer.
          When checking for similarity between the original and revised answer, consider the following:
            - The revised answer should accurately reflect the original answer.
            - The revised answer should be concise, clear, and correctly answer the revised question.
-           - The revised answer format should adhere to NBME guidelines.
+           - Does the revised question strictly adhere to the NBME-guidelines on format for one-best answer multiple-choice question?
     """
 
     context = dspy.InputField(desc="Experimental details related to the question.")

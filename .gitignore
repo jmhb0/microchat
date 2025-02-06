@@ -1,4 +1,3 @@
-# stuff I added 
 *.csv
 credentials.json
 notes.py
@@ -7,7 +6,7 @@ notes.py
 *.png
 output.png 
 analysis_scripts/results/
-data/*
+#data/*
 !data/*.py
 !data/**/*.dvc
 !data/**/*.csv.dvc

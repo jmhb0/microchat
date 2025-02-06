@@ -82,7 +82,8 @@ def create_model(    model_name: str, config: Optional[dict] = None, kwargs: Opt
                                  max_tokens=max_tokens,
                                  **config)
         case _: # no match
-                raise NotImplementedError(f"Model {model_type} is not yet supported.")
+            logger.error("Model not found.")
+            raise NotImplementedError(f"Model {model_type} is not yet supported.")
 
     #
     dspy_model.model_name = model_type.value[-1]

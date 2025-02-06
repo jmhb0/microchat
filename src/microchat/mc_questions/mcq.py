@@ -23,7 +23,7 @@ from microchat.models.dspy_modules import re_blooms_compiled, blooms_dict, CoTRA
 from microchat.models.model_factory import create_model
 from microchat.utils.process_text import process_blooms, compute_tokens, compute_chars
 
-re_clean_text = re.compile(r"`{1,3}|'{1,3}", re.IGNORECASE)
+re_clean_text = re.compile(r"`{2,3}|'{2,3}", re.IGNORECASE)
 re_correct_ans = re.compile(r"\(Correct\)$", re.IGNORECASE)
 re_true = re.compile(r"(True|Yes|Correct|Right)", re.IGNORECASE)
 re_false = re.compile(r"(False|No|Incorrect|Wrong)", re.IGNORECASE)
@@ -31,7 +31,7 @@ re_false = re.compile(r"(False|No|Incorrect|Wrong)", re.IGNORECASE)
 re_clean_opt = re.compile(
     r"^\d+\.\s|^\w{1}\.\s|\(Correct\)$|\(Incorrect\)$", re.IGNORECASE
 )
-re_remove_letter = re.compile(r"^[A-E]\)\s", re.IGNORECASE)
+re_remove_letter = re.compile(r"^[A-G]\)\s", re.IGNORECASE)
 re_parse_example = re.compile(
     r"Description of image preparation:\n(?P<quote1>['`]{2,3})(?P<description>.*?)(?P=quote1)\n+"
     r"(Additional information:\n(?P<quote2>['`]{2,3})(?P<additional_info>.*?)(?P=quote2)\n+)?"
@@ -41,7 +41,7 @@ re_parse_example = re.compile(
 )
 
 re_parse_options = re.compile(
-    r"\n?\*?\*?(?P<option_label>[A-D])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
+    r"\n?\*?\*?(?P<option_label>[A-G])\)\s?\*?\*?\s?(?P<option_text>.*?)(?:\s{2,}|\n+)"
 )
 
 re_parse_question = re.compile(
@@ -68,7 +68,7 @@ re_parse_prediction = re.compile(
     r"\*?F\)\*?\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
     r"\*?G\)\*?\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G
     r"(?:\*?H\)\*?\s?(?P<option_h>.*?)(?:\s{2,}|\n+))?"  # Optional capture for option H
-    r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Da-d])\)\s?(?P<correct_answer>.*)['`]{0,3}?",  # Capture correct answer with flexible capitalization
+    r"\n+\**([Cc]orrect\s)?[Aa]nswer:\**\s?(?P<correct_option>\(?[A-Ga-g])\)\s?(?P<correct_answer>.*)['`]{0,3}?",  # Capture correct answer with flexible capitalization
     re.IGNORECASE | re.DOTALL,  # Allows matching across multiple lines
 )
 re_parse_prediction_2 = re.compile(
@@ -77,7 +77,10 @@ re_parse_prediction_2 = re.compile(
     r"\*?\**B\)\*?\**\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"\*?\**C\)\*?\**\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"\*?\**D\)\*?\**\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
-    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Da-d])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
+    r"\*?\**E\)\*?\**\s?(?P<option_e>.*?)(?:\s{2,}|\n+)"  # Capture option E
+    r"\*?\**F\)\*?\**\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
+    r"\*?\**G\)\*?\**\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G    
+    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Ga-g])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
     re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
 )
 re_parse_prediction_3 = re.compile(
@@ -86,7 +89,10 @@ re_parse_prediction_3 = re.compile(
     r"\*?\**B\)\*?\**\s?(?P<option_b>.*?)(?:\s{2,}|\n+)"  # Capture option B
     r"\*?\**C\)\*?\**\s?(?P<option_c>.*?)(?:\s{2,}|\n+)"  # Capture option C
     r"\*?\**D\)\*?\**\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
-    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Da-d])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
+    r"\*?\**E\)\*?\**\s?(?P<option_e>.*?)(?:\s{2,}|\n+)"  # Capture option E
+    r"\*?\**F\)\*?\**\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
+    r"\*?\**G\)\*?\**\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G
+    r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Ga-g])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
     re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
 )
 re_parse_prediction_4 = re.compile(
@@ -207,10 +213,10 @@ class MCQ(BaseModel):
 
         # check for exact match of the answer
         match = False
-        try:
-            match = dspy.evaluate.answer_exact_match(temp_example, temp_pred)
-        except Exception as e:
-            logger.error(f"Error in exact match evaluation: {e}")
+        # try:
+        #     match = dspy.evaluate.answer_exact_match(temp_example, temp_pred)
+        # except Exception as e:
+        #     logger.error(f"Error in exact match evaluation: {e}")
 
         # exit early if exact match is found
         if match:
@@ -268,6 +274,41 @@ class MCQ(BaseModel):
             "reasoning": result.reasoning,
         }
 
+        ### Separate processing check flaws
+        # # check flaws
+        # check_flaws = dspy.ChainOfThought(CheckFlaws)(
+        #     context=context, question=f"Revised question: {temp_pred.question}Revised answer: {temp_pred.answer}\n"
+        # )
+        # # clean text outputs
+        # nbme_formatted = re_clean_text.sub("", check_flaws.nbme_formatted).strip()
+        # nbme_formatted = re_true.sub("1", nbme_formatted)
+        # question_flaws = re_clean_text.sub("", check_flaws.question_flaws).strip()
+        # question_flaws = re_true.sub("1", question_flaws)
+        # answer_flaws = re_clean_text.sub("", check_flaws.answer_flaws).strip()
+        # answer_flaws = re_true.sub("1", answer_flaws)
+        # distractor_flaws = re_clean_text.sub("", check_flaws.distractor_flaws).strip()
+        # distractor_flaws = re_true.sub("1", distractor_flaws)
+        #
+        # try:
+        #     nbme_formatted = float(eval(nbme_formatted))
+        #     question_flaws = float(eval(question_flaws))
+        #     answer_flaws = float(eval(answer_flaws))
+        #     distractor_flaws = float(eval(distractor_flaws))
+        # except ValueError as e:
+        #     logger.error(f"Error in converting metrics to float: {e}")
+        #     nbme_formatted = 0
+        #     question_flaws = 0
+        #     answer_flaws = 0
+        #     distractor_flaws = 0
+        #
+        # return {
+        #     "nbme_formatted": float(nbme_formatted),
+        #     "question_flaws": float(question_flaws),
+        #     "answer_flaws": float(answer_flaws),
+        #     "distractor_flaws": 1 - float(distractor_flaws),
+        #     "reasoning": check_flaws.reasoning,
+        # }
+
     def model_post_init(self, __context: Any) -> None:
         """
         Post-initialization hook for the MCQ model.
@@ -284,7 +325,9 @@ class MCQ(BaseModel):
             self.tokenizer = tk.get_encoding(self.tokenizer_name)
 
         # process the example
+        # temp hack
         example_match = re_parse_example.search(self.example.question)
+        # example_match = re_parse_prediction.search(self.example.question)
         if example_match is None:
             self.errors += 1
             logger.warning("Example does not match the expected format.")
@@ -340,7 +383,7 @@ class MCQ(BaseModel):
             if self.prediction_dict.get(f"option_{char}")
         ]
         if not pred_options:
-            logger.warning("No options found in the prediction.")
+            # logger.warning("No options found in the prediction.")
             pred_options = re_parse_options.findall(self.prediction.answer)
             pred_options = [elem[1] for elem in pred_options]
             pred_answer = re_parse_answer.match(self.prediction.answer)
@@ -364,10 +407,19 @@ class MCQ(BaseModel):
                     logger.warning("Correct answer does not match the expected format.")
                     self.errors += 1
 
+        if not pred_options:
+            logger.warning("No options found in the prediction.")
+            self.errors += 1
+
         self.prediction_dict["options"] = pred_options
         pred_answer = self.prediction_dict.get("correct_answer")
         if pred_answer:
-            pred_answer = re_clean_text.sub("", pred_answer).strip()
+            # pred_answer = re_clean_text.sub("", pred_answer).strip()
+            pred_answer = re_clean_opt.sub("", pred_answer)
+            pred_answer = re_remove_letter.sub("", pred_answer)
+
+        # if not hasattr(self.prediction_dict, "correct_option"):
+        #     self.prediction_dict.get("correct_option")
 
         pred_option_correct = self.prediction_dict.get("correct_option")
         pred_correct_index = -1
@@ -381,6 +433,7 @@ class MCQ(BaseModel):
             self.prediction_dict["correct_index"] = pred_correct_index
         else:
             logger.warning(f"Correct answer not found in options: {pred_answer}")
+            raise ValueError("Correct answer not found in options.")
 
         # check if pred_answer tokens are longer than the original answer
         ans_token_metric = 1
@@ -562,7 +615,9 @@ class Blooms(BaseModel):
             gt_model = ["CustomGPT"]
 
         gt_model = [elem.strip() for elem in gt_model]
-        gt_level, gt_bloom, gt_bloom_verb = self._process_answer(self.example.answer, blooms_dict)
+        gt_level, gt_bloom, gt_bloom_verb = self._process_answer(
+            self.example.answer, blooms_dict
+        )
         gt_level = gt_level if gt_level > 0 else self.example.blooms_level
         gt_bloom = gt_bloom or self.example.answer
 
@@ -579,7 +634,9 @@ class Blooms(BaseModel):
 
         # process the response
         init_model = dspy.settings.lm.model_name
-        init_level, init_bloom, init_verb = self._process_answer(response.answer, blooms_dict)
+        init_level, init_bloom, init_verb = self._process_answer(
+            response.answer, blooms_dict
+        )
         # correct for null
         init_level = init_level or "Unknown"
         init_bloom = init_bloom or response.answer
@@ -629,7 +686,9 @@ class Blooms(BaseModel):
             )
 
         # process
-        rev_level, rev_bloom, rev_verb = self._process_answer(assess_response.answer, blooms_dict)
+        rev_level, rev_bloom, rev_verb = self._process_answer(
+            assess_response.answer, blooms_dict
+        )
         # correct for null
         rev_level = rev_level or "Unknown"
         rev_bloom = rev_bloom or assess_response.answer
