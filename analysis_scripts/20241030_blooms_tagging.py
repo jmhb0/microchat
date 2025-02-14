@@ -1,5 +1,6 @@
 """
 Usage:
+python 20241030_blooms_tagging.py --dataset_name mmsci --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/mmsci/benchmark/test/image_caption_matching_data.json --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov11_stage2 --version_name 2 --save_dir /pasteur/data/microchat/dataset_versions/nov11/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/nov11/benchmark_nov11_stage2.csv --send_batch
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
@@ -330,6 +331,32 @@ def organize_scienceQA(dataset_name='science_qa'):
         query_qs.append(q_info)
     return query_qs, all_qs
 
+def organize_mmsci(dataset_path, dataset_name='mmsci'):
+    """
+    For more info see: https://github.com/Leezekun/MMSci/blob/main/mmsci-data/DATACARD.md#benchmark-data
+
+    """
+    all_qs = None # no need bc doesn't have template qs
+    query_qs = []
+    with open(dataset_path) as f:
+        ds = json.load(f)
+    id_num = 0 # making fake id bc test set is annonymized
+    # settings: describe the figure, describe the sub-figure, and which subfigure matches this description
+    for s_idx, ds_setting in enumerate(ds):
+        for q in ds_setting:
+            if s_idx == 2:
+                pattern = re.compile(r'.*?\?')
+                question = pattern.match(q['question']).group()[0]
+            else:
+                question = q['question']
+            id_num += 1
+            q_info = {'question_stem': question,
+                'correct_answer': '?',
+                'dataset': dataset_name,
+                'id': str(id_num)}
+            query_qs.append(q_info)
+    return query_qs, all_qs
+
 def extract_core_question(text):
     """
     Efficiently extracts the core question from a scientific query by using
@@ -405,6 +432,8 @@ def parse_dataset(dataset_name, save_path, file_path=None, version_name=''):
         query_qs, all_qs = organize_scienceQA(dataset_name)
     elif dataset_name == 'lab_bench':
         query_qs, all_qs = organize_lab_bench(dataset_name)
+    elif dataset_name == 'mmsci':
+        query_qs, all_qs = organize_mmsci(file_path, dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)
