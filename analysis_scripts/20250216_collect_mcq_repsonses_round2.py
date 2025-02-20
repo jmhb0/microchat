@@ -24,10 +24,10 @@ links_feb7 = {
     # Not done
     # p6 zach coman
     # WARNING - GET BOTH FORMS 
-    # 6 : {
-    #     "data": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSrte09KCov4ZstNL8t0xn9CFGUEZP0bVdtrQCXwWQ5CRZ9xxn4_Z_VJoHp0JBSOxhQfq70o87qPst-/pub?gid=693340444&single=true&output=csv",
-    #     "response": "",
-    # },
+    6 : {
+        "data": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQITtlpPFn14LnNabZ3Lf5FnBCLt2kfYReVFhtj81ERNJDw8LuAz3FtxQAyA9kzo1KsYjgTph9rYfsP/pub?gid=1715511141&single=true&output=csv",
+        "response": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-hsbq27gMyZ-Y5JpIRCQ3La7m0nzA7Nwi5PAqr3NnQPMmvWyOCfw427bpQ6BxFsLcqWVN1qX7HwjU/pub?gid=1622213737&single=true&output=csv",
+    },
     # p12 ridhi
     12: {
         "data": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_F_8H0dMzF6st1Fym19a1zpQJp7qjzF6Mg1gfroVmziaJdq6mBLzwpapKXIfVkTm4tli64wtpuVad/pub?gid=742450928&single=true&output=csv",
@@ -162,8 +162,6 @@ for idx in links_feb7.keys():
     dfs_data.append(df_data)
 
 for idx in links_feb7_next.keys():
-    if idx in skip_idxs_nov6:
-        continue
     # get the form responses
     fname_responses = dir_results / f"responses_{idx}_feb7next.csv"
     fname_data = dir_results / f"data_{idx}_feb7next.csv"
@@ -174,104 +172,73 @@ for idx in links_feb7_next.keys():
     dfs_responses.append(df_responses)
     dfs_data.append(df_data)
 
-# merge things
+#### get the data and responses
 df_responses = pd.concat(dfs_responses)
 df_data = pd.concat(dfs_data)
+ipdb.set_trace()
 assert len(df_responses) == len(df_data)
+# now stick them together
+df_data = pd.concat([df_data, df_responses], axis=1)
+acc = df_data['is_best_answer'].sum() / len(df_data['is_best_answer'])
+n_samples = len(df_data)
+print(f"Num samples {n_samples} with correctness {acc}")
+
+#### check that the data that is being graduated here matches what is in the official dataset and there are no issues.
+def check_matching_questions(df_data, df_questions, n_chars=60):
+    """
+    Check if each mcq_str in df_data matches the beginning of any question_2 in df_questions.
+    
+    Args:
+        df_data: DataFrame containing 'mcq_str' column
+        df_questions: DataFrame containing 'question_2' column
+        n_chars: Number of characters to compare (default: 60)
+    
+    Returns:
+        Series: Boolean mask indicating which mcq_str entries have a match
+    """
+    matches = []
+    question_2_starts = set(q[:n_chars] for q in df_questions['question_2'])
+    
+    for mcq in df_data['mcq_str']:
+        mcq_start = mcq[:n_chars]
+        matches.append(mcq_start in question_2_starts)
+    matching_mask = pd.Series(matches, index=df_data.index)
+    
+    print(f"Number of matching questions: {matching_mask.sum()}")
+    print(f"Number of non-matching questions: {(~matching_mask).sum()}")
+
+    return matching_mask
+
+
+# do the checking thing
+from benchmark.graduate_samples.combine_dataset import get_full_dataset_before_review, get_naive_choices_data
+df_questions, mcqs = get_full_dataset_before_review()
+matching_mask = check_matching_questions(df_data, df_questions)
+
+
+## save the csv of things accespted 
+mask_accepted = (df_data['is_same_topic'] & df_data['is_best_answer'])
+df_accepted = df_data[mask_accepted]
+df_accepted.to_csv(dir_results / "accepted_feb20.csv", index=False)
+
+mask_needs_review = ~mask_accepted
+df_needs_review = df_data[mask_needs_review]
+df_needs_review.to_csv(dir_results / "needs_review_feb20.csv", index=False)
+ipdb.set_trace()
+pass
+
+
+
 
 # todo: maybe uncomment the later stuff to actually save it 
+print("NEXT STEPS")
+print("save a csv of things already accepted")
+print("save a csv of things that need review")
+print("save a csv of things that are lacking review --> this might require loading the original dataset ")
+print("IMPORTANT: check that the data that is being graduated here matches what is in the official dataset and there are no issues.")
 ipdb.set_trace()
-pass 
 
 
-# identify nov 5 data that is the same as nov 6 data
-
-
-# def get_nov5_data_thats_same():
-#     """
-# 	nov 5 and nov 6 have the same underlying questions, but *some* of the mcq variations are different
-# 	nov 6 is the actual data we want, but some people only reviewed nov 5
-# 	however many of those mcq variations are actually identical and therefore usable. 
-# 	this function gets those reviewed questions from nov 5 that are still valid. 
-# 		They are returned as (df_responses_nov5_same, df_data_nov5_same)
-# 	It also outputs the questions that changed, and therefore need reviewing still
-# 		They are returned as (df_data_nov5_diff,)
-# 	"""
-#     dfs_responses_nov5 = []
-#     dfs_data_nov5 = []
-#     dfs_data_nov6 = []
-#     for idx in links_nov5.keys():
-#         fname_responses = dir_results / f"responses_{idx}_nov5.csv"
-#         fname_data = dir_results / f"data_{idx}_nov5.csv"
-#         df_data_nov5, df_responses_nov5 = get_data_and_responses(
-#             fname_data, fname_responses, set_name='nov5')
-
-#         fname_data = dir_results / f"data_{idx}_nov6.csv"
-#         df_data_nov6 = pd.read_csv(fname_data)
-
-#         dfs_responses_nov5.append(df_responses_nov5)
-#         dfs_data_nov5.append(df_data_nov5)
-#         dfs_data_nov6.append(df_data_nov6)
-
-#     df_responses_nov5 = pd.concat(dfs_responses_nov5)
-#     df_data_nov5 = pd.concat(dfs_data_nov5)
-#     df_data_nov6 = pd.concat(dfs_data_nov6)
-
-#     assert len(df_responses_nov5) == len(df_data_nov6)
-
-#     mask_same = (df_data_nov5['mcq_str'] == df_data_nov6['mcq_str']).values
-#     mask_diff = ~mask_same
-
-#     df_responses_nov5_same = df_responses_nov5[mask_same]
-#     df_data_nov5_same = df_data_nov5[mask_same]
-
-#     df_data_nov5_diff = df_data_nov5[mask_diff]
-
-#     return df_responses_nov5_same, df_data_nov5_same, df_data_nov5_diff
-
-
-# get the valid nov 5 data and append it
-# df_responses_nov5_same, df_data_nov5_same, df_data_nov5_diff = get_nov5_data_thats_same(
-# )
-# df_responses = pd.concat([df_responses, df_responses_nov5_same])
-# df_data = pd.concat([df_data, df_data_nov5_same])
-
-# # stick them together
-# assert len(df_responses) == len(df_data)
-# df_data = pd.concat([df_data, df_responses], axis=1)
-# acc = df_data['is_best_answer'].sum() / len(df_data['is_best_answer'])
-# n_samples = len(df_data)
-# print(f"Num samples {n_samples} with correctness {acc}")
-
-
-# def compare_dataset_to_eval():
-#     """ check if the questions we have here are the same as what was in the OG dataset """
-#     from benchmark.graduate_samples.combine_dataset import get_full_dataset_before_review, get_naive_choices_data
-#     df_questions, mcqs = get_full_dataset_before_review()
-
-#     df_merge = pd.merge(df_data,
-#                         df_questions.reset_index(drop=True),
-#                         left_on='question_key',
-#                         right_on='key_question',
-#                         right_index=False)
-#     sames = []
-#     for i in range(len(df_merge)):
-#         is_same = df_merge.iloc[i]['question_2'] in df_merge.iloc[i]['mcq_str']
-#         sames.append(is_same)
-#     df_merge['same'] = sames
-
-#     f_eval = "benchmark/graduate_samples/results/run_eval/eval_o1-mini-2024-09-12_stage2_prompt1.csv"
-#     df_eval = pd.read_csv(f_eval)
-#     df_eval['correct'] = df_eval['pred'] == df_eval['gt']
-
-#     df_merge_eval = pd.merge(df_merge,
-#                              df_eval[['correct', 'key_question']],
-#                              left_on='question_key',
-#                              right_on='key_question')
-#     # df_merge_eval.groupby(['same', 'is_best_answer'])['correct'].mean()
-#     df_merge_eval.groupby(['same', 'email']).count()
-
-#     return df_merge_eval
 
 
 # def filter_for_qs_matching_df():
@@ -377,3 +344,29 @@ pass
 # # filter_for_qs_matching_df()
 # get_filtered_items_for_review()
 # pass
+
+def check_matching_questions(df_data, df_questions, n_chars=60):
+    """
+    Check if each mcq_str in df_data matches the beginning of any question_2 in df_questions.
+    
+    Args:
+        df_data: DataFrame containing 'mcq_str' column
+        df_questions: DataFrame containing 'question_2' column
+        n_chars: Number of characters to compare (default: 60)
+    
+    Returns:
+        Series: Boolean mask indicating which mcq_str entries have a match
+    """
+    matches = []
+    question_2_starts = set(q[:n_chars] for q in df_questions['question_2'])
+    
+    for mcq in df_data['mcq_str']:
+        mcq_start = mcq[:n_chars]
+        matches.append(mcq_start in question_2_starts)
+    
+    return pd.Series(matches, index=df_data.index)
+
+# Use the function
+matching_mask = check_matching_questions(df_data, df_questions)
+print(f"Number of matching questions: {matching_mask.sum()}")
+print(f"Number of non-matching questions: {(~matching_mask).sum()}")
