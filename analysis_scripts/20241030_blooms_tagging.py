@@ -1,5 +1,6 @@
 """
 Usage:
+python 20241030_blooms_tagging.py --dataset_name llavamed_vqa --save_dir /pasteur/u/minwoos/evaluation/blooms_tagging --dataset_path /pasteur/u/minwoos/evaluation/medical_multimodel_evaluation_data.json --send_batch
 python 20241030_blooms_tagging.py --dataset_name mmsci --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/mmsci/benchmark/test/image_caption_matching_data.json --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov11_stage2 --version_name 2 --save_dir /pasteur/data/microchat/dataset_versions/nov11/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/nov11/benchmark_nov11_stage2.csv --send_batch
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
@@ -335,7 +336,7 @@ def organize_mmsci(dataset_path, dataset_name='mmsci'):
     """
     For more info see: https://github.com/Leezekun/MMSci/blob/main/mmsci-data/DATACARD.md#benchmark-data
 
-    """
+    """    
     all_qs = None # no need bc doesn't have template qs
     query_qs = []
     with open(dataset_path) as f:
@@ -344,6 +345,9 @@ def organize_mmsci(dataset_path, dataset_name='mmsci'):
     # settings: describe the figure, describe the sub-figure, and which subfigure matches this description
     for s_idx, ds_setting in enumerate(ds):
         for q in ds_setting:
+            # TODO filter by category to biology here, currently did it by filtering the final dataset.
+            # if q['category'] != 'Biological sciences':
+            #     continue
             if s_idx == 2:
                 pattern = re.compile(r'.*?\?')
                 question = pattern.match(q['question']).group()[0]
@@ -353,8 +357,35 @@ def organize_mmsci(dataset_path, dataset_name='mmsci'):
             q_info = {'question_stem': question,
                 'correct_answer': '?',
                 'dataset': dataset_name,
-                'id': str(id_num)}
+                'id': str(id_num),
+                'category': q['category'],
+                'subject': q['subject'],}
             query_qs.append(q_info)
+    return query_qs, all_qs
+
+def organize_llavamed_vqa(file_path, dataset_name='llavamed_vqa'):
+    """
+    file_path: Path to the JSON file containing the custom VQA dataset
+    dataset_name: Name of the dataset
+    """
+    query_qs = []
+    all_qs = None  # Not required as there are no template questions
+
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+
+    for idx, q in enumerate(data):
+        q_info = {
+            'question_stem': q['question'].strip(),
+            'correct_answer': q['answer'],
+            'dataset': q.get('dataset', dataset_name),
+            'id': str(idx),
+            'subset': q.get('subset', ''),
+            'image': q.get('image', []),
+            'options': q.get('options', [])
+        }
+        query_qs.append(q_info)
+
     return query_qs, all_qs
 
 def extract_core_question(text):
@@ -434,6 +465,8 @@ def parse_dataset(dataset_name, save_path, file_path=None, version_name=''):
         query_qs, all_qs = organize_lab_bench(dataset_name)
     elif dataset_name == 'mmsci':
         query_qs, all_qs = organize_mmsci(file_path, dataset_name)
+    elif dataset_name == 'llavamed_vqa':
+        query_qs, all_qs = organize_llavamed_vqa(file_path, dataset_name)
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")
     np.savez(save_path, query_qs=query_qs, all_qs=all_qs)
@@ -484,6 +517,11 @@ def call_offline_gpt(jsonl_path, save_dir):
     save_path = os.path.join(save_dir, 'gpt_batch_ids.txt')
     with open(save_path, 'w') as f:
         f.write(f"batch_id: {batch_id}\n file_id: {file_id}")
+
+    # To cancel a batch job:
+    # from openai import OpenAI
+    # client = OpenAI()
+    # client.batches.cancel("batch_abc123")
 
 
 def blooms_tagging(save_dir, jsonl_path,
