@@ -30,6 +30,7 @@ import concurrent.futures
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 from benchmark.refine_bot import prompts
+from benchmark.refine_bot import run_experiments
 
 file_lock = threading.Lock()
 

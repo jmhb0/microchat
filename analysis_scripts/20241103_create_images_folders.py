@@ -65,7 +65,7 @@ print(f"Collecting images from df_imgs size {len(df_imgs)}")
 dir_base = Path("benchmark/data/formdata_0/images")
 
 for key_image, row in df_imgs.iterrows():
-    # if key_image > 25:break
+    # if key_image > 200:break
     if key_image == 0: 
         continue # was a test image.
     
@@ -280,10 +280,10 @@ def create_image_grid(images, target_height=800):
 
 pickle_only = True
 grids = []
-for (key_image, imgs, context) in zip(idxs, imgs_all, contexts):
+for key_image, imgs, context in zip(idxs, imgs_all, contexts):
     print("key image", key_image)
-    if key_image> 30:
-        break
+    if key_image <= 227:  # Skip already processed keys
+        continue
     
     # save images one-by-one
     for i, img in enumerate(imgs): 
