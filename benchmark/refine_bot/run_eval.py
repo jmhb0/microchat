@@ -199,14 +199,14 @@ def eval_qa(df_questions,
 
     return df_questions, msgs, preds, gts, cache_images
 
-
+# LBS: add a version of this for final code
 def get_refined_bot_mcqs(name, run_number):
     dir_rewrite = f"benchmark/refine_bot/results/run_experiments/{name}"
     print("*" * 80)
     print(f"Getting results from directory {dir_rewrite}")
 
     if not Path(dir_rewrite):
-        raise ValueError(f"no results folder for {dir_rewrite_parent}")
+        raise ValueError(f"no results folder for {dir_rewrite}")
 
     # first recover the results csv
     # get the old csv, and add accuracy results to it
