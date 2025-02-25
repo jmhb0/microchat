@@ -7,6 +7,7 @@ import pandas as pd
 import json
 from benchmark.build_raw_dataset.download_data import download_csv
 import numpy as np
+import ast
 
 from benchmark.graduate_samples.combine_dataset import get_full_dataset_before_review, get_naive_choices_data
 df_questions, mcqs = get_full_dataset_before_review()
@@ -38,6 +39,21 @@ df_filtered_questions['key_person'] = df_filtered_questions['key_question'].asty
 df_filtered_questions['Your name'] = df_filtered_questions['key_person'].map(df_people.set_index('key_person')['Your name'])
 print(df_filtered_questions.groupby(['Your name'])['key_question'].count())
 
+
+
+mcqs_str = []
+for i, row in df_filtered_questions.iterrows():
+    mcq = row['question'] + "\n\n"
+    choices = row['choices']['choices']
+    correct_index = row['choices']['correct_index']
+    letters = list('abcdefg')
+    for i, (letter, choice) in enumerate(zip(letters, choices)):
+        if i == correct_index:  
+            mcq += f"**({letter})** {choice}\n"
+        else:
+            mcq += f"  ({letter})   {choice}\n"
+    mcqs_str.append(mcq)
+df_filtered_questions['mcq_str'] = mcqs_str
 df_filtered_questions.to_csv(dir_results / "non-reviewed-questions.csv")
 ipdb.set_trace()
 
