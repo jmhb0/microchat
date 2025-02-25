@@ -1,2 +1,0 @@
-import padas as pd 
-

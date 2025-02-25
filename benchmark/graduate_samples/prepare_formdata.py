@@ -554,12 +554,10 @@ def get_people_whole_round2():
     # we're good
     df_all['question_key'] = df_all['key_question']
     create_form_datasets_perperson(df_all, dir_people_out)
-    ipdb.set_trace()
     pass
 
 
 def create_form_datasets_perperson(df, dir_people_out):
-    ipdb.set_trace()
     # people lookup
     df.loc[:, 'key_person'] = [
         lookup_question_to_person[str(k)] for k in df['question_key']
@@ -568,8 +566,7 @@ def create_form_datasets_perperson(df, dir_people_out):
     df = pd.merge(df, df_people, on='key_person').copy()
 
     for key_person in df['key_person'].unique():
-        if key_person in skip_key_person:
-            continue
+        if key_person in skip_key_person: continue
 
         # person directory
         person_name = lookup_person[key_person]
@@ -609,6 +606,213 @@ def create_form_datasets_perperson(df, dir_people_out):
         df_save.to_csv(f"{dir_results_person}/data.csv")
 
 
+def feb5_choose_iter1():
+    """ 
+    Process evaluation results from Feb 5 experiment runs
+    """
+    f_evals = [
+        "_exp_0207_test_6_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "_exp_0207_test_6_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    
+    # Load all evaluation files
+    dfs = []
+    for f in f_evals:
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    
+    # Use first dataframe as base and add results from all runs
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    
+    # Calculate aggregate metrics
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    
+    # Filter for cases where all models failed (sum=0)
+    df = df[df['sum'] == 0]
+    
+    # Group by question key to remove duplicates
+    df = df.groupby('key_question', as_index=False).first()
+
+    # Save results
+    f_csv_out = "benchmark/graduate_samples/results/OUT_feb5_choose_iter1.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def feb5_choose_iter2():
+    """ 
+    Process evaluation results from Feb 5 experiment runs
+    Filter for questions where exactly one model/seed succeeded
+    """
+    f_evals = [
+        "_exp_0207_test_6_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "_exp_0207_test_6_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    
+    # Load all evaluation files
+    dfs = []
+    for f in f_evals:
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    
+    # Use first dataframe as base and add results from all runs
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    
+    # Calculate aggregate metrics
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    
+    # Filter for cases where exactly one model succeeded (sum=1)
+    df = df[df['sum'] == 1]
+    
+    # Group by question key to remove duplicates
+    df = df.groupby('key_question', as_index=False).first()
+
+    # Save results
+    f_csv_out = "benchmark/graduate_samples/results/OUT_feb5_choose_iter2.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def feb5_choose_iter3():
+    """ 
+    Process evaluation results from Feb 5 experiment runs
+    Filter for questions where exactly two models/seeds succeeded
+    """
+    f_evals = [
+        "_exp_0207_test_6_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "_exp_0207_test_6_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    
+    # Load all evaluation files
+    dfs = []
+    for f in f_evals:
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    
+    # Use first dataframe as base and add results from all runs
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    
+    # Calculate aggregate metrics
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    
+    # Filter for cases where exactly two models succeeded (sum=2)
+    df = df[df['sum'] == 2]
+    
+    # Group by question key to remove duplicates
+    df = df.groupby('key_question', as_index=False).first()
+
+
+    # Save results
+    f_csv_out = "benchmark/graduate_samples/results/OUT_feb5_choose_iter3.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def feb5_choose_iter4():
+    """ 
+    Process evaluation results from Feb 5 experiment runs
+    Filter for questions where more than two models/seeds succeeded (sum > 2)
+    """
+    f_evals = [
+        "_exp_0207_test_6_evalseed0_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed1_model_gpt-4o-2024-08-06.csv",
+        "_exp_0207_test_6_evalseed0_model_anthropicclaude-35-sonnet.csv",
+        "_exp_0207_test_6_evalseed1_model_anthropicclaude-35-sonnet.csv",
+    ]
+    dir_csvs = "benchmark/refine_bot/results/eval"
+    
+    # Load all evaluation files
+    dfs = []
+    for f in f_evals:
+        dfs.append(pd.read_csv(os.path.join(dir_csvs, f)))
+    
+    # Use first dataframe as base and add results from all runs
+    df = dfs[0]
+    df['r0'] = dfs[0]['pred_correct']
+    df['r1'] = dfs[1]['pred_correct']
+    df['r2'] = dfs[2]['pred_correct']
+    df['r3'] = dfs[3]['pred_correct']
+    
+    # Calculate aggregate metrics
+    df['all'] = ((df['r0']==0) & (df['r1']==0) & (df['r2']==0) & (df['r3']==0))
+    df['sum'] = df[['r0','r1','r2','r3']].sum(axis=1)
+    
+    # Filter for cases where more than two models succeeded (sum > 2)
+    df = df[df['sum'] > 2]
+    
+    # Group by question key to remove duplicates
+    df = df.groupby('key_question', as_index=False).first()
+
+    # Save results
+    f_csv_out = "benchmark/graduate_samples/results/OUT_feb5_choose_iter4.csv"
+    df.to_csv(f_csv_out)
+
+    return df
+
+def get_people_feb5_round():
+    """
+    Combine all iterations from Feb 5 experiments and prepare personalized datasets
+    # I ended up not doing this one here, since I already did it in the other script
+    """
+    dir_people_out = dir_results_parent.parent / "OUT_feb5_everything"
+    dir_people_out.mkdir(exist_ok=True)
+
+    # Get base dataframe with all questions
+    df_all = get_df_from_key_stage1("feb5", overwrite=True)
+    df_all = df_all.set_index("key_question", drop=False)
+
+    # Load results from each iteration
+    df2 = feb5_choose_iter1()
+    df3 = feb5_choose_iter2()
+    df4 = feb5_choose_iter3()
+    df5 = feb5_choose_iter4()
+    df = pd.concat([df2, df3, df4, df5])
+    df = df.set_index('key_question', drop=False)
+
+    # Get remaining questions thatggi weren't in any iteration
+    idxs_remaining = set(df_all.index) - set(df.index)
+
+    # Rename columns for consistency
+    # df_all = df_all.loc[list(idxs_remaining)]
+    df_all['choices_postbot'] = df_all['choices']
+    df_all['question_postbot'] = df_all['question']
+
+    # Update questions that were modified in iterations
+    for key_question, row in df.iterrows():
+        df_all.loc[key_question, 'choices_postbot'] = row['choices_postbot']
+        df_all.loc[key_question, 'question_postbot'] = row['question_postbot']
+
+    # Prepare for person-specific datasets
+    df_all['question_key'] = df_all['key_question']
+
+    ipdb.set_trace()
+    
+    create_form_datasets_perperson(df_all, dir_people_out)
+
+    return df_all
+
+
 if __name__ == "__main__":
     # nov5_choose()
     # nov9_choose_iter2()
@@ -619,11 +823,20 @@ if __name__ == "__main__":
     # nov9_choose_iter7()
     # nov9_choose_iter8()
     # nov9_choose_iter9()
-    get_people_whole_round2()
+    
+    # get_people_whole_round2()
     # nov10_redoiter1_choose_iter1()
     # nov10_redoiter1_choose_iter2()
     # nov10_redoiter1_choose_iter3()
     # nov10_redoiter1_choose_iter5()
     # nov10_redoiter1_choose_iter6()
+    
+
+    # feb5_choose_iter1()
+    # feb5_choose_iter2()
+    # feb5_choose_iter3()
+    feb5_choose_iter4()
+    get_people_feb5_round()
+    
     ipdb.set_trace()
     pass

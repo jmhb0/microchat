@@ -199,14 +199,14 @@ def eval_qa(df_questions,
 
     return df_questions, msgs, preds, gts, cache_images
 
-
+# LBS: add a version of this for final code
 def get_refined_bot_mcqs(name, run_number):
     dir_rewrite = f"benchmark/refine_bot/results/run_experiments/{name}"
     print("*" * 80)
     print(f"Getting results from directory {dir_rewrite}")
 
     if not Path(dir_rewrite):
-        raise ValueError(f"no results folder for {dir_rewrite_parent}")
+        raise ValueError(f"no results folder for {dir_rewrite}")
 
     # first recover the results csv
     # get the old csv, and add accuracy results to it
@@ -733,6 +733,36 @@ def get_all_redo(iters=5):
     return df, mcqs, df_results, name
 
 
+def get_all_feb5():
+    """
+    Get results from the feb5 experiments, which are running on the latest batch of questions.
+    Similar to get_all() but for the feb5 dataset.
+    """
+    _dfs = []
+    _mcqs = []
+    _df_results = []
+    
+    # Different seeds used in experiments
+    seeds = [0, 1, 2, 3, 4, 5, 6]
+    name = "feb5"
+    
+    # Get results for each seed
+    for seed in seeds:
+        df, _, name = run_experiments._exp_0207_round1(seed=seed)
+        mcqs, mcqs_question, mcqs_choices, keys_question, df_results = get_refined_bot_mcqs(
+            name, run_number=1)
+        _dfs.append(df)
+        _mcqs.append(mcqs)
+        _df_results.append(df_results)
+    
+    # Combine results from all runs
+    df = pd.concat(_dfs)
+    df_results = pd.concat(_df_results).reset_index(drop=True)
+    mcqs = [m for sublist in _mcqs for m in sublist]  # flatten list of lists
+    
+    return df, mcqs, df_results, name
+
+
 if __name__ == "__main__":
 
     # config of whats in the other script
@@ -758,13 +788,14 @@ if __name__ == "__main__":
             # df_questions, mcqs, df_results, name = get_all(iters=9)
             # df_questions, mcqs, df_results, name = get_all(iters=10)
             # df_questions, mcqs, df_results, name = get_all_redo(iters=4)
-            df_questions, mcqs, df_results, name = get_all_redo(iters=5)
+            # df_questions, mcqs, df_results, name = get_all_redo(iters=5)
+            df_questions, mcqs, df_results, name = get_all_feb5()
 
             running_all = True  # if `get_all`, merging later is different
             # running_all = False
 
-            # if 0:
-            if 1:
+            if 0:
+            # if 1:
                 pass
                 # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_best_5()
                 # df_questions, df_results, mcqs, name, run_number = exp_1103_test150_multieval_150_best4(multi_eval=3)
@@ -796,16 +827,16 @@ if __name__ == "__main__":
                 # df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round2_o1mini(
                 # 	seed=0)
                 # df_questions, _, name = run_experiments.exp_1109_dspy_full_after_round4_o1(seed=0)
-                df_questions, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter1(
-                    seed=0)
+                # df_questions, _, name = run_experiments.exp_1110_redo_4o_fromiter1_iter1(seed=0)
+                # df_questions, _, name = run_experiments._exp_0207_round1(seed=0)
 
                 # get the mcqs
-                mcqs, _, _, keys_question, df_results = get_refined_bot_mcqs(
-                    name, run_number)
+                # mcqs, _, _, keys_question, df_results = get_refined_bot_mcqs(
+                #     name, run_number)
 
-                df_results['mcqs'] = mcqs
-                assert np.array_equal(df_questions['key_question'].values,
-                                      keys_question)
+                # df_results['mcqs'] = mcqs
+                # assert np.array_equal(df_questions['key_question'].values,
+                #                       keys_question)
                 # print("*" * 80)
                 # print(f"warning ... keys_question doesn't quite match {len(df_questions)}")
                 # print("*" * 80)
@@ -851,6 +882,8 @@ if __name__ == "__main__":
 
             # if doing 'all', cannot merge on question_index bc there are multiple instances per question
             if running_all:
+
+                assert len(df_questions) == len(df_results)
                 df_eval = df_questions.merge(df_results,
                                              left_index=True,
                                              right_index=True,

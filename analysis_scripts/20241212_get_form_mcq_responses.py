@@ -440,7 +440,11 @@ def compare_dataset_to_eval():
 def filter_for_qs_matching_df():
     df_merge_eval = compare_dataset_to_eval()
     df_same = df_merge_eval[df_merge_eval['same']]
-    df_same_and_reviewed = df_same[df_same['is_best_answer']]
+    # Add both filters for is_best_answer and is_same_topic being True
+    df_same_and_reviewed = df_same[
+        (df_same['is_best_answer']) & 
+        (df_same['is_same_topic'] == True)  # Explicitly check for True
+    ]
 
     cols = [
         "key_question_x",
@@ -460,16 +464,79 @@ def filter_for_qs_matching_df():
     df_final = df_same_and_reviewed[cols]
     # next line 
     df_final = df_final.rename(columns={
-	    'key_question_x': 'key_question',
-	    'key_image_x': 'key_image',
-	    'description_question_answer_x': 'description_question_answer'
-	})
+        'key_question_x': 'key_question',
+        'key_image_x': 'key_image',
+        'description_question_answer_x': 'description_question_answer'
+    })
     df_final = df_final.sort_values('key_question')
     df_final.to_csv(dir_results/"final_qs_jan26.csv", index=False)
-    ipdb.set_trace()
     pass
 
 
+def get_filtered_items_for_review():
+    df_merge_eval = compare_dataset_to_eval()
+    df_same = df_merge_eval[df_merge_eval['same']]
+    
+    # Get items that failed either condition
+    df_needs_review = df_same[
+        ~((df_same['is_best_answer']) & 
+          (df_same['is_same_topic'] == True))
+    ]
+    
+    # Load both exclusion datasets
+    url1 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGw_NPBcbu_tGelzMaBxPbWI0I5R_7y1VWrEsR2Z-rNhKSFV1FR1UiylwMJ80LwhY9YW-B8bELC42e/pub?gid=0&single=true&output=csv"
+    url2 = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQGw_NPBcbu_tGelzMaBxPbWI0I5R_7y1VWrEsR2Z-rNhKSFV1FR1UiylwMJ80LwhY9YW-B8bELC42e/pub?gid=0&single=true&output=csv"
+    
+    df_exclude1 = pd.read_csv(url1)
+    df_exclude2 = pd.read_csv(url2)
+    
+    # Combine question keys from both exclusion datasets
+    exclude_keys = set(df_exclude1['key_question'].unique()) | set(df_exclude2['key_question'].unique())
+    
+    # Further filter to remove questions with excluded keys
+    df_needs_review = df_needs_review[~df_needs_review['key_question_x'].isin(exclude_keys)]
+    
+    # Keep all original columns from df_data plus key review columns
+    review_cols = [
+        'key_question_x',
+        'question',
+        'mcq_str',
+        'is_best_answer',
+        'is_same_topic',
+        'description',
+        'email',
+        'set',
+        'idx',
+        'question_0',
+        'answer_0',
+        'question_1',
+        'choices_1',
+        'correct_index_1',
+        'question_2',
+        'choices_2',
+        'correct_index_2'
+    ]
+    
+    df_review = df_needs_review[review_cols]
+    
+    # Rename columns for clarity
+    df_review = df_review.rename(columns={
+        'key_question_x': 'key_question',
+        'key_image_x': 'key_image',
+        'description_question_answer_x': 'description_question_answer'
+    })
+    
+    # Sort by key_question for easier review
+    df_review = df_review.sort_values('key_question')
+    
+    # Save to CSV
+    df_review.to_csv(dir_results/"review_round1_jan26.csv", index=False)
+    
+    print(f"Saved {len(df_review)} items that need review")
+    return df_review
+
+
 #
-filter_for_qs_matching_df()
+# filter_for_qs_matching_df()
+get_filtered_items_for_review()
 pass

@@ -25,21 +25,23 @@ dir_results.mkdir(exist_ok=True, parents=True)
 # df_questions = df_stage_1
 from benchmark.graduate_samples.combine_dataset import get_full_dataset_before_review, get_naive_choices_data
 df_questions, mcqs = get_full_dataset_before_review()
-ipdb.set_trace()
+# ipdb.set_trace()
 
 seed = 11
 seed = 10
-key_prompt_eval = 1 # 0 means with images, 1 means without
+key_prompt_eval = 0 # 0 means with images, 1 means without
 DO_STAGE1_EVAL = 0
 DO_NAIVE_DISTACTOR_GEN = 0
 models = ["gpt-4o-2024-08-06", "anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5", "Qwen/Qwen2-VL-72B-Instruct"]
 apis = ["openai", "openrouter", "openrouter", "hyperbolic"]
 models = ["gpt-4o-2024-08-06", "anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5"]#, "Qwen/Qwen2-VL-72B-Instruct"]
 apis = ["openai", "openrouter", "openrouter", "hyperbolic"]
-models = ["mistralai/pixtral-large-2411"]
-apis = ['openrouter']
-models = ['o1-mini-2024-09-12']
-apis = ["openai"]
+models = ["google/gemini-pro-1.5",]
+apis = ["openrouter",]
+# models = ["mistralai/pixtral-large-2411"]
+# apis = ['openrouter']
+# models = ['o1-mini-2024-09-12']
+# apis = ["openai"]
 # models = ["Qwen/Qwen2-VL-72B-Instruct",  "google/gemini-pro-1.5"]
 # apis = ["hyperbolic",  "openrouter"]
 # models = ["Qwen/Qwen2-VL-72B-Instruct"]
@@ -117,6 +119,7 @@ for model, api in zip(models, apis):
     acc = (gts == preds).sum() / len(gts)
     print(f"Acc VQA {acc:.4f} on {len(gts)} samples")
     df_questions['correct'] = (gts == preds).astype(int)
+    ipdb.set_trace()
     # accuracy by iteration
 
     df_question_original = pd.read_csv("benchmark/data/formdata_0/4_questions.csv")

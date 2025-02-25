@@ -24,7 +24,9 @@ model_gpt4omini = "gpt-4o-mini-2024-07-18"
 lookup_dfs = {
  "1103_naive_kq3_kc9": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=1999709323&single=true&output=csv",
  "dspy_o1-mini_CoTRAG" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=2096678925&single=true&output=csv",
- "dspy_o1-mini_CoTRAG_FULL_nov5" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=1953831301&single=true&output=csv"
+ "dspy_o1-mini_CoTRAG_FULL_nov5" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vTf4Xzjcosbjdt12M_AyGLP4UimHXZ6uEGK7WDdkAg97ErKuBswkXkmr55CEhMWl3R8FUlEap0AS-1P/pub?gid=1953831301&single=true&output=csv",
+ # this is the last 50 or so quesitons
+ "feb5" : "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5VP4RdJqTkleK-AGVUTPMAzAeM64IsMawG_w5ghSnvqQ_2hfEjPBZcUIKplzS7qeJKEVUVxSiazdh/pub?gid=1858657171&single=true&output=csv",
 }
 
 max_iters = 3
@@ -97,7 +99,7 @@ def get_df_from_key(key, overwrite=False):
 	_download_csv(url, f_csv, overwrite=overwrite)
 	df = pd.read_csv(f_csv)
 
-	# align the dspy name alignment with the new one
+	# align the dspy name alignment with the new one - these were from stage 1 
 	if 'dspy' in key:
 		assert 'question' not in df.columns
 		assert 'choices' not in df.columns
@@ -118,6 +120,37 @@ def get_df_from_key(key, overwrite=False):
 
 	df['key_question'] = df['key_question'].astype(int)
 	df['key_image'] = df['key_image'].astype(int)
+
+	# these are stage 1 format 
+	if key == "feb5":
+		# Split the revised_question_answer into components
+		splits = [s.split("\n\n") for s in df['revised_question_answer']]
+		
+		# Extract question, options, and answer
+		questions = ["\n\n".join(parts[:-2]) for parts in splits]
+		# Remove the "Question:\n```" prefix
+		df['question'] = [q.replace("Question:\n```", "").strip() for q in questions]
+		
+		# Parse options into list format
+		options = [parts[-2].split("\n") for parts in splits]
+		df['options'] = [[opt[3:].strip() for opt in option_group] for option_group in options] # remove the leading A. or B. or whatver
+
+		# Get correct answer and convert to index (A=0, B=1, etc)
+		answer_letters = [parts[-1][16] for parts in splits]
+		# Create explicit mapping from letters to indices
+		letter_to_index = {letter: idx for idx, letter in enumerate(list('ABCDE'))}
+		
+		# Map answer letters to indices with explicit error if letter not found
+		df['correct_index'] = [letter_to_index[ans] for ans in answer_letters]
+		
+		# Create choices column in the same format as dspy
+		df['choices'] = [{
+			'choices': ops,
+			'correct_index': c
+		} for (ops, c) in zip(df['options'], df['correct_index'])]
+		df['choices'] = [json.dumps(c) for c in df['choices']]
+		
+		df['use_case'] = -1
 
 	return df
 
@@ -597,6 +630,24 @@ def exp_1110_redo_4o_fromiter1_iter4_b(seed):
 
 	return df, cfg, name
 
+
+def _exp_0207_round1(seed):
+	"""
+	"""
+	# configs
+	name = f"_exp_0207_test_{seed}"
+	cfg = cfg_4o_k1
+	cfg['seed'] = seed
+	cfg['max_iters'] = 3  # because it's expensive
+	cfg['rewrite']['model'] = model_gpt4o
+	cfg['rewrite']['strucured_output_key'] = 1
+
+	# get dataset
+	df = get_df_from_key("feb5", overwrite=True)
+
+	return df, cfg, name
+
+
 import tiktoken
 def count_tokens(text: str, model: str = "gpt-3.5-turbo") -> int:
     """
@@ -619,7 +670,6 @@ def count_tokens(text: str, model: str = "gpt-3.5-turbo") -> int:
     
     tokens = encoding.encode(text)
     return len(tokens)
-
 
 
 
@@ -653,11 +703,6 @@ if __name__ == "__main__":
 	# do_multiprocessing = False
 	do_multiprocessing = True
 
-	df = get_df_from_key("dspy_o1-mini_CoTRAG_FULL_nov5", overwrite=True)
-	ipdb.set_trace()
-	lst = [count_tokens(t) for t in df['revised_question_answer']]
-	pass
-
 	## run this experiment
 	# df, cfg, name = exp_1103_test150(seed=0)
 
@@ -670,7 +715,7 @@ if __name__ == "__main__":
 	# if 1:
 	# for seed in [0]:
 	# for seed in [0]:
-	for seed in [1, 2, 3, 4, 5, 6]:
+	for seed in [0, 1, 2, 3, 4, 5, 6]:
 		# df, cfg, name = exp_1105_test150_dspy_o1mini(seed=seed)
 
 		# df, cfg, name = exp_1103_test150_multieval_150(seed=seed, multi_eval=3)
@@ -686,10 +731,11 @@ if __name__ == "__main__":
 		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter1(seed=seed)
 		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter3(seed=seed)
 		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter4(seed=seed)
-		df, cfg, name = exp_1110_redo_4o_fromiter1_iter4_b(seed=seed)
+		# df, cfg, name = exp_1110_redo_4o_fromiter1_iter4_b(seed=seed)
 		# ipdb.set_trace()
 		# pass
 
+		df, cfg, name = _exp_0207_round1(seed=seed)
 		dir_results = dir_results_parent / f"{name}"
 		dir_results.mkdir(exist_ok=True, parents=True)
 		# df = df.iloc[:25]

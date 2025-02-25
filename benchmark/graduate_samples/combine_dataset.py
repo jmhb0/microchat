@@ -33,7 +33,7 @@ def get_full_dataset_before_review():
     # stage 2 round 1
     # yapf: disable
     lookup_dfs_rnd1 = {
-     # 1 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS2hKctARf4rPu3JqRLDaJB7kw5oM9_1EKRIxs3Y8NcP4XydozenDxNME51Gqxv-N50xDt_xSvF4o68/pub?gid=0&single=true&output=csv",
+    #  1 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS2hKctARf4rPu3JqRLDaJB7kw5oM9_1EKRIxs3Y8NcP4XydozenDxNME51Gqxv-N50xDt_xSvF4o68/pub?gid=0&single=true&output=csv",
      2 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS2hKctARf4rPu3JqRLDaJB7kw5oM9_1EKRIxs3Y8NcP4XydozenDxNME51Gqxv-N50xDt_xSvF4o68/pub?gid=1390108749&single=true&output=csv",
      3 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS2hKctARf4rPu3JqRLDaJB7kw5oM9_1EKRIxs3Y8NcP4XydozenDxNME51Gqxv-N50xDt_xSvF4o68/pub?gid=1479678577&single=true&output=csv",
      4 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vS2hKctARf4rPu3JqRLDaJB7kw5oM9_1EKRIxs3Y8NcP4XydozenDxNME51Gqxv-N50xDt_xSvF4o68/pub?gid=426703324&single=true&output=csv",
@@ -84,9 +84,38 @@ def get_full_dataset_before_review():
     df_rnd2['iter'] = iter_lst
     df_rnd2 = df_rnd2.groupby('key_question', as_index=False).first()
 
+
+    # add hte final round 3 with the extra 50 or so questions at the end 
+    # stage 2 round 3
+    lookup_dfs_rnd3 = {
+        1 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdIyftTOVV6FJE6_dFvjKHAwONMOzoADwbmEmqdAup9zGO3HofsOyFxI5mPJ4r0_8dhTmkCDp0V7XK/pub?gid=1955291571&single=true&output=csv",
+        2 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdIyftTOVV6FJE6_dFvjKHAwONMOzoADwbmEmqdAup9zGO3HofsOyFxI5mPJ4r0_8dhTmkCDp0V7XK/pub?gid=2097113111&single=true&output=csv",
+        3 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdIyftTOVV6FJE6_dFvjKHAwONMOzoADwbmEmqdAup9zGO3HofsOyFxI5mPJ4r0_8dhTmkCDp0V7XK/pub?gid=184722045&single=true&output=csv",
+        4 : "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdIyftTOVV6FJE6_dFvjKHAwONMOzoADwbmEmqdAup9zGO3HofsOyFxI5mPJ4r0_8dhTmkCDp0V7XK/pub?gid=902980836&single=true&output=csv",
+    }
+        
+    iter_lst = []
+    dfs = []
+    for iter_ in range(1, 5):
+        url = lookup_dfs_rnd3[iter_]
+        dir_data = dir_results_parent / "data"
+        dir_data.mkdir(exist_ok=True)
+        output_path = dir_data / f"data_rnd3_iter_{iter_}.csv"
+        _download_csv(url, output_path, overwrite=False)
+        df = pd.read_csv(output_path)
+        dfs.append(df)
+        iter_lst += [f"3.{iter_}"] * len(df)
+    df_rnd3 = pd.concat(dfs)
+    df_rnd3['iter'] = iter_lst
+    df_rnd3 = df_rnd3.groupby('key_question', as_index=False).first()
+
     # combine
-    df_stage_2 = pd.concat([df_rnd1, df_rnd2])
+    df_stage_2 = pd.concat([df_rnd1, df_rnd2, df_rnd3])
     df_stage_2 = df_stage_2.set_index('key_question', drop=False)
+    
+    # hack, but add rnd3 to stage 1, since the stage1 is pulling from data before the final round of questions came in 
+    df_stage_1 = pd.concat([df_stage_1, df_rnd3])
+    df_stage_1 = df_stage_1.set_index('key_question', drop=False)
 
     # construct the full dataset
     mcqs = []
@@ -169,6 +198,7 @@ def get_mean_n_choices(df_questions):
 if __name__ == "__main__":
     get_naive_choices_data()
     df_questions, mcqs = get_full_dataset_before_review()
+    ipdb.set_trace()    
     # df_questions.to_csv("benchmark_nov11.csv")
     get_mean_n_choices(df_questions)
     ipdb.set_trace()
