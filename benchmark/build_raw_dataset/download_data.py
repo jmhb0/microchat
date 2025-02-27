@@ -282,8 +282,9 @@ def download_images_from_csv(dir_data, df, verbose=0):
 
     for row_index, drive_link in tqdm.tqdm(drive_links.items(),
                                            total=len(drive_links)):
-        # if row_index not in (74,75):
-        if row_index not in (90,91,92):
+        #if row_index not in (73,74,75):
+        if row_index not in (66,):
+        # if row_index not in (90,91,92):
         # if row_index not in (10,):# or row_index < 229:
             continue
 

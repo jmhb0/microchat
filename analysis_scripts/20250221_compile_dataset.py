@@ -15,6 +15,7 @@ from PIL import Image
 from datasets.features import Image as ImageFeature
 import PIL
 import io
+from tqdm import tqdm
 
 
 
@@ -48,7 +49,7 @@ dir_results.mkdir(exist_ok=True, parents=True)
 
 
 ### get the questions 
-DOWNLOAD = 1
+DOWNLOAD = 0
 if DOWNLOAD:
     download_csv(url_passed1, dir_results / "passed1.csv")
     download_csv(url_passed2, dir_results / "passed2.csv")
@@ -107,48 +108,58 @@ def get_mcq_from_str(text):
         'correct_index': correct_index
     }
 
-key_questions_skipped  = []
-key_questions_reviewed = []
+# Create a combined dataframe from review dataframes
+df_review_all = pd.concat([
+    df_questions_before_review.loc[df_review1['key_question']],
+    df_questions_before_review.loc[df_review2['key_question']],
+    df_questions_before_review.loc[df_review3['key_question']]
+])
+df_review_all['question_3'] = None
+df_review_all['choices_3'] = None
+df_review_all['correct_index_3'] = None
 
-for df in (df_review1, df_review2, df_review3):
-    df['question'] = None
-    df['choices'] = None
-    df['question_3'] = None
-    df['choices_3'] = None
-    for i, row in df.iterrows():
+# Process the revised MCQs
+key_questions_skipped = []
+key_questions_reviewed = []
+for df_review in (df_review1, df_review2, df_review3):
+    for i, row in df_review.iterrows():
         if row['revised_mcq_str'] == '' or pd.isna(row['revised_mcq_str']):
             key_questions_skipped.append(row['key_question'])
             continue
+        if row['image_error'] == True:
+            print("image error")
+            key_questions_skipped.append(row['key_question'])
+            continue
+            
         key_questions_reviewed.append(row['key_question'])
         ret = get_mcq_from_str(row['revised_mcq_str'])
-        df.at[i, 'question'] = ret['question']
-        df.at[i, 'choices'] = ret['choices']
-        df.at[i, 'correct_index'] = ret['correct_index']
-        df.at[i, 'question_3'] = ret['question']
-        df.at[i, 'choices_3'] = ret['choices']
-        df.at[i, 'correct_index_3'] = ret['correct_index']
+        
+        # Update the values in df_review_all
+        df_review_all.at[row['key_question'], 'question'] = ret['question']
+        df_review_all.at[row['key_question'], 'choices'] = ret['choices']
+        df_review_all.at[row['key_question'], 'correct_index'] = ret['correct_index']
+        df_review_all.at[row['key_question'], 'question_3'] = ret['question']
+        df_review_all.at[row['key_question'], 'choices_3'] = ret['choices']
+        df_review_all.at[row['key_question'], 'correct_index_3'] = ret['correct_index']
+# filter out the skipped questions
+df_review_all = df_review_all[~df_review_all.index.isin(key_questions_skipped)]
 print(f"Rows for review: reviewed ", len(key_questions_reviewed))
-
-df = pd.concat([df_passed1, df_passed2, df_review1, df_review2, df_review3])
-
-
+df = pd.concat([df_passed1, df_passed2, df_review_all])
 df = df.set_index('key_question')
 print(f"Total data size before filtering unreviewed: {len(df)}")
 print(f"Total skipped questions: {len(key_questions_skipped)}")
 print(f"Total reviewed questions: {len(key_questions_reviewed)}")
-idxs_keep = set(df.index) - set(key_questions_skipped)
-assert len(idxs_keep) == len(df) - len(key_questions_skipped)
-df = df.loc[list(idxs_keep)]
+assert len(key_questions_skipped) + len(df) == len(df_questions_before_review)
 print("dataset size after filtering unreviewed: ", len(df))
 
+
 # filter stuff
-cols_keep = ['question', 'choices', 'correct_index', 'question_1', 'choices_1',
-              'correct_index_1', 'question_2', 'choices_2', 'correct_index_2', 
+cols_keep = ['question', 'choices', 'correct_index', 
+             'question_1', 'choices_1', 'correct_index_1', 
+            'question_2', 'choices_2', 'correct_index_2', 
               'question_3', 'choices_3', 'correct_index_3']
 df = df[cols_keep]
 
-# remove the "Question 1:\n" from question_1
-df['question_1'] = df['question_1'].str.replace('Question:\n', '')
 
 # get df_questions_src: 
 # rename question, answer, comments, and incorrect_answer   to question_0, answer_0, comments_0, and incorrect_answer_0
@@ -180,7 +191,8 @@ df_questions_src = df_questions_src[cols_to_keep]
 df = df.merge(df_questions_src, on='key_question', how='left')
 
 # join on df_images_src
-cols_to_keep = ['key_image', 'fnames_images', 'Context - image generation', 'Context - motivation', 'Images - source 1', 'Images source 2',  'caption', 'key_person']
+cols_to_keep = ['key_image', 'fnames_images', 'Context - image generation', 'Context - motivation', 
+                'Images - source 1', 'Images source 2',  'caption', 'key_person']
 df_images_src = df_images_src[cols_to_keep]
 # rename cols 
 df_images_src = df_images_src.rename(columns={
@@ -251,6 +263,34 @@ def df_harmonize_choices_type(df):
 # Add this line after the merge operations and before creating the Dataset
 df = df_harmonize_choices_type(df)
 
+# remove the "Question 1:\n" from question_1
+df['question_1'] = df['question_1'].str.replace('Question:\n', '')
+
+def _shuffle_key_image(df):
+    """shuffle the images around so that we don't have the basic images first. But still keep the rows with same image key together """
+    # Specify the desired first key_images
+    first_key_images = [51, 234, 128, 226, 117, 99]
+    
+    # Get unique key_images excluding the first ones
+    unique_key_images = df['key_image'].unique()
+    remaining_key_images = [k for k in unique_key_images if k not in first_key_images]
+    
+    # Shuffle the remaining key_images
+    rng = np.random.default_rng(42)  # Set seed for reproducibility
+    shuffled_remaining = rng.permutation(remaining_key_images)
+    
+    # Combine first_key_images with shuffled remaining ones
+    shuffled_key_images = first_key_images + list(shuffled_remaining)
+    
+    # Create a new dataframe by concatenating blocks of rows with the same key_image
+    # in the shuffled order
+    shuffled_df = pd.concat([
+        df[df['key_image'] == key_image] for key_image in shuffled_key_images
+    ]).reset_index(drop=True)
+    
+    return shuffled_df
+df = _shuffle_key_image(df)
+
 # Cast correct_index columns to int
 correct_index_cols = [col for col in df.columns if col.startswith('correct_index')]
 for col in correct_index_cols:
@@ -278,6 +318,7 @@ if 0:
     images = images[24:28]
 dataset = Dataset.from_pandas(df)
 
+
 # Add images list column and set features
 def pil_to_bytes(pil_img):
     with io.BytesIO() as output:
@@ -286,20 +327,34 @@ def pil_to_bytes(pil_img):
 
 images_as_bytes = [
     [pil_to_bytes(img) for img in image_list]
-    for image_list in images
+    for image_list in tqdm(images, desc="Converting images to bytes")
 ]
 
 current_columns = dataset.column_names
 dataset = dataset.add_column("images_list", images_as_bytes)
+
+# Create a new feature dict and cast in chunks
 features = dataset.features.copy() if dataset.features is not None else {}
 features["images_list"] = datasets.Sequence(datasets.Image())
-dataset = dataset.cast(features)
-# and reorder the columns
+
+# Cast in chunks
+CHUNK_SIZE = 50  # Adjust this value based on your memory constraints
+num_samples = len(dataset)
+chunks = []
+
+for i in range(0, num_samples, CHUNK_SIZE):
+    chunk = dataset.select(range(i, min(i + CHUNK_SIZE, num_samples)))
+    chunk = chunk.cast(features)
+    chunks.append(chunk)
+
+# Concatenate all chunks
+dataset = datasets.concatenate_datasets(chunks)
+
+# Reorder the columns
 new_column_order = current_columns[:2] + ["images_list"] + current_columns[2:]
 dataset = dataset.select_columns(new_column_order)
 
-ipdb.set_trace()
-dataset.push_to_hub('jmhb/microvqa')
+dataset.push_to_hub('jmhb/microvqa_0', max_shard_size="500MB")
 ipdb.set_trace()
 pass
 # put `df`
