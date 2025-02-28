@@ -227,9 +227,7 @@ class CSVDataset(Dataset):
         # strip ending newline or whitespace
         df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
 
-        # assert question_key, answer_key
-        col_set_diff = set([question_key, answer_key]) - set(df.columns)
-        if col_set_diff:
+        if col_set_diff := {question_key, answer_key} - set(df.columns):
             raise ValueError(
                 f"DataFrame {filepath} does not have columns {col_set_diff}."
             )
@@ -337,8 +335,6 @@ class CSVDataset(Dataset):
                 elif k in {
                     "key_image",
                     "key_question",
-                    "blooms_reasoning",
-                    "blooms_source",
                 }:
                     example[k] = raw_example[k]
                 elif k in {"organism", "specimen", "research_subject"}:
