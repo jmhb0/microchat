@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from microchat import LOG_DIR
-from microchat.fileio.binary.readers import pickle_reader
 
 
 def hex_to_rgb(hex_color: str, opacity: float = 1.0) -> tuple:

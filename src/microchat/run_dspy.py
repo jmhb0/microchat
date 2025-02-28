@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """run_dspy.py in src/microchat."""
-import os
+import pprint
 from pathlib import Path
 from typing import Optional
 import click
 import pandas as pd
+
 from dotenv import find_dotenv
 from dotenv import load_dotenv
 
 from loguru import logger
+from tqdm import tqdm
 
 import dspy
 from dspy.evaluate.evaluate import Evaluate
@@ -21,6 +23,7 @@ from microchat.fileio.text.writers import yaml_writer
 from microchat.metrics.mcq_metric import (
     validate_blooms,
     validate_nbme,
+    validate_tagging,
 )
 from microchat.models.dspy_modules import CoTSelfCorrectRAG, CoTRAG
 from microchat.models.model_factory import create_model
@@ -47,10 +50,13 @@ try:
 except ImportError as e:
     logger.warning("Langtrace not installed.")
 
+# import openai
+# import random
+# from random import shuffle
 
 @click.command()
 @click.argument("dataset_name", type=click.STRING)  # blooms.csv
-@click.option("--model", type=click.STRING, default="gpt_4_turbo")
+@click.option("--model", type=click.STRING, default="o1-mini")
 @click.option("--teacher-model", type=click.STRING, default="o1-mini")
 @click.option("--retrieval-model", type=click.STRING, default=None)
 @click.option("--optimizer", type=click.STRING, default="miprov2")
