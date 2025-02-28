@@ -181,7 +181,7 @@ class CoTSelfCorrectRAG(BaseRAG):
                     question=self_check_question, context=self.context
                 )
         else:
-            logger.error(f"Teacher model not found in settings.")
+            logger.error("Teacher model not found in settings.")
 
         return assess_response
 
@@ -215,7 +215,7 @@ class CoTSelfCorrectRAG(BaseRAG):
                     question=self_check_question, context=self.context
                 )
         else:
-            logger.error(f"Teacher model not found in settings.")
+            logger.error("Teacher model not found in settings.")
 
         # compare the initial prediction with the self-assessment
         return assess_response

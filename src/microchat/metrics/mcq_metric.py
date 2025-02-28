@@ -67,7 +67,7 @@ def validate_nbme(example, pred, trace=None, train=True):
     try:
         mcq = MCQ(example=example, prediction=pred)
     except Exception as e:
-        logger.error(f"Error creating MCQ")
+        logger.error("Error creating MCQ")
         return 0
 
     # weighted score based on level, name, and self-assessment match

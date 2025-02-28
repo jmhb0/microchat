@@ -192,7 +192,7 @@ def main(
                     f"Example {idx}:\nGT\t{response.gt_level}\nPred\t{response.blooms_level} ({response.blooms_confidence:.2f})"
                 )
                 output_file = output_dir.joinpath(
-                    f"blooms_classification_finetuning_v2_temp.csv"
+                    "blooms_classification_finetuning_v2_temp.csv"
                 )
                 temp_output_df = pd.DataFrame(output_list)
                 temp_output_df.to_csv(
@@ -205,7 +205,7 @@ def main(
                 f"Error with example {example.key_image} {example.key_question}: {e}"
             )
             output_file = output_dir.joinpath(
-                f"blooms_classification_finetuning_v2_temp.csv"
+                "blooms_classification_finetuning_v2_temp.csv"
             )
             temp_output_df = pd.DataFrame(output_list)
             temp_output_df.to_csv(

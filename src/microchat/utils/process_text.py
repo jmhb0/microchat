@@ -29,7 +29,7 @@ def process_blooms(
     blooms_name = None
     blooms_verb = answer  # default to answer if not found
     blooms_level = -1
-    if match := re_blooms_compiled.search(answer):
+    if match := re_blooms_compiled.search(blooms_verb):
         # find the blooms verb from the match
         blooms_verb = match.group().lower()
         # find the level of the blooms taxonomy from blooms_dict
@@ -41,8 +41,7 @@ def process_blooms(
         # although the blooms verb is more descriptive
         blooms_name = blooms_dict[blooms_level][0]
     else:
-        logger.warning(f"Bloom's taxonomy level not found: {answer}")
-
+        logger.warning(f"Bloom's taxonomy level not found: {blooms_verb}")
     return blooms_level, blooms_name, blooms_verb
 
 

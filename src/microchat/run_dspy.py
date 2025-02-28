@@ -140,8 +140,8 @@ def main(
         eval_metric = dspy.evaluate.answer_exact_match
         subset = [question_key, answer_key]
     elif task == "nbme":
-        question_key = "original_question_answer"
-        answer_key = "revised_question_answer"
+        question_key = "question"  # "original_question_answer"
+        answer_key = "answer"  # "revised_question_answer"
         metric = validate_nbme
         eval_metric = validate_nbme
         subset = [question_key, answer_key]
@@ -162,7 +162,6 @@ def main(
         raise NotImplementedError(f"Task {task} not implemented.")
 
     # instantiate dataset
-    subset = [question_key, answer_key]
     dataset = create_dataset(
         dataset_name, subset=subset, question_key=question_key, answer_key=answer_key
     )
@@ -170,16 +169,16 @@ def main(
     # Tell DSPy that the 'question' field is the input. Any other fields are labels and/or metadata.
     trainset = [x.with_inputs("context", "question") for x in dataset.train]
     devset = [x.with_inputs("context", "question") for x in dataset.dev]
-    if len(trainset) == 0 or len(devset) == 0:
+    if not trainset or not devset:
         logger.error(f"Empty dataset: {dataset_name}")
         raise ValueError(f"Empty dataset: {dataset_name}")
 
     print(f"{len(trainset)}, {len(devset)}")
-
-    train_example = trainset[0]
-    dev_example = devset[0]
-    logger.debug(f"Train question: {train_example.question}")
-    logger.debug(f"Train answer: {train_example.answer}")
+    #
+    # train_example = trainset[0]
+    # dev_example = devset[0]
+    # logger.debug(f"Train question: {train_example.question}")
+    # logger.debug(f"Train answer: {train_example.answer}")
 
     # Set up a teleprompter/optimizer, which will compile our RAG program.
     optimizer, metric = create_optimizer(

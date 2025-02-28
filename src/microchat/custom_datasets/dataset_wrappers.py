@@ -128,10 +128,13 @@ class MicroChatWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["original_question", "revised_question"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["original_question", "revised_question"]
+
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -157,13 +160,15 @@ class MicroChatV2Wrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = ,
+        dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["original_question", "revised_question"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["original_question", "revised_question"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -189,13 +194,15 @@ class Mol_Bio_CellWrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = ,
+        dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -221,13 +228,15 @@ class MicroBenchWrapper(BaseDataWrapper):
     # @staticmethod
     def __call__(
         self,
-        dataset_name: Optional[str],  # = ,
+        dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -255,10 +264,12 @@ class BloomsWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -286,10 +297,12 @@ class Blooms_PostBotWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -317,10 +330,12 @@ class Other_BloomsWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -348,10 +363,12 @@ class NBME_BloomsWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():
@@ -379,10 +396,12 @@ class Organism_ResearchWrapper(BaseDataWrapper):
         dataset_name: Optional[str],
         random_seed: Optional[int] = RANDOM_SEED,
         root: Optional[str] = None,
-        subset: Optional[list] = ["question_stem", "correct_answer"],
+        subset: Optional[list] = None,
         **kwargs: Optional[dict],
     ) -> dspy.datasets.Dataset:
         """Create a MicroChat dataset object."""
+        if subset is None:
+            subset = ["question_stem", "correct_answer"]
         root = root or Path(os.getenv("DATA_ROOT"))
         filepath = self.filepath
         if not Path(filepath).exists():

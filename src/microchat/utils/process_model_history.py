@@ -43,14 +43,14 @@ def history_to_jsonl(
             role = message["role"]
             content = message["content"].strip()
 
-            if role == "user":
-                formatted_output.append("\n") if idx == 0 else None
-                formatted_output.append(
-                    f"----- Example {idx:} -----\nUser message:\n" + content
-                )
-            elif role == "assistant":
+            if role == "assistant":
                 formatted_output.append("\nAssistant message:\n" + content)
 
+            elif role == "user":
+                formatted_output.append("\n") if idx == 0 else None
+                formatted_output.append(
+                    f"----- Example {idx:} -----\nUser message:\n{content}"
+                )
         # If there's a 'response' in data, include it as the final assistant message
         if (
             "response" in data

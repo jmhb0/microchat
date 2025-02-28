@@ -265,7 +265,6 @@ def create_mcq_graphics(
             context.stroke()
             context.set_line_width(1)
 
-
         if idx == prediction:
             # color box border (all sides)
             pred_color = "#008000" if idx == correct_index else "#FF0000"  # 00FF00
@@ -394,7 +393,6 @@ def create_mcq_graphics(
 
             # resize disp_img to have same height as img
 
-
             # extend canvase to right to include disp_img on right
             new_img = PIL.Image.new(
                 "RGB",
@@ -404,9 +402,7 @@ def create_mcq_graphics(
             # add img left
             new_img.paste(img, (0, 0))
             # add disp_img right, center vertically
-            new_img.paste(
-                disp_img, (img.width, (img.height - disp_img.height) // 2)
-            )
+            new_img.paste(disp_img, (img.width, (img.height - disp_img.height) // 2))
 
             new_img.save(output_path)
 
@@ -475,6 +471,7 @@ def main(
         "specimen",
         "research_subject",
     ]
+    filter_options = True
     for idx, row in tqdm(df.iterrows(), total=len(df)):
         key_image = int(row["key_image"])
         key_question = int(row["key_question"])
@@ -505,7 +502,6 @@ def main(
         options = [str(option).strip() for option in options]
         pred_index = row[prediction_key] if prediction_key else None
         correct_index = options.index(answer)
-        filter_options = True
         if filter_options:
             options = [options[correct_index], options[pred_index]]
             correct_index = 0
@@ -659,4 +655,3 @@ if __name__ == "__main__":
 # collage = create_collage(image_paths, width, height, (24, 16))
 # collage.show()
 # collage.save(output_dir.joinpath("collage_2.png"))
-

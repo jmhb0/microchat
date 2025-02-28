@@ -331,7 +331,7 @@ def main(
     else:
         temp_output = output_file.parent.joinpath(f"{output_file.stem}_*.jsonl")
         output_file_list = list(temp_output.parent.glob(f"{temp_output.stem}"))
-        if any([f.exists() for f in output_file_list]):
+        if any(f.exists() for f in output_file_list):
             logger.warning(f"Output file already exists: {temp_output}")
             click.confirm("Do you want to overwrite?", abort=True)
 

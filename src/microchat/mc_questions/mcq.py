@@ -79,7 +79,7 @@ re_parse_prediction_2 = re.compile(
     r"\*?\**D\)\*?\**\s?(?P<option_d>.*?)(?:\s{2,}|\n+)"  # Capture option D
     r"\*?\**E\)\*?\**\s?(?P<option_e>.*?)(?:\s{2,}|\n+)"  # Capture option E
     r"\*?\**F\)\*?\**\s?(?P<option_f>.*?)(?:\s{2,}|\n+)"  # Capture option F
-    r"\*?\**G\)\*?\**\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G    
+    r"\*?\**G\)\*?\**\s?(?P<option_g>.*?)(?:\s{2,}|\n+)"  # Capture option G
     r"\n+\*?\**([Cc]orrect\s)?[Aa]nswer:\*?\**\s?(?P<correct_option>[A-Ga-g])\)?\s?(?P<correct_answer>.*)",  # Capture "Correct answer" and answer option
     re.IGNORECASE | re.DOTALL,  # Allows multi-line matching and case insensitivity
 )
@@ -211,15 +211,7 @@ class MCQ(BaseModel):
             answer=self.prediction_dict.get(answer_key),
         )
 
-        # check for exact match of the answer
-        match = False
-        # try:
-        #     match = dspy.evaluate.answer_exact_match(temp_example, temp_pred)
-        # except Exception as e:
-        #     logger.error(f"Error in exact match evaluation: {e}")
-
-        # exit early if exact match is found
-        if match:
+        if match := False:
             return {
                 "similarity": float(match),
                 "formatted": float(match),
@@ -495,7 +487,7 @@ class MCQ(BaseModel):
             self.metrics = self.compute_metrics(
                 question_key="question", answer_key="correct_answer"
             )
-        except:
+        except Exception:
             logger.warning("Error in computing metrics:")
             logger.warning(f"Example: {self.example}")
             logger.warning(f"Prediction: {self.prediction}")

@@ -99,7 +99,7 @@ def main(
     logger.info(f"Computing text difficulty using metric: {metric}")
 
     # compute reading difficulty for column
-    df[f"consensus_difficulty"] = df[column].apply(
+    df["consensus_difficulty"] = df[column].apply(
         textstat.text_standard, float_output=True
     )
     df["fk_difficulty"] = df[column].apply(textstat.flesch_kincaid_grade)
@@ -108,10 +108,8 @@ def main(
     # raise error if any of the values are NaN, inf or -inf or Zero
     new_cols = ["consensus_difficulty", "fk_difficulty", "fk_reading_ease"]
     if df[new_cols].isin([np.nan, np.inf, -np.inf, 0]).any().any():
-        logger.error(f"Error: NaN, inf, -inf or Zero values found in the dataframe.")
-        raise ValueError(
-            f"Error: NaN, inf, -inf or Zero values found in the dataframe."
-        )
+        logger.error("Error: NaN, inf, -inf or Zero values found in the dataframe.")
+        raise ValueError("Error: NaN, inf, -inf or Zero values found in the dataframe.")
 
     logger.info(
         f"{df[['consensus_difficulty', 'fk_difficulty', 'fk_reading_ease']].describe()}"
