@@ -1,0 +1,5 @@
+batch_id: batch_672ac0cf8a248190867143b9c266b91b
+ file_id: file-5Qg0IeRxSxrbO2UkIsMXG3gQ
+
+
+python 20241030_blooms_tagging.py --dataset_name science_qa --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --batch_id batch_672ac0cf8a248190867143b9c266b91b
