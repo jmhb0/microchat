@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """run_dspy.py in src/microchat."""
-import os
+import pprint
 from pathlib import Path
 from typing import Optional
 import click
 import pandas as pd
+
 from dotenv import find_dotenv
 from dotenv import load_dotenv
 
 from loguru import logger
+from tqdm import tqdm
 
 import dspy
 from dspy.evaluate.evaluate import Evaluate
@@ -21,6 +23,7 @@ from microchat.fileio.text.writers import yaml_writer
 from microchat.metrics.mcq_metric import (
     validate_blooms,
     validate_nbme,
+    validate_tagging,
 )
 from microchat.models.dspy_modules import CoTSelfCorrectRAG, CoTRAG
 from microchat.models.model_factory import create_model
@@ -47,10 +50,13 @@ try:
 except ImportError as e:
     logger.warning("Langtrace not installed.")
 
+# import openai
+# import random
+# from random import shuffle
 
 @click.command()
 @click.argument("dataset_name", type=click.STRING)  # blooms.csv
-@click.option("--model", type=click.STRING, default="gpt_4_turbo")
+@click.option("--model", type=click.STRING, default="o1-mini")
 @click.option("--teacher-model", type=click.STRING, default="o1-mini")
 @click.option("--retrieval-model", type=click.STRING, default=None)
 @click.option("--optimizer", type=click.STRING, default="miprov2")
@@ -140,8 +146,8 @@ def main(
         eval_metric = dspy.evaluate.answer_exact_match
         subset = [question_key, answer_key]
     elif task == "nbme":
-        question_key = "original_question_answer"
-        answer_key = "revised_question_answer"
+        question_key = "question"  # "original_question_answer"
+        answer_key = "answer"  # "revised_question_answer"
         metric = validate_nbme
         eval_metric = validate_nbme
         subset = [question_key, answer_key]
@@ -162,7 +168,6 @@ def main(
         raise NotImplementedError(f"Task {task} not implemented.")
 
     # instantiate dataset
-    subset = [question_key, answer_key]
     dataset = create_dataset(
         dataset_name, subset=subset, question_key=question_key, answer_key=answer_key
     )
@@ -170,16 +175,16 @@ def main(
     # Tell DSPy that the 'question' field is the input. Any other fields are labels and/or metadata.
     trainset = [x.with_inputs("context", "question") for x in dataset.train]
     devset = [x.with_inputs("context", "question") for x in dataset.dev]
-    if len(trainset) == 0 or len(devset) == 0:
+    if not trainset or not devset:
         logger.error(f"Empty dataset: {dataset_name}")
         raise ValueError(f"Empty dataset: {dataset_name}")
 
     print(f"{len(trainset)}, {len(devset)}")
-
-    train_example = trainset[0]
-    dev_example = devset[0]
-    logger.debug(f"Train question: {train_example.question}")
-    logger.debug(f"Train answer: {train_example.answer}")
+    #
+    # train_example = trainset[0]
+    # dev_example = devset[0]
+    # logger.debug(f"Train question: {train_example.question}")
+    # logger.debug(f"Train answer: {train_example.answer}")
 
     # Set up a teleprompter/optimizer, which will compile our RAG program.
     optimizer, metric = create_optimizer(
