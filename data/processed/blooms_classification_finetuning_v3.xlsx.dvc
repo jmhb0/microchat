@@ -1,0 +1,5 @@
+outs:
+- md5: b48136479ca0d7130f7865e14bd96202
+  size: 15833100
+  hash: md5
+  path: blooms_classification_finetuning_v3.xlsx
