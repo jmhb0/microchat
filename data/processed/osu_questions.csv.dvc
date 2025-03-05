@@ -1,0 +1,6 @@
+outs:
+- md5: 6f5bec13c35f04046be62685c76458c2
+  size: 774435
+  isexec: true
+  hash: md5
+  path: osu_questions.csv
