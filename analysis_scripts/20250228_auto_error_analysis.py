@@ -297,8 +297,10 @@ plot_pie_chart(error_df, "Error question tags", fig_save_path)
 
 # # calculate the accuracy
 # correct = eval_df['tag_name'] == eval_df['error_category']
-# accuracy = correct.sum() / len(eval_df)
+# eval_df['tag_correct'] = correct
+# accuracy = (correct.sum() / len(eval_df)) * 100
 # print(f"Accuracy of the model: {accuracy:.2f}")
-
+# # save eval_df to file
+# eval_df.to_csv(manual_df_save_path, index=False)
 # # # use existing tagged df
 # # # eval_df = pd.merge(df[~df['is_correct']], manual_df, on='key_question', how='inner')
