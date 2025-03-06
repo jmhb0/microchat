@@ -72,7 +72,25 @@ Resoning trace:
 {{reasoning}}
 
 Return a json with the following schema, the tag_name is the name of the type:
-""" + json.dumps(TagResponse.schema(), indent=2)
+""" + json.dumps(TagResponse.schema(), indent=2),
+3: # no image ablation
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to an incorrect response. Originally the model was not shown an image with the question. Your task is to use the reasoning trace to tag the error type:
+- Perception: the image was not interpreted correctly.
+- Overgeneralization: the details of the question were ignored and the general case was applied.
+- Hallucination: details were added during reasoning that weren't in the question or extracted from the image.
+- Other: the error does not fit the above categories.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
 }
 
 prompt_correct_tag = {
@@ -128,6 +146,24 @@ Resoning trace:
 
 Return a json with the following schema, the tag_name is the name of the type:
 """ + json.dumps(TagResponse.schema(), indent=2),
+3: # no image ablation
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was not shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
+- No image: the question can be answered without needing to interpret the image.
+- Language shortcut: the question has information that makes the correct option obvious.
+- Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Other: the question is hard to answer or doesn't fit the other classes.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
 }
 
 def replace_prompt(question, correct_idx, reasoning, is_correct=True, key_prompt_error=0, key_prompt_correct=0):
@@ -149,7 +185,7 @@ def plot_hist(df, title, save_path):
     plt.tight_layout()
     plt.savefig(save_path, dpi=200)
 
-def plot_pie_chart(df, title, save_path, col_name='tag_name'):
+def plot_pie_chart(df, title, save_path, col_name='tag_name', color_name='viridis'):
     fig, ax = plt.subplots(figsize=(8, 9))  # Extra height to avoid label clutter
 
     # Count occurrences of each tag
@@ -160,7 +196,7 @@ def plot_pie_chart(df, title, save_path, col_name='tag_name'):
     labels = [f"{tag}\n{count} ({count/total:.1%})" for tag, count in zip(data.index, data.values)]
     
     # Define colors
-    colors = sns.color_palette('viridis', len(data))
+    colors = sns.color_palette(color_name, len(data))
     
     # Explode small slices to avoid overlap
     explode = [0.1 if count/total < 0.1 else 0 for count in data.values]
@@ -177,6 +213,74 @@ def plot_pie_chart(df, title, save_path, col_name='tag_name'):
         x = np.cos(np.radians(angle)) * 1.4  # Move text further out
         y = np.sin(np.radians(angle)) * 1.4
         
+        # Add text label
+        ax.text(x, y, label, ha='center', va='center', fontsize=10, 
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", lw=0.5))
+
+        # Draw a leader line from the wedge to the text
+        ax.plot([np.cos(np.radians(angle)), x], [np.sin(np.radians(angle)), y], 
+                color='gray', linestyle='dotted', linewidth=0.8)
+
+    fig.suptitle(title, fontsize=14, fontweight='bold')  # Moves title well above chart
+
+    # Convert to a donut chart
+    ax.add_artist(plt.Circle((0, 0), 0.70, fc='white'))
+
+    fig.subplots_adjust(top=0.85)  # Adds space above the chart so the title is visible
+    plt.savefig(save_path, dpi=200)
+
+def plot_pie_chart_all(df, title, save_path, col_name='tag_name', by_name='is_correct'):
+    fig, ax = plt.subplots(figsize=(8, 9))  # Extra height to avoid label clutter
+
+    # replace other with other_correct and other_wrong
+    df.loc[(~df[by_name]) & (df[col_name] == 'Other'), col_name] = 'Other_wrong'
+    df.loc[(df[by_name]) & (df[col_name] == 'Other'), col_name] = 'Other_correct'
+
+    # Count occurrences of each tag separately for sorting
+    correct_data = df[df[by_name] == True][col_name].value_counts()
+    wrong_data = df[df[by_name] == False][col_name].value_counts()
+    
+
+    # Concatenate them while maintaining order
+    data = pd.concat([correct_data, wrong_data])
+
+    total = data.sum()
+
+    # Create labels with both count and percentage
+    labels = [f"{tag}\n{count} ({count/total:.1%})" for tag, count in zip(data.index, data.values)]
+
+    # Get the number of unique categories in each group
+    num_correct = correct_data.nunique()
+    num_wrong = wrong_data.nunique()
+
+    # Define color palettes based on the unique number of categories
+    palette_correct = sns.color_palette('Blues', num_correct)
+    palette_wrong = sns.color_palette('Reds', num_wrong)
+
+    # Create a mapping from category to color
+    correct_tags = correct_data.index
+    wrong_tags = wrong_data.index
+
+    colors_map = {tag: palette_correct[i] for i, tag in enumerate(correct_tags)}
+    colors_map.update({tag: palette_wrong[i] for i, tag in enumerate(wrong_tags)})
+
+    colors = [colors_map[tag] for tag in data.index]
+
+    # Explode small slices to avoid overlap
+    explode = [0.1 if count/total < 0.1 else 0 for count in data.values]
+
+    # Plot pie chart with leader lines
+    wedges, texts, autotexts = ax.pie(
+        data, startangle=90, colors=colors, wedgeprops={'edgecolor': 'black'}, explode=explode,
+        autopct='', pctdistance=0.85
+    )
+
+    # Adjust label positions with leader lines
+    for wedge, label in zip(wedges, labels):
+        angle = (wedge.theta2 + wedge.theta1) / 2  # Midpoint angle of the wedge
+        x = np.cos(np.radians(angle)) * 1.4  # Move text further out
+        y = np.sin(np.radians(angle)) * 1.4
+
         # Add text label
         ax.text(x, y, label, ha='center', va='center', fontsize=10, 
                 bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", lw=0.5))
@@ -227,10 +331,12 @@ def run_tagging(df, save_path, model, df_save_path, remove_intro=False, key_prom
 
 data_path = '/pasteur/data/microchat/error_tagging/gpt-4o-results.csv'
 save_path = '/pasteur/data/microchat/error_tagging/v1.4'
+# data_path = '/pasteur/data/microchat/error_tagging/claude-no-image-ablation-results.csv'
+# save_path = '/pasteur/data/microchat/error_tagging/v1.4_no_image_ablation'
 model = "gpt-4o-2024-08-06" # "o1-mini-2024-09-12" "anthropic/claude-3.5-sonnet"
 model_name = "gpt-4o"
-key_prompt_error = 0
-key_prompt_correct = 2
+key_prompt_error = 3 #0 
+key_prompt_correct = 3 #2
 
 os.makedirs(save_path, exist_ok=True)
 
@@ -256,6 +362,11 @@ fig_save_path = os.path.join(save_path, f"correct_tags_{model_name}.png")
 plot_pie_chart(correct_df, "Correct question tags", fig_save_path)
 fig_save_path = os.path.join(save_path, f"error_tags_{model_name}.png")
 plot_pie_chart(error_df, "Error question tags", fig_save_path)
+fig_save_path = os.path.join(save_path, f"all_tags_{model_name}.png")
+plot_pie_chart_all(df, "All question tags", fig_save_path)
+import ipdb; ipdb.set_trace()
+correct_df['tag_name'].value_counts()
+error_df['tag_name'].value_counts()
 
 # # evaluate the correct tags with Jeff's manual annotated ones
 # manual_tag_path = '/pasteur/data/microchat/error_tagging/manual_tagging_eval_anthropicclaude-35-sonnet_naive.csv'
@@ -269,8 +380,6 @@ plot_pie_chart(error_df, "Error question tags", fig_save_path)
 # manual_df = pd.read_csv(manual_tag_path)
 # # keep only the columns we need
 # manual_df['is_correct'] = (manual_df['pred'] == manual_df['gt'])
-# # filter to those that have been tagged
-# manual_df = manual_df[manual_df['error_category'].notnull()]
 
 # # rename some of the columns
 # manual_df = manual_df[['key_question', 'error_category', 'error_comment', 'error_rationale', 'question_answer_2_formatted', 'msg', 'is_correct', 'gt', 'pred']]
@@ -284,16 +393,28 @@ plot_pie_chart(error_df, "Error question tags", fig_save_path)
 # # plot a histogram of the tags
 # correct_df = eval_df[eval_df['is_correct']]
 # error_df = eval_df[~eval_df['is_correct']]
-# fig_save_path = os.path.join(manual_save_path, f"correct_tags_{model_name}.png")
-# plot_pie_chart(correct_df, "Correct question tags", fig_save_path)
-# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}.png")
-# plot_pie_chart(error_df, "Error question tags", fig_save_path)
+# fig_save_path = os.path.join(manual_save_path, f"correct_tags_{model_name}_all.png")
+# plot_pie_chart(correct_df, "Correct question tags", fig_save_path, color_name='crest')
+# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_all.png")
+# plot_pie_chart(error_df, "Error question tags", fig_save_path, color_name='flare')
+# fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_all.png")
+# plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
+
+# # filter to those that have been tagged
+# eval_df = eval_df[eval_df['error_category'].notnull()]
 
 # # compare tag_name and error_category lowercase
 # eval_df['tag_name'] = eval_df['tag_name'].str.lower()
+# # plot manual eval
+# correct_df = eval_df[eval_df['is_correct']]
+# error_df = eval_df[~eval_df['is_correct']]
 
-# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_manual.png")
+# fig_save_path = os.path.join(manual_save_path, f"error_tags_manual_manualset.png")
 # plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='error_category')
+# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_manualset.png")
+# plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='tag_name')
+# fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_manualset.png")
+# plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
 
 # # calculate the accuracy
 # correct = eval_df['tag_name'] == eval_df['error_category']
