@@ -29,3 +29,5 @@
 /ap_2020-2023_questions.csv
 /blooms_classification_finetuning_v3.xlsx
 /cp_2020-2023_questions.csv
+/jmhb_microvqa_train.csv
+/jmhb_microvqa_train_w-metadata.csv
