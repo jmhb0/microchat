@@ -1,0 +1,4 @@
+batch_id: batch_672aa7dee1448190953daade2e4a7767
+ file_id: file-IcPHyTR6X2ngyeu8Lgf6DwzZ
+
+python 20241030_blooms_tagging.py --dataset_name mmmu_pro --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --batch_id batch_672aa7dee1448190953daade2e4a7767

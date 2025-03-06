@@ -1,0 +1,4 @@
+batch_id: batch_672f9acaeee48190b235a42baeb1cb6d
+ file_id: file-Guj822B9xMQM8Jpf4XTVcm6F
+
+python 20241030_blooms_tagging.py --dataset_name lab_bench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --batch_id batch_672f9acaeee48190b235a42baeb1cb6d

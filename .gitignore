@@ -6,6 +6,7 @@ notes.py
 *.png
 output.png 
 analysis_scripts/results/
+analysis_scripts/blooms_tagging
 #data/*
 !data/*.py
 !data/**/*.dvc

@@ -1,0 +1,8 @@
+batch_id: batch_67280098b2cc8190b088e39bf0a60d0f
+ file_id: file-4wUYvJf4esNLFqTOlDZ1fJ2d
+python 20241030_blooms_tagging.py --dataset_name ours_nov2_300qs_s1_naive_s2_bot --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/df_questions_nov2_300qs_s1_naive_s2_bot.csv --batch_id batch_67280098b2cc8190b088e39bf0a60d0f
+
+batch_input_file_id: file-HOL2V98Mo4Yl4VkCVwsKE8zU
+batch_id: batch_6728635b8d3881909afc153a61f73829
+
+python 20241030_blooms_tagging.py --dataset_name ours_nov2_300qs_s1_naive_s2_bot --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /Pasteur/data/microchat/dataset_versions/df_questions_nov2_300qs_s1_naive_s2_bot.csv --prompt_key 1 --batch_id  batch_6728635b8d3881909afc153a61f73829

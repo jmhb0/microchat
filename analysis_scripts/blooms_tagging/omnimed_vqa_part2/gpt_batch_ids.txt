@@ -1,0 +1,4 @@
+batch_id: batch_6728813b09948190a30e6b36a69e1b6a
+ file_id: file-WOd9d7m20UwYmzio0kdMASrw
+
+python 20241030_blooms_tagging.py --dataset_name omnimed_vqa_part2 --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --batch_id batch_6728813b09948190a30e6b36a69e1b6a

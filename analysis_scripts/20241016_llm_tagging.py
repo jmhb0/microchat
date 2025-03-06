@@ -190,11 +190,9 @@ Your task is to choose which 'sub-use case' best describes this question. The op
 	 "how is the mitochondrial morphology different in image 1 vs image 2?"
 1.2: Identifying abnormalities, for example:
 	"Are the nuclei healthy or unhealthy and what features tell you that?"
-1.3: Identifying technical issues, for example 
-	"we stained for tubulin. Was it successful in terms of localization and SNR?”
 	"We see something unusual: is it biologically meaningful, or an experimental artifact?"
 
-Respond in json: {"sub_use_case" : "1.1|1.2|1.3"}
+Respond in json: {"sub_use_case" : "1.1|1.2"}
 
 TEXT: 
 ```
@@ -212,12 +210,11 @@ Your task is to choose which 'sub-use case' best describes this question. The op
 2.1: Biological mechanisms - causal, for example
 	"What gene dysregulation could lead to the observed cytoplasm shape?"
 2.2: Biological implications - functional, for example
-	"Given the unexpected localization of the centrosome, what will be the impact on liver function?"	
-2.3: Technical explanations, for example:
+	"Given the unexpected localization of the centrosome, what will be the impact on liver function?"
 	"why does increased laser power lead to more release of mScarlet-CD4 from the golgi to the cell membrane?"
 
 You can pick one option only.
-Respond in json: {"sub_use_case" : "2.1|2.2|2.3"}
+Respond in json: {"sub_use_case" : "2.1|2.2"}
 
 TEXT: 
 ```
@@ -294,7 +291,7 @@ Here is the context and question:
 Answer:
 {{text_answer}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nRunning 'question has answer' test")
     prompts = []
@@ -329,7 +326,7 @@ Here is the question and answer choices:
 Answer choices:
 {{text_choices}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nRunning 'question doesn't need image' test")
     prompts = []
@@ -365,7 +362,7 @@ Here is the question and answer choices:
 Answer choices:
 {{text_choices}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nRunning 'question is convoluted' test")
     prompts = []
@@ -404,7 +401,7 @@ Here is the question and answer choices:
 Answer choices:
 {{text_choices}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nRunning 'question is basic' test")
     prompts = []
@@ -440,7 +437,7 @@ Here is the question and answer choices:
 Answer choices:
 {{text_choices}}
 ```"""
-if 1:
+if 0:
     json_mode = True
     print("\nRunning 'question has bad grammar or spelling' test")
     prompts = []
@@ -509,6 +506,51 @@ if 0:
     df['_answer_generation_is_different_explanation'] = [
         r[0]['explanation'] for r in res
     ]
+# 2. Experimental misunderstanding: misapplying relevant concepts or misinterpreting the impact of experimental parameters.
+# 3. Misleading reasoning: is an error due to flawed reasoning, (e.g. incorrect cause-effect assumptions, reversals).
+prompt_template_distractor_types = """
+Below is a text that is paired with a microscopy image. 
+The text is a question and answer choices where only one is correct.
+
+Your task is to identify what the distractors are testing compared to the correct answer from these categories:
+1. Perception error: is based on an incorrect interpretation of the image.
+2. Conceptual misunderstanding: is a gap in fundamental knowledge or theory.
+3. Oversimplification or Overgeneralization: Applying a general principle too broadly without accounting for context-specific nuances.
+4. Cause-Effect Misinterpretation: Misunderstanding or incorrectly assuming a cause-and-effect relationship.
+5. Irrelevant technical details: technically plausible-sounding but unrelated to the question's actual scientific context.
+
+The json output should be:
+{'distractor_1' : '1|2|3|4|5', 'explanation' : '...',
+ 'distractor_2' : '1|2|3|4|5', 'explanation' : '...',
+ 'distractor_3' : '1|2|3|4|5', 'explanation' : '...',
+ 'distractor_4' : '1|2|3|4|5', 'explanation' : '...',
+}
+
+Here is the question and answer choices:
+```
+{{text_question}}
+Correct answer:
+{{text_correct}}
+Distractors:
+{{text_choices}}
+```"""
+if 0:
+    json_mode = True
+    print("\nRunning 'tagging distractors' test")
+    prompts = []
+    for t_q, t_c in zip(df['question'], df['choices']):
+        t_c = ast.literal_eval(t_c)['choices'] 
+        prompt = prompt_template_question_no_image.replace("{{text_question}}", str(t_q))
+        prompt = prompt.replace("{{text_choices}}", str(t_c))
+        prompts.append(prompt)
+
+    res = call_gpt_batch(prompts, model=model, json_mode=json_mode)
+    cost = sum([r[1] for r in res])  # with GPT-4o this cost $1.4
+    print(f"Cost ${cost:.2f} with model {model}")
+    df['_question_no_image'] = [r[0]['is_no_image'] for r in res]
+    df['_question_no_image_explanation'] = [
+        r[0]['explanation'] for r in res
+    ]
 
 # test Laura's idea about the correct answer being the longest 
 if 0: 
@@ -549,11 +591,11 @@ if 1:
         num = df[tag_name].value_counts().loc['1']
         print(f'| {tag_name} | {num} | {num/len(df):.2f} |')
 
-    count_tag_instances(df, '_question_has_answer')
-    count_tag_instances(df, '_question_no_image')
-    count_tag_instances(df, '_question_convoluted')
-    count_tag_instances(df, '_question_basic')
-    count_tag_instances(df, '_question_bad_grammar')
+    # count_tag_instances(df, '_question_has_answer')
+    # count_tag_instances(df, '_question_no_image')
+    # count_tag_instances(df, '_question_convoluted')
+    # count_tag_instances(df, '_question_basic')
+    # count_tag_instances(df, '_question_bad_grammar')
     # count_tag_instances(df, '_answer_generation_is_different')
     count_tag_instances(df, 'correct_is_longer')
 
