@@ -31,3 +31,5 @@
 /cp_2020-2023_questions.csv
 /jmhb_microvqa_train.csv
 /jmhb_microvqa_train_w-metadata.csv
+/jmhb_microvqa_train_w-metadata_difficulty.xlsx
+/jmhb_microvqa_train_w-metadata_difficulty.csv

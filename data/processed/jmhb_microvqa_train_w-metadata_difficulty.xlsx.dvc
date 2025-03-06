@@ -1,0 +1,5 @@
+outs:
+- md5: cd8088cf9020a2fd93bce7b657f57583
+  size: 919716
+  hash: md5
+  path: jmhb_microvqa_train_w-metadata_difficulty.xlsx
