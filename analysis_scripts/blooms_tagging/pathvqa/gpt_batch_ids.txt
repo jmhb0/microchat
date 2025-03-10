@@ -1,0 +1,4 @@
+batch_id: batch_672ab86566248190a31d9f189450f520
+ file_id: file-wo6J8bDSisVfteYpY5JjzUBP
+
+ python 20241030_blooms_tagging.py --dataset_name pathvqa --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/pvqa/qas/test_vqa.pkl --batch_id batch_672ab86566248190a31d9f189450f520

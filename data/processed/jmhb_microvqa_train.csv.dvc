@@ -1,0 +1,5 @@
+outs:
+- md5: 3aaf385167ec754e0284cc0ff1dc13d9
+  size: 4131180
+  hash: md5
+  path: jmhb_microvqa_train.csv

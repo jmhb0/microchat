@@ -23,7 +23,7 @@ import numpy as np
 )
 @click.option(
     "--column",
-    default="revised_question_postbot",
+    default="question_answer_3_formatted",
     type=str,
     help="Column to use for wordcloud.",
 )
@@ -38,7 +38,7 @@ import numpy as np
 def main(
     input_file: Path,
     output_dir: Optional[Path] = None,
-    column: str = "revised_question_postbot",
+    column: str = "question_answer_3_formatted",
     filter_col: Optional[Dict[Any, Any]] = None,
     lang: str = "en",
     metric: str = "flesch_kincaid_grade",
@@ -78,6 +78,61 @@ def main(
     # Read the input file
     df = pd.read_csv(input_file)
 
+    # replace \n in choices_2 string with comma
+    df["choices_3_temp"] = df["choices_3"].apply(
+        lambda x: x.replace("\n", ",") if isinstance(x, str) else x
+    )
+    df["choices_3_temp"] = df["choices_3_temp"].apply(
+        lambda x: x.replace("' '", "','") if isinstance(x, str) else x
+    )
+    df["choices_3_temp"] = df["choices_3_temp"].apply(
+        lambda x: eval(x) if isinstance(x, str) else x
+    )
+
+    # temp: create col `multiple_choice` from `choices_3` with A) B) C) D) ... format
+    df["choices_3_formatted"] = df["choices_3_temp"].apply(
+        lambda x: "".join([f"{chr(65+i)}) {choice}\n" for i, choice in enumerate(x)])
+    )
+
+    # compare len(choices_3_temp) with int(correct_index_3)
+    len_correct = df.apply(lambda x: int(x["correct_index_3"]), axis=1)
+    len_choices = df["choices_3_temp"].apply(lambda x: len(x))
+
+    # find rows where correct_index_3 is out of bounds
+    if (len_correct >= len_choices).any():
+        # print rows where correct_index_3 is out of bounds
+        logger.error(
+            f"Error: correct_index_3 out of bounds: {df[(len_correct >= len_choices)]}"
+        )
+        err_index = df[(len_correct >= len_choices)].index
+        # get subset df as copy
+        df_err = df.loc[err_index].copy()
+        # save to csv
+        df_err.to_csv(output_dir.joinpath(f"{input_file.stem}_correct_index_3_error.csv"))
+
+
+    # get element from choices_2 using correct_index_3
+    df["answer_3"] = df.apply(lambda x: x["choices_3_temp"][int(x["correct_index_3"])], axis=1)
+
+    # temp: create col question_answer_2_formatted from `question_2`, `choices_2_formatted`, `correct_index_2`
+    df["question_answer_3_formatted"] = (
+        # "Question:\n``` +"
+        df["question_3"]
+        + "\n\n"
+        + df["choices_3_formatted"]
+        # + "\nCorrect Answer: "
+        # + df["correct_index_3"].apply(lambda x: f"{chr(65 + x)}) ")
+        # + df["answer_3_formatted"]
+        # + "```"
+    )
+
+    # find any none in "_formatted" columns
+    if df[["choices_3_formatted", "answer_3", "question_answer_3_formatted"]].isnull().values.any():
+        logger.error(f"Error: NaN values found in the dataframe.")
+        raise ValueError(f"Error: NaN values found in the dataframe.")
+
+    df.to_excel(input_file.with_suffix(".xlsx"), index=False)
+
     # filter df
     if filter_col and isinstance(filter_col, dict):
         logger.info(f"Filtering dataframe with {filter_col}")
@@ -99,7 +154,7 @@ def main(
     logger.info(f"Computing text difficulty using metric: {metric}")
 
     # compute reading difficulty for column
-    df[f"consensus_difficulty"] = df[column].apply(
+    df["consensus_difficulty"] = df[column].apply(
         textstat.text_standard, float_output=True
     )
     df["fk_difficulty"] = df[column].apply(textstat.flesch_kincaid_grade)
@@ -108,16 +163,14 @@ def main(
     # raise error if any of the values are NaN, inf or -inf or Zero
     new_cols = ["consensus_difficulty", "fk_difficulty", "fk_reading_ease"]
     if df[new_cols].isin([np.nan, np.inf, -np.inf, 0]).any().any():
-        logger.error(f"Error: NaN, inf, -inf or Zero values found in the dataframe.")
-        raise ValueError(
-            f"Error: NaN, inf, -inf or Zero values found in the dataframe."
-        )
+        logger.error("Error: NaN, inf, -inf or Zero values found in the dataframe.")
+        raise ValueError("Error: NaN, inf, -inf or Zero values found in the dataframe.")
 
     logger.info(
         f"{df[['consensus_difficulty', 'fk_difficulty', 'fk_reading_ease']].describe()}"
     )
 
-    # save image
+    # save
     if output_file.exists():
         click.confirm(
             f"Output file {output_file.name} already exists! Do you want to overwrite?",
@@ -127,6 +180,7 @@ def main(
 
     # save csv with difficulty values
     df.to_csv(output_file, index=False)
+    df.to_excel(output_file.with_suffix(".xlsx"), index=False)
 
 
 if __name__ == "__main__":
