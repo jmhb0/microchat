@@ -1,5 +1,5 @@
 outs:
-- md5: f479ff456bda32db8c7de6f6a05c8ca5
-  size: 1543253
+- md5: 88f9730218eace5ea4fb2d1f27d9bed9
+  size: 1542304
   hash: md5
   path: eval_anthropicclaude-35-sonnet_naive.xlsx

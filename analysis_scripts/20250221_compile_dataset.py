@@ -1,5 +1,8 @@
 """
 python -m ipdb analysis_scripts/20250221_compile_dataset.py
+This is the script that makes jmhb/microvqa_0
+It loads the data from various functions that I had before: google sheets after review, and from the pre-revision dataset. 
+Then it pushes to hub. 
 """
 import ipdb
 import os
@@ -267,9 +270,10 @@ df = df_harmonize_choices_type(df)
 df['question_1'] = df['question_1'].str.replace('Question:\n', '')
 
 def _shuffle_key_image(df):
-    """shuffle the images around so that we don't have the basic images first. But still keep the rows with same image key together """
+    """shuffle the images around so that we don't have the basic images first. 
+    Then shuffle questions within each image group."""
     # Specify the desired first key_images
-    first_key_images = [51, 234, 128, 226, 117, 99]
+    first_key_images = [125, 59, 128, 234, 131, 168]
     
     # Get unique key_images excluding the first ones
     unique_key_images = df['key_image'].unique()
@@ -283,9 +287,10 @@ def _shuffle_key_image(df):
     shuffled_key_images = first_key_images + list(shuffled_remaining)
     
     # Create a new dataframe by concatenating blocks of rows with the same key_image
-    # in the shuffled order
+    # In each block, shuffle the questions
     shuffled_df = pd.concat([
-        df[df['key_image'] == key_image] for key_image in shuffled_key_images
+        df[df['key_image'] == key_image].sample(frac=1, random_state=42) 
+        for key_image in shuffled_key_images
     ]).reset_index(drop=True)
     
     return shuffled_df
