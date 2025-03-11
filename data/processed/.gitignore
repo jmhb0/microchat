@@ -17,12 +17,7 @@
 /benchmark_nov11.csv
 /llm-qc_eval_naive.csv
 /20250206_questions.csv
-/20250206_questions.csv
-/20250206_questions.csv
 /20250206_o1-mini_CoTRAG_SelfAssessRevisedInput_output.csv
-/20250206_questions.csv
-/20250206_o1-mini_CoTRAG_SelfAssessRevisedInput_output.csv
-/osu_questions.csv
 /osu_questions.csv
 /jhu_questions.csv
 /path_questions.csv
@@ -33,3 +28,5 @@
 /jmhb_microvqa_train_w-metadata.csv
 /jmhb_microvqa_train_w-metadata_difficulty.xlsx
 /jmhb_microvqa_train_w-metadata_difficulty.csv
+/jmhb_microvqa_train_w-metadata_difficulty_org-research.csv
+/jmhb_microvqa_train_w-metadata_difficulty_org-research_new-metadata-only.csv
