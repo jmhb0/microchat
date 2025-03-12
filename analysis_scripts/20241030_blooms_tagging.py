@@ -1,8 +1,10 @@
 """
 Usage:
+python 20241030_blooms_tagging.py --dataset_name ours_nov11_stage2 --version_name 2 --save_dir /pasteur/data/microchat/dataset_versions/nov11/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/nov11/benchmark_nov11_stage2.csv --send_batch
+python 20241030_blooms_tagging.py --dataset_name ours_hf_202502 --version_name 3 --save_dir /pasteur/data/microchat/dataset_versions/ours_hf_202502/blooms_tagging --send_batch
+
 python 20241030_blooms_tagging.py --dataset_name llavamed_vqa --save_dir /pasteur/u/minwoos/evaluation/blooms_tagging --dataset_path /pasteur/u/minwoos/evaluation/medical_multimodel_evaluation_data.json --send_batch
 python 20241030_blooms_tagging.py --dataset_name mmsci --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --dataset_path /pasteur/data/microchat/sota_benchmarks/mmsci/benchmark/test/image_caption_matching_data.json --send_batch
-python 20241030_blooms_tagging.py --dataset_name ours_nov11_stage2 --version_name 2 --save_dir /pasteur/data/microchat/dataset_versions/nov11/blooms_tagging --dataset_path /pasteur/data/microchat/dataset_versions/nov11/benchmark_nov11_stage2.csv --send_batch
 python 20241030_blooms_tagging.py --dataset_name microbench --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name ours_nov3_s1_naive --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
 python 20241030_blooms_tagging.py --dataset_name omnimed_vqa_part1 --save_dir /pasteur/u/lmbravo/code/microchat/analysis_scripts/blooms_tagging --send_batch
@@ -34,6 +36,7 @@ import seaborn as sns
 from typing import List, Dict, Any
 from tqdm import tqdm
 
+import openai
 from openai import OpenAI
 client = OpenAI()
 
@@ -86,24 +89,33 @@ def main(args):
                                      args.dataset_path,
                                      args.version_name)
     
-    jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api_{args.system_key}_{args.prompt_key}.jsonl')
-    if not os.path.exists(jsonl_path):
-        convert_to_jsonl(query_qs, jsonl_path,
-                         prompt_key=args.prompt_key, system_key=args.system_key)
     # 2. call gpt for batch dataset processing
-    gpt_output = blooms_tagging(ds_save_dir, jsonl_path,
+    if args.online_gpt:
+        gpt_df = online_blooms_tagging(ds_save_dir, query_qs,
+                                           prompt_key=args.prompt_key,
+                                           system_key=args.system_key)
+        save_tags_online(gpt_df, ds_save_dir, query_qs,
+                  all_qs=all_qs,
+                  prompt_key=args.prompt_key,
+                  system_key=args.system_key)
+    else:
+        jsonl_path = os.path.join(ds_save_dir, f'{args.dataset_name}_batch_api_{args.system_key}_{args.prompt_key}.jsonl')
+        if not os.path.exists(jsonl_path):
+            convert_to_jsonl(query_qs, jsonl_path,
+                            prompt_key=args.prompt_key, system_key=args.system_key)
+        gpt_output = blooms_tagging(ds_save_dir, jsonl_path,
                                 send_batch=args.send_batch,
                                 batch_id=args.batch_id,
                                 prompt_key=args.prompt_key,
                                 system_key=args.system_key)
-    if gpt_output is not None:
-        # 4. parse output tags and save to dataset
-        # new cols: blooms_question_category, blooms_confidence, blooms_level, blooms_source, blooms_reasoning
-        # if there's a counts_dict, then re-organize the output tags from the template questions to the complete dataset
-        save_tags(gpt_output, ds_save_dir, query_qs,
-                  all_qs=all_qs,
-                  prompt_key=args.prompt_key,
-                  system_key=args.system_key)
+        if gpt_output is not None:
+            # 4. parse output tags and save to dataset
+            # new cols: blooms_question_category, blooms_confidence, blooms_level, blooms_source, blooms_reasoning
+            # if there's a counts_dict, then re-organize the output tags from the template questions to the complete dataset
+            save_tags(gpt_output, ds_save_dir, query_qs,
+                    all_qs=all_qs,
+                    prompt_key=args.prompt_key,
+                    system_key=args.system_key)
 
 def save_to_jsonl(data, filename):
     """
@@ -123,25 +135,18 @@ def read_jsonl(path: str) -> List[Dict[str, Any]]:
     with open(path, buffering=1024*1024) as f:
         return [json.loads(line) for line in f if line.strip()]
     
-def organize_ours(file_path, dataset_name='ours', version_name=''):
-    df = pd.read_csv(file_path)
+def organize_ours(file_path=None, dataset_name='ours', version_name=''):
     query_qs = []
     all_qs = None # no need bc we don't have template qs
-    # if 'bot' in dataset_name:
-    #     # with bot the correct answer is inside the choices dict
-    #     # fancy no loop version only works if all choices have the same length
-    #     gt_idx = df['choices'].apply(lambda x: ast.literal_eval(x)['choices']['correct_index']).to_numpy()
-    #     choices = np.vstack(df['choices'].apply(lambda x: ast.literal_eval(x)['choices']['choices']))
-    #     df['correct_answer'] = choices[np.arange(len(choices)), gt_idx]
-    for idx, row in df.iterrows():
-        if '2' == version_name:
-            choices = ast.literal_eval(row[f'choices_{version_name}'])
+    if file_path is None:
+        # load dataset from huggingface
+        ds = load_dataset("jmhb/microvqa", split='train')
+        for idx in range(len(ds)):
+            row = ds[idx]
+            choices = row[f'choices_{version_name}']
             gt_idx = row[f'correct_index_{version_name}']
             correct_answer = choices[gt_idx]
-        else:
-            correct_answer = row[f'answer_{version_name}']
-        
-        q_info = {'question_stem': row[f'question_{version_name}'],
+            q_info = {'question_stem': row[f'question_{version_name}'],
             'correct_answer': correct_answer,
             'dataset': dataset_name,
             'id': str(row['key_question']),
@@ -149,6 +154,24 @@ def organize_ours(file_path, dataset_name='ours', version_name=''):
             # 'use_case': str(row['use_case'])
             }
         query_qs.append(q_info)
+    else:
+        # load dataframe from csv
+        df = pd.read_csv(file_path)
+        for idx, row in df.iterrows():
+            if version_name == '2':
+                choices = ast.literal_eval(row[f'choices_{version_name}'])
+                gt_idx = row[f'correct_index_{version_name}']
+                correct_answer = choices[gt_idx]
+            else:
+                correct_answer = row[f'answer_{version_name}']
+            q_info = {'question_stem': row[f'question_{version_name}'],
+                'correct_answer': correct_answer,
+                'dataset': dataset_name,
+                'id': str(row['key_question']),
+                'key_question': str(row['key_question']),
+                # 'use_case': str(row['use_case'])
+                }
+            query_qs.append(q_info)
     return query_qs, all_qs
 
 def organize_microbench():
@@ -523,6 +546,42 @@ def call_offline_gpt(jsonl_path, save_dir):
     # client = OpenAI()
     # client.batches.cancel("batch_abc123")
 
+def call_online_gpt(query_qs, save_path, prompt_key=0, system_key=0):
+    responses = []
+    if os.path.exists(save_path):
+        print(f"Loading gpt output from {save_path}")
+        df = pd.read_csv(save_path)
+        if len(df) == len(query_qs):
+            return df
+        else:
+            # filter out the ones that are already done
+            done_ids = df['id'].values
+            query_qs = [q for q in query_qs if int(q['id']) not in done_ids]
+            # add the ones that are already done to the responses
+            responses = df.to_dict(orient='records')
+    
+    for q_info in tqdm(query_qs):
+        response = client.beta.chat.completions.parse(
+            model="ft:gpt-4o-mini-2024-07-18:marvl-lab:gpt-4o-mini-2024-07-18-blooms:ANR07kPO",
+            messages=[
+                {"role": "system", "content": system_prompts[system_key]},
+                {"role": "user", "content": update_prompt(question_prompts[prompt_key], q_info)},
+            ],
+            max_tokens=1000,
+            response_format=BloomsOutput
+        )
+        output = BloomsOutput.model_validate_json(response.choices[0].message.content).dict()
+        output["id"] = q_info['id']
+        responses.append(output)
+        # save to csv
+        df = pd.DataFrame(responses)
+        df.to_csv(save_path, index=False)
+    return df
+
+def online_blooms_tagging(save_dir, query_qs, prompt_key=0, system_key=0):
+    save_path = os.path.join(save_dir, f'gpt_output_{prompt_key}_{system_key}.csv')
+    gpt_df = call_online_gpt(query_qs, save_path, prompt_key=prompt_key, system_key=system_key)
+    return gpt_df
 
 def blooms_tagging(save_dir, jsonl_path,
                    send_batch=False, batch_id=None,
@@ -556,7 +615,6 @@ def blooms_tagging(save_dir, jsonl_path,
             ipdb.set_trace()
         else:
             raise ValueError(f"Batch job {batch_id} status is {status}")
-
 
 def clean_gpt_output(gpt_output):
     final_output = []
@@ -707,6 +765,35 @@ def save_tags(gpt_output, save_dir, query_qs, all_qs=None,
     plot_histograms(blooms_qs, 'blooms_level', save_dir, possible_values=['1', '2', '3', '4', '5', '6'])
     plot_histograms(blooms_qs, 'blooms_name', save_dir)
 
+def save_tags_online(gpt_df, save_dir, query_qs, all_qs=None,
+              prompt_key=0, system_key=0):
+    save_path = os.path.join(save_dir, f'blooms_tags_{prompt_key}_{system_key}.csv')
+    if os.path.exists(save_path):
+        print(f"Loading tagged dataset from {save_path}")
+        blooms_qs = pd.read_csv(save_path)
+    else:
+        query_df = pd.DataFrame(query_qs)
+        # make a histogram of the blooms levels in the dataset
+        if all_qs is not None:
+            gpt_df = gpt_df.merge(query_df[['id', 'template_type']], on='id')
+            # if there's a template_id it means we used a template to fill in the blooms
+            gpt_df.rename(columns={'id': 'template_id'}, inplace=True)
+            all_qs_df = pd.DataFrame(all_qs)
+            blooms_qs = pd.merge(all_qs_df, gpt_df, on='template_type', how='left')
+        else:
+            query_df['id'] = query_df['id'].astype(int)
+            gpt_df = gpt_df.merge(query_df, on='id')
+            blooms_qs = gpt_df
+        # save the tagged dataset
+        blooms_qs.to_csv(save_path, index=False)
+    # plot the histogram of the blooms levels
+    # remove invalid values
+    blooms_qs = blooms_qs[(blooms_qs['blooms_level'] != -1) & (blooms_qs['blooms_level'].notna()) & (blooms_qs['blooms_level'] != 'nan')]
+    # make the level a string variable
+    blooms_qs['blooms_level'] = blooms_qs['blooms_level'].astype(int).astype(str)
+    plot_histograms(blooms_qs, 'blooms_level', save_dir, possible_values=['1', '2', '3', '4', '5', '6'])
+    plot_histograms(blooms_qs, 'blooms_name', save_dir)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Add Blooms tags to the dataset')
@@ -717,12 +804,9 @@ if __name__ == '__main__':
     parser.add_argument('--system_key', type=int, help='system prompt key to use', default=0)
     parser.add_argument('--send_batch', action='store_true', help='send batch to gpt')
     parser.add_argument('--batch_id', type=str, help='batch id to retrieve the output')
-    parser.add_argument('--dataset_path', type=str, help='path to the dataset file', default=
-                        '/pasteur/data/microchat/dataset_versions/nov_11/benchmark_nov11_stage2.csv')
+    parser.add_argument('--dataset_path', type=str, help='path to the dataset file', default=None)
     parser.add_argument('--version_name', type=str, help='version name for the dataset. Relevant for ours', default='2')
-                        # '/pasteur/data/microchat/sota_benchmarks/omnimed_vqa/QA_information/Open-access')
-                        # '/pasteur/data/microchat/sota_benchmarks/PathQABench.json')
-                        # '/pasteur/data/microchat/sota_benchmarks/pvqa/qas/test_vqa.pkl')
+    parser.add_argument('--online_gpt', action='store_true', help='use online gpt instead of offline')
 
     args = parser.parse_args()
     main(args)
