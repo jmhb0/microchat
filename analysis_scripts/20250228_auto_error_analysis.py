@@ -112,14 +112,17 @@ Resoning trace:
 
 Return a json with the following schema, the tag_name is the name of the type:
 """ + json.dumps(TagResponse.schema(), indent=2),
-1:
+1: # manual prompt
 """
 Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was also shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
-- No image: the question can be answered without needing to interpret the image.
-- Language shortcut: the question has information that makes the correct option obvious.
+- No image: the image is unnecessary because the correct answer doesn't rely on interpreting visual cues.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
+- Language bias: the question has information that makes the correct option obvious.
 - Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Good question: the question is well-constructed and needs the image and specialized knowledge to answer.
 - Other: the question is hard to answer or doesn't fit the other classes.
 
+Question:
 {{question}}
 
 Resoning trace:
@@ -150,8 +153,87 @@ Return a json with the following schema, the tag_name is the name of the type:
 """
 Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was not shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
 - No image: the question can be answered without needing to interpret the image.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
 - Language shortcut: the question has information that makes the correct option obvious.
 - Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Other: the question is hard to answer or doesn't fit the other classes.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
+4: # changing cat names
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was also shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
+- No image: the image is unnecessary because the correct answer doesn't rely on interpreting visual cues.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
+- Language bias: the question has information that makes the correct option obvious.
+- Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Other: the question is hard to answer or doesn't fit the other classes.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
+5: # no image ablation + cat names
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was not shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
+- No image: the question can be answered without needing to interpret the image.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
+- Language bias: the question has information that makes the correct option obvious.
+- Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Other: the question is hard to answer or doesn't fit the other classes.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
+6: # add good question
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was also shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
+- No image: the image is unnecessary because the correct answer doesn't rely on interpreting visual cues.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
+- Language bias: the question has information that makes the correct option obvious.
+- Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Good question: the question is well-constructed and needs the image and specialized knowledge to answer.
+- Other: the question is hard to answer or doesn't fit the other classes.
+
+Question:
+{{question}}
+
+Correct answer: {{correct_answer}}
+
+Resoning trace:
+{{reasoning}}
+
+Return a json with the following schema, the tag_name is the name of the type:
+""" + json.dumps(TagResponse.schema(), indent=2),
+7: # no image ablation + good question
+"""
+Below is a multiple choice question with options and the reasoning that lead a model to a correct response. Originally the model was not shown an image with the question. Your task is to use the reasoning trace and determine if the question was answered because of these reasons:
+- No image: the question can be answered without needing to interpret the image.
+- Visual giveaway: the image is unnecessary because critical visual information is already described in the question itself.
+- Language bias: the question has information that makes the correct option obvious.
+- Weak distractors: the distractors are easy to rule out according to the reasoning trace.
+- Good question: the question is well-constructed and needs the image and specialized knowledge to answer.
 - Other: the question is hard to answer or doesn't fit the other classes.
 
 Question:
@@ -250,8 +332,8 @@ def plot_pie_chart_all(df, title, save_path, col_name='tag_name', by_name='is_co
     labels = [f"{tag}\n{count} ({count/total:.1%})" for tag, count in zip(data.index, data.values)]
 
     # Get the number of unique categories in each group
-    num_correct = correct_data.nunique()
-    num_wrong = wrong_data.nunique()
+    num_correct = len(correct_data)
+    num_wrong = len(wrong_data)
 
     # Define color palettes based on the unique number of categories
     palette_correct = sns.color_palette('Blues', num_correct)
@@ -259,7 +341,9 @@ def plot_pie_chart_all(df, title, save_path, col_name='tag_name', by_name='is_co
 
     # Create a mapping from category to color
     correct_tags = correct_data.index
+    correct_tags = correct_tags.sort_values()
     wrong_tags = wrong_data.index
+    wrong_tags = wrong_tags.sort_values()
 
     colors_map = {tag: palette_correct[i] for i, tag in enumerate(correct_tags)}
     colors_map.update({tag: palette_wrong[i] for i, tag in enumerate(wrong_tags)})
@@ -329,23 +413,25 @@ def run_tagging(df, save_path, model, df_save_path, remove_intro=False, key_prom
     df.to_csv(df_save_path, index=False)
     return df
 
-data_path = '/pasteur/data/microchat/error_tagging/gpt-4o-results.csv'
-save_path = '/pasteur/data/microchat/error_tagging/v1.4'
-# data_path = '/pasteur/data/microchat/error_tagging/claude-no-image-ablation-results.csv'
-# save_path = '/pasteur/data/microchat/error_tagging/v1.4_no_image_ablation'
+# data_path = '/pasteur/data/microchat/error_tagging/gpt-4o-results.csv'
+# save_path = '/pasteur/data/microchat/error_tagging/v1.6_gpt'
+# data_path = '/pasteur/data/microchat/error_tagging/results_gpt-4o-2024-11-20_subset_0_seed_0_no_image.csv'
+data_path = '/pasteur/data/microchat/error_tagging/claude-no-image-ablation-results.csv'
+save_path = '/pasteur/data/microchat/error_tagging/v1.6_no_image_ablation_claude_gpt'
 model = "gpt-4o-2024-08-06" # "o1-mini-2024-09-12" "anthropic/claude-3.5-sonnet"
 model_name = "gpt-4o"
-key_prompt_error = 3 #0 
-key_prompt_correct = 3 #2
+key_prompt_error = 3 #0
+key_prompt_correct = 7  #6
 
 os.makedirs(save_path, exist_ok=True)
 
 # read the csv with the questions and reasoning traces
 df = pd.read_csv(data_path)
-# join information from the og dataset.
-# TODO: add the columns to the og saved csv
-dataset = datasets.load_dataset("jmhb/microvqa")['train']
-df['key_question'] = dataset['key_question']
+# # join information from the og dataset.
+# # TODO: add the columns to the og saved csv
+# dataset = datasets.load_dataset("jmhb/microvqa")['train']
+# import ipdb; ipdb.set_trace()
+# df['key_question'] = dataset['key_question']
 
 df_save_path = os.path.join(save_path, f"tagged_results_{model_name}.csv")
 if os.path.exists(df_save_path):
@@ -359,69 +445,69 @@ correct_df = df[df['is_correct']]
 error_df = df[~df['is_correct']]
 
 fig_save_path = os.path.join(save_path, f"correct_tags_{model_name}.png")
-plot_pie_chart(correct_df, "Correct question tags", fig_save_path)
+plot_pie_chart(correct_df, "Correct question tags", fig_save_path, color_name='Blues')
 fig_save_path = os.path.join(save_path, f"error_tags_{model_name}.png")
-plot_pie_chart(error_df, "Error question tags", fig_save_path)
+plot_pie_chart(error_df, "Error question tags", fig_save_path, color_name='Reds')
 fig_save_path = os.path.join(save_path, f"all_tags_{model_name}.png")
 plot_pie_chart_all(df, "All question tags", fig_save_path)
 import ipdb; ipdb.set_trace()
 correct_df['tag_name'].value_counts()
 error_df['tag_name'].value_counts()
 
-# # evaluate the correct tags with Jeff's manual annotated ones
-# manual_tag_path = '/pasteur/data/microchat/error_tagging/manual_tagging_eval_anthropicclaude-35-sonnet_naive.csv'
-# key_prompt_error = 1
-# key_prompt_correct = 1
+# evaluate the correct tags with Jeff's manual annotated ones
+manual_tag_path = '/pasteur/data/microchat/error_tagging/manual_tagging_eval_anthropicclaude-35-sonnet_naive.csv'
+save_path = '/pasteur/data/microchat/error_tagging/v1.6_gpt'
+key_prompt_error = 1
+key_prompt_correct = 1
 
-# manual_save_path = save_path + '_manual'
-# manual_df_save_path = os.path.join(manual_save_path, f"tagged_results_{model_name}_manual.csv")
-# os.makedirs(manual_save_path, exist_ok=True)
+manual_save_path = save_path + '_manual'
+manual_df_save_path = os.path.join(manual_save_path, f"tagged_results_{model_name}_manual.csv")
+os.makedirs(manual_save_path, exist_ok=True)
 
-# manual_df = pd.read_csv(manual_tag_path)
-# # keep only the columns we need
-# manual_df['is_correct'] = (manual_df['pred'] == manual_df['gt'])
+manual_df = pd.read_csv(manual_tag_path)
+# keep only the columns we need
+manual_df['is_correct'] = (manual_df['pred'] == manual_df['gt'])
 
-# # rename some of the columns
-# manual_df = manual_df[['key_question', 'error_category', 'error_comment', 'error_rationale', 'question_answer_2_formatted', 'msg', 'is_correct', 'gt', 'pred']]
-# manual_df.rename(columns={'question_answer_2_formatted': 'question', 'msg': 'response'}, inplace=True)
-# eval_df = run_tagging(manual_df, manual_save_path, model, manual_df_save_path, remove_intro=False,
-#                       key_prompt_error=key_prompt_error, key_prompt_correct=key_prompt_correct)
+# rename some of the columns
+manual_df = manual_df[['key_question', 'error_category', 'error_comment', 'error_rationale', 'question_answer_2_formatted', 'msg', 'is_correct', 'gt', 'pred']]
+manual_df.rename(columns={'question_answer_2_formatted': 'question', 'msg': 'response'}, inplace=True)
+eval_df = run_tagging(manual_df, manual_save_path, model, manual_df_save_path, remove_intro=False,
+                      key_prompt_error=key_prompt_error, key_prompt_correct=key_prompt_correct)
 
-# # simplify some error categories
-# eval_df['error_category'].replace(['misconception', 'reasoning'], ['overgeneralization', 'other'], inplace=True)
+# simplify some error categories
+eval_df['error_category'].replace(['misconception', 'reasoning'], ['overgeneralization', 'other'], inplace=True)
 
-# # plot a histogram of the tags
-# correct_df = eval_df[eval_df['is_correct']]
-# error_df = eval_df[~eval_df['is_correct']]
-# fig_save_path = os.path.join(manual_save_path, f"correct_tags_{model_name}_all.png")
-# plot_pie_chart(correct_df, "Correct question tags", fig_save_path, color_name='crest')
-# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_all.png")
-# plot_pie_chart(error_df, "Error question tags", fig_save_path, color_name='flare')
-# fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_all.png")
-# plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
+# plot a histogram of the tags
+correct_df = eval_df[eval_df['is_correct']]
+error_df = eval_df[~eval_df['is_correct']]
+fig_save_path = os.path.join(manual_save_path, f"correct_tags_{model_name}_all.png")
+plot_pie_chart(correct_df, "Correct question tags", fig_save_path, color_name='Blues')
+fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_all.png")
+plot_pie_chart(error_df, "Error question tags", fig_save_path, color_name='Reds')
+fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_all.png")
+plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
+import ipdb; ipdb.set_trace()
 
-# # filter to those that have been tagged
-# eval_df = eval_df[eval_df['error_category'].notnull()]
+# filter to those that have been tagged
+eval_df = eval_df[eval_df['error_category'].notnull()]
 
-# # compare tag_name and error_category lowercase
-# eval_df['tag_name'] = eval_df['tag_name'].str.lower()
-# # plot manual eval
-# correct_df = eval_df[eval_df['is_correct']]
-# error_df = eval_df[~eval_df['is_correct']]
+# compare tag_name and error_category lowercase
+eval_df['tag_name'] = eval_df['tag_name'].str.lower()
+# plot manual eval
+correct_df = eval_df[eval_df['is_correct']]
+error_df = eval_df[~eval_df['is_correct']]
 
-# fig_save_path = os.path.join(manual_save_path, f"error_tags_manual_manualset.png")
-# plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='error_category')
-# fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_manualset.png")
-# plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='tag_name')
-# fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_manualset.png")
-# plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
+fig_save_path = os.path.join(manual_save_path, f"error_tags_manual_manualset.png")
+plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='error_category', color_name='Reds')
+fig_save_path = os.path.join(manual_save_path, f"error_tags_{model_name}_manualset.png")
+plot_pie_chart(error_df, "Error question tags", fig_save_path, col_name='tag_name', color_name='Reds')
+fig_save_path = os.path.join(manual_save_path, f"all_tags_{model_name}_manualset.png")
+plot_pie_chart_all(eval_df, "All question tags", fig_save_path)
 
-# # calculate the accuracy
-# correct = eval_df['tag_name'] == eval_df['error_category']
-# eval_df['tag_correct'] = correct
-# accuracy = (correct.sum() / len(eval_df)) * 100
-# print(f"Accuracy of the model: {accuracy:.2f}")
-# # save eval_df to file
-# eval_df.to_csv(manual_df_save_path, index=False)
-# # # use existing tagged df
-# # # eval_df = pd.merge(df[~df['is_correct']], manual_df, on='key_question', how='inner')
+# calculate the accuracy
+correct = eval_df['tag_name'] == eval_df['error_category']
+eval_df['tag_correct'] = correct
+accuracy = (correct.sum() / len(eval_df)) * 100
+print(f"Accuracy of the model: {accuracy:.2f}")
+# save eval_df to file
+eval_df.to_csv(manual_df_save_path, index=False)
