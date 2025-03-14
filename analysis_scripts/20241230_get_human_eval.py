@@ -118,7 +118,15 @@ df_responses = pd.concat(dfs_responses)
 df_data = pd.concat(dfs_data)
 assert len(df_responses) == len(df_data)
 df_data['correct'] = (df_data['correct_index_2'] == df_responses['answer_index'])
-ipdb.set_trace()
+
+# also get the use case
+df_questions_original = pd.read_csv("/Users/jamesburgess/microchat/benchmark/data/formdata_0/4_questions.csv")
+lookup_question_to_task = dict(zip(df_questions_original['key_question'], df_questions_original['use_case']))
+df_data['task'] = df_data['key_question'].map(lookup_question_to_task)
+
+# print final stuff
+df_data['correct'].mean()
+print(df_data.groupby('task')['correct'].mean())
 pass
 
 
